@@ -1,0 +1,16 @@
+{
+  "properties": [
+    {
+      "name": "admin.default.email",
+      "type": "java.lang.String",
+      "description": "Email del SuperAdmin por defecto creado al iniciar la aplicación. Solo se usa si no existe ningún SuperAdmin en la base de datos.",
+      "defaultValue": "admin@sistema.com"
+    },
+    {
+      "name": "admin.default.password",
+      "type": "java.lang.String",
+      "description": "Contraseña del SuperAdmin por defecto. IMPORTANTE: En producción debe configurarse mediante variable de entorno ADMIN_DEFAULT_PASSWORD.",
+      "defaultValue": "changeMe123!"
+    }
+  ]
+}
