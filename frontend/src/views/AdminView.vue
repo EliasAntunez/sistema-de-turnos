@@ -9,8 +9,24 @@
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="admin-content">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button 
+        :class="['tab', { active: activeTab === 'empresas' }]" 
+        @click="activeTab = 'empresas'"
+      >
+        Empresas
+      </button>
+      <button 
+        :class="['tab', { active: activeTab === 'especialidades' }]" 
+        @click="activeTab = 'especialidades'"
+      >
+        Especialidades
+      </button>
+    </div>
+
+    <!-- Main Content - Empresas -->
+    <main v-if="activeTab === 'empresas'" class="admin-content">
       <!-- Botón para crear empresa -->
       <div class="actions-bar">
         <button @click="mostrarFormulario = true" class="btn-primary">
@@ -82,6 +98,18 @@
               <span v-if="fieldErrors['empresa.nombre']" class="field-error">{{ fieldErrors['empresa.nombre'] }}</span>
             </div>
 
+            <div class="form-group" :class="{ 'has-error': fieldErrors['empresa.slug'] }">
+              <label>Slug (URL amigable) *</label>
+              <input 
+                v-model="formData.empresa.slug" 
+                required 
+                placeholder="ejemplo: peluqueria-elegante (solo letras minúsculas, números y guiones)"
+                pattern="[a-z0-9\-]+"
+              />
+              <small class="field-hint">Será usado en la URL pública: /reservar/{{ formData.empresa.slug || 'tu-slug' }}</small>
+              <span v-if="fieldErrors['empresa.slug']" class="field-error">{{ fieldErrors['empresa.slug'] }}</span>
+            </div>
+
             <div class="form-group" :class="{ 'has-error': fieldErrors['empresa.cuit'] }">
               <label>CUIT *</label>
               <input v-model="formData.empresa.cuit" placeholder="Solo números (11 dígitos)" required />
@@ -124,6 +152,19 @@
               <label>Descripción</label>
               <textarea v-model="formData.empresa.descripcion" rows="3"></textarea>
               <span v-if="fieldErrors['empresa.descripcion']" class="field-error">{{ fieldErrors['empresa.descripcion'] }}</span>
+            </div>
+
+            <div class="form-group" :class="{ 'has-error': fieldErrors['empresa.diasMaximosReserva'] }">
+              <label>Días máximos para reservar</label>
+              <input 
+                v-model.number="formData.empresa.diasMaximosReserva" 
+                type="number" 
+                min="1" 
+                max="365"
+                placeholder="30 (por defecto)"
+              />
+              <small class="field-hint">Cantidad de días hacia adelante que los clientes pueden reservar turnos</small>
+              <span v-if="fieldErrors['empresa.diasMaximosReserva']" class="field-error">{{ fieldErrors['empresa.diasMaximosReserva'] }}</span>
             </div>
 
             <div class="form-actions">
@@ -181,6 +222,95 @@
         </div>
       </div>
     </main>
+
+    <!-- Main Content - Especialidades -->
+    <main v-if="activeTab === 'especialidades'" class="admin-content">
+      <div class="actions-bar">
+        <button @click="mostrarFormularioEsp = true" class="btn-primary">
+          ➕ Nueva Especialidad
+        </button>
+      </div>
+
+      <!-- Formulario de especialidad -->
+      <div v-if="mostrarFormularioEsp" class="modal-overlay" @click.self="cerrarFormularioEsp">
+        <div class="modal-content modal-small">
+          <h2>{{ editingEspecialidad ? 'Editar' : 'Nueva' }} Especialidad</h2>
+          
+          <div v-if="errorEsp" class="error-message">{{ errorEsp }}</div>
+          <div v-if="exitoEsp" class="success-message">{{ exitoEsp }}</div>
+
+          <form @submit.prevent="guardarEspecialidad">
+            <div class="form-group" :class="{ 'has-error': fieldErrorsEsp.nombre }">
+              <label>Nombre *</label>
+              <input v-model="formDataEsp.nombre" required placeholder="Ej: Barbero" />
+              <span v-if="fieldErrorsEsp.nombre" class="field-error">{{ fieldErrorsEsp.nombre }}</span>
+            </div>
+
+            <div class="form-group" :class="{ 'has-error': fieldErrorsEsp.descripcion }">
+              <label>Descripción</label>
+              <textarea v-model="formDataEsp.descripcion" rows="3" placeholder="Describe esta especialidad..."></textarea>
+              <span v-if="fieldErrorsEsp.descripcion" class="field-error">{{ fieldErrorsEsp.descripcion }}</span>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" @click="cerrarFormularioEsp" class="btn-secondary">
+                Cancelar
+              </button>
+              <button type="submit" :disabled="cargandoEsp" class="btn-primary">
+                {{ cargandoEsp ? 'Guardando...' : 'Guardar' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Lista de especialidades -->
+      <div class="empresas-grid">
+        <div v-if="cargandoEspecialidades" class="loading">Cargando especialidades...</div>
+        
+        <div v-else-if="especialidades.length === 0" class="empty-state">
+          No hay especialidades registradas. Crea la primera especialidad.
+        </div>
+
+        <div v-else v-for="especialidad in especialidades" :key="especialidad.id" class="empresa-card">
+          <div class="empresa-header">
+            <h3>{{ especialidad.nombre }}</h3>
+            <span :class="['badge', especialidad.activa ? 'badge-active' : 'badge-inactive']">
+              {{ especialidad.activa ? 'Activa' : 'Inactiva' }}
+            </span>
+          </div>
+          
+          <div class="empresa-info">
+            <p v-if="especialidad.descripcion">{{ especialidad.descripcion }}</p>
+            <p v-else class="text-muted">Sin descripción</p>
+            <p class="text-small"><strong>Creada:</strong> {{ formatearFecha(especialidad.fechaCreacion) }}</p>
+          </div>
+
+          <div class="empresa-actions">
+            <button 
+              @click="editarEspecialidad(especialidad)"
+              class="btn-edit-sm"
+            >
+              Editar
+            </button>
+            <button 
+              v-if="especialidad.activa"
+              @click="cambiarEstadoEspecialidad(especialidad.id, false)"
+              class="btn-danger-sm"
+            >
+              Desactivar
+            </button>
+            <button 
+              v-else
+              @click="cambiarEstadoEspecialidad(especialidad.id, true)"
+              class="btn-success-sm"
+            >
+              Activar
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 </template>
 
@@ -193,6 +323,10 @@ import api from '../services/api'
 const router = useRouter()
 const authStore = useAuthStore()
 
+// Tab activo
+const activeTab = ref<'empresas' | 'especialidades'>('empresas')
+
+// Estado para Empresas
 const mostrarFormulario = ref(false)
 const empresas = ref<any[]>([])
 const cargando = ref(false)
@@ -200,6 +334,21 @@ const cargandoEmpresas = ref(false)
 const error = ref('')
 const exito = ref('')
 const fieldErrors = ref<Record<string, string>>({})
+
+// Estado para Especialidades
+const mostrarFormularioEsp = ref(false)
+const especialidades = ref<any[]>([])
+const cargandoEsp = ref(false)
+const cargandoEspecialidades = ref(false)
+const errorEsp = ref('')
+const exitoEsp = ref('')
+const fieldErrorsEsp = ref<Record<string, string>>({})
+const editingEspecialidad = ref<any>(null)
+
+const formDataEsp = ref({
+  nombre: '',
+  descripcion: ''
+})
 
 const formData = ref({
   dueno: {
@@ -213,18 +362,21 @@ const formData = ref({
   },
   empresa: {
     nombre: '',
+    slug: '',
     descripcion: '',
     cuit: '',
     direccion: '',
     ciudad: '',
     provincia: '',
     telefono: '',
-    email: ''
+    email: '',
+    diasMaximosReserva: 30
   }
 })
 
 onMounted(() => {
   cargarEmpresas()
+  cargarEspecialidades()
 })
 
 async function cargarEmpresas() {
@@ -326,9 +478,112 @@ function cerrarFormulario() {
 }
 
 function handleLogout() {
-  authStore.logout()
-  router.push('/login')
+  // Llamar al endpoint de logout para invalidar sesión del servidor
+  api.logout()
+    .then(() => {
+      authStore.logout()
+      router.push('/login')
+    })
+    .catch(() => {
+      // Incluso si falla, limpiar estado local
+      authStore.logout()
+      router.push('/login')
+    })
 }
+
+// ==================== FUNCIONES PARA ESPECIALIDADES ====================
+
+async function cargarEspecialidades() {
+  cargandoEspecialidades.value = true
+  try {
+    const response = await api.get('/admin/especialidades')
+    if (response.data.exito) {
+      especialidades.value = response.data.datos
+    }
+  } catch (err) {
+    console.error('Error al cargar especialidades:', err)
+  } finally {
+    cargandoEspecialidades.value = false
+  }
+}
+
+async function guardarEspecialidad() {
+  errorEsp.value = ''
+  exitoEsp.value = ''
+  fieldErrorsEsp.value = {}
+  cargandoEsp.value = true
+
+  try {
+    if (editingEspecialidad.value) {
+      // Actualizar
+      await api.put(`/admin/especialidades/${editingEspecialidad.value.id}`, formDataEsp.value)
+      exitoEsp.value = 'Especialidad actualizada exitosamente'
+    } else {
+      // Crear
+      await api.post('/admin/especialidades', formDataEsp.value)
+      exitoEsp.value = 'Especialidad creada exitosamente'
+    }
+
+    setTimeout(() => {
+      cerrarFormularioEsp()
+      cargarEspecialidades()
+    }, 1500)
+  } catch (err: any) {
+    console.error('Error al guardar especialidad:', err)
+    
+    if (err.response?.data?.errores) {
+      fieldErrorsEsp.value = err.response.data.errores
+      errorEsp.value = 'Por favor corrija los errores en el formulario'
+    } else if (err.response?.data?.mensaje) {
+      errorEsp.value = err.response.data.mensaje
+    } else {
+      errorEsp.value = 'Error al guardar la especialidad'
+    }
+  } finally {
+    cargandoEsp.value = false
+  }
+}
+
+function editarEspecialidad(especialidad: any) {
+  editingEspecialidad.value = especialidad
+  formDataEsp.value = {
+    nombre: especialidad.nombre,
+    descripcion: especialidad.descripcion || ''
+  }
+  mostrarFormularioEsp.value = true
+}
+
+function cerrarFormularioEsp() {
+  mostrarFormularioEsp.value = false
+  editingEspecialidad.value = null
+  formDataEsp.value = {
+    nombre: '',
+    descripcion: ''
+  }
+  errorEsp.value = ''
+  exitoEsp.value = ''
+  fieldErrorsEsp.value = {}
+}
+
+async function cambiarEstadoEspecialidad(id: number, activar: boolean) {
+  try {
+    const endpoint = activar ? 'activar' : 'desactivar'
+    await api.patch(`/admin/especialidades/${id}/${endpoint}`)
+    await cargarEspecialidades()
+  } catch (err) {
+    console.error('Error al cambiar estado:', err)
+    alert('Error al cambiar el estado de la especialidad')
+  }
+}
+
+function formatearFecha(fecha: string) {
+  return new Date(fecha).toLocaleDateString('es-AR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
 </script>
 
 <style scoped>
@@ -349,6 +604,38 @@ function handleLogout() {
 .admin-header h1 {
   font-size: 1.5rem;
   color: #2d3748;
+}
+
+/* Tabs */
+.tabs {
+  background: white;
+  display: flex;
+  gap: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.tab {
+  flex: 1;
+  padding: 1rem 2rem;
+  border: none;
+  background: transparent;
+  color: #718096;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.tab:hover {
+  background: #f7fafc;
+  color: #667eea;
+}
+
+.tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: #f7fafc;
 }
 
 .user-info {
@@ -475,6 +762,14 @@ function handleLogout() {
   font-weight: 500;
 }
 
+.field-hint {
+  display: block;
+  color: #718096;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+  font-style: italic;
+}
+
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -564,6 +859,31 @@ function handleLogout() {
 .btn-success-sm {
   background: #68d391;
   color: white;
+}
+
+.btn-edit-sm {
+  background: #4299e1;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.text-muted {
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.text-small {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.modal-small {
+  max-width: 500px;
 }
 
 .error-message {

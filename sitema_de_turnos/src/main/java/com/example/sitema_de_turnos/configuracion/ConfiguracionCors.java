@@ -23,9 +23,27 @@ public class ConfiguracionCors {
                 "http://127.0.0.1:5173"
         ));
         
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // PRODUCCI\u00d3N: Usar UN SOLO origin
+        // configuration.setAllowedOrigins(Arrays.asList("https://tudominio.com"));
+        
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        
+        // Headers espec\u00edficos (NO usar "*" en producci\u00f3n por seguridad)
+        // X-XSRF-TOKEN requerido para CSRF protection
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Content-Type",
+                "Authorization",
+                "X-Requested-With",
+                "X-XSRF-TOKEN"
+        ));
+        
+        // Exponer header XSRF-TOKEN para que frontend pueda leerlo
+        configuration.setExposedHeaders(Arrays.asList("X-XSRF-TOKEN"));
+        
+        // Requerido para enviar cookies de sesi\u00f3n
         configuration.setAllowCredentials(true);
+        
+        // Cachear preflight requests por 1 hora
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

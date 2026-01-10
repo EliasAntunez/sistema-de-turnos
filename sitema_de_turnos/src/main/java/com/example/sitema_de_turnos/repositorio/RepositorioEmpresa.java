@@ -13,5 +13,7 @@ public interface RepositorioEmpresa extends JpaRepository<Empresa, Long> {
     
     Optional<Empresa> findByCuit(String cuit);
     
+    Optional<Empresa> findBySlugAndActivaTrue(String slug);
+    
     long countByActiva(Boolean activa);
 }

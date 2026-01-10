@@ -18,27 +18,25 @@ export const useAuthStore = defineStore('auth', () => {
   const usuario = ref<Usuario | null>(null)
   const autenticado = ref<boolean>(false)
 
-  function setUsuario(datosUsuario: Usuario, credenciales: AuthCredentials) {
+  function setUsuario(datosUsuario: Usuario) {
     usuario.value = datosUsuario
     autenticado.value = true
     
-    // Guardar credenciales para HTTP Basic Auth
-    localStorage.setItem('auth', JSON.stringify(credenciales))
+    // SOLO guardar datos del usuario (NO credenciales)
+    // Las sesiones se gestionan con cookies HttpOnly del servidor
     localStorage.setItem('usuario', JSON.stringify(datosUsuario))
   }
 
   function logout() {
     usuario.value = null
     autenticado.value = false
-    localStorage.removeItem('auth')
     localStorage.removeItem('usuario')
   }
 
   function cargarUsuario() {
     const usuarioGuardado = localStorage.getItem('usuario')
-    const authGuardado = localStorage.getItem('auth')
     
-    if (usuarioGuardado && authGuardado) {
+    if (usuarioGuardado) {
       usuario.value = JSON.parse(usuarioGuardado) as Usuario
       autenticado.value = true
     }

@@ -3,6 +3,8 @@ import { useAuthStore } from '../stores/auth'
 import LoginView from '../views/LoginView.vue'
 import AdminView from '../views/AdminView.vue'
 import DuenoView from '../views/DuenoView.vue'
+import ProfesionalView from '../views/ProfesionalView.vue'
+import ReservarView from '../views/ReservarView.vue'
 
 const routes = [
   {
@@ -15,6 +17,12 @@ const routes = [
     component: LoginView
   },
   {
+    path: '/reservar/:empresaSlug',
+    name: 'Reservar',
+    component: ReservarView
+    // Sin meta requiresAuth - es público
+  },
+  {
     path: '/admin',
     name: 'Admin',
     component: AdminView,
@@ -25,6 +33,12 @@ const routes = [
     name: 'Dueno',
     component: DuenoView,
     meta: { requiresAuth: true, role: 'DUENO' }
+  },
+  {
+    path: '/profesional',
+    name: 'Profesional',
+    component: ProfesionalView,
+    meta: { requiresAuth: true, role: 'PROFESIONAL' }
   }
 ]
 
@@ -52,6 +66,8 @@ router.beforeEach((to, from, next) => {
       next('/admin')
     } else if (authStore.usuario?.rol === 'DUENO') {
       next('/dueno')
+    } else if (authStore.usuario?.rol === 'PROFESIONAL') {
+      next('/profesional')
     } else {
       next('/login')
     }

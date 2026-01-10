@@ -11,7 +11,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "usuarios")
+@Table(name = "usuarios",
+    indexes = {
+        @Index(name = "idx_usuario_email_lower",
+               columnList = "email")
+    }
+)
 @Inheritance(strategy = InheritanceType.JOINED)
 public abstract class Usuario {
 
@@ -49,12 +54,24 @@ public abstract class Usuario {
 
     @PrePersist
     protected void onCreate() {
+        normalizarEmail();
         fechaCreacion = LocalDateTime.now();
         fechaActualizacion = LocalDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
+        normalizarEmail();
         fechaActualizacion = LocalDateTime.now();
+    }
+    
+    /**
+     * Normaliza el email a minúsculas y elimina espacios.
+     * Previene duplicados por diferencias de mayúsculas/minúsculas.
+     */
+    private void normalizarEmail() {
+        if (email != null) {
+            email = email.toLowerCase().trim();
+        }
     }
 }

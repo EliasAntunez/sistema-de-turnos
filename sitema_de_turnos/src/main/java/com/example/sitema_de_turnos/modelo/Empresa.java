@@ -13,7 +13,20 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "empresas")
+@Table(name = "empresas",
+    indexes = {
+        @Index(name = "idx_empresa_slug_activa",
+               columnList = "slug, activa")
+    },
+    check = {
+        @CheckConstraint(name = "chk_empresa_buffer_positivo",
+                        constraint = "buffer_por_defecto >= 0"),
+        @CheckConstraint(name = "chk_empresa_anticipacion_positiva",
+                        constraint = "tiempo_minimo_anticipacion_minutos >= 0"),
+        @CheckConstraint(name = "chk_empresa_dias_reserva_positivo",
+                        constraint = "dias_maximos_reserva > 0")
+    }
+)
 public class Empresa {
 
     @Id
@@ -22,6 +35,13 @@ public class Empresa {
 
     @Column(nullable = false, length = 200)
     private String nombre;
+
+    /**
+     * Slug único para URL pública de reservas.
+     * Ejemplo: "peluqueria-elegante" para /reservar/peluqueria-elegante
+     */
+    @Column(nullable = false, unique = true, length = 100)
+    private String slug;
 
     @Column(length = 500)
     private String descripcion;
@@ -44,11 +64,36 @@ public class Empresa {
     @Column(length = 150)
     private String email;
 
+    /**
+     * Buffer por defecto entre turnos en minutos.
+     * Usado cuando el profesional no tiene buffer personalizado.
+     * Default: 10 minutos
+     */
+    @Column(name = "buffer_por_defecto")
+    private Integer bufferPorDefecto = 5;
+
+    /**
+     * Tiempo mínimo de anticipación en minutos para reservar un turno.
+     * Define cuánto tiempo antes debe hacerse la reserva.
+     * Ejemplo: 30 minutos significa que no se pueden reservar turnos que comiencen en menos de 30 minutos.
+     * Default: 30 minutos
+     */
+    @Column(name = "tiempo_minimo_anticipacion_minutos")
+    private Integer tiempoMinimoAnticipacionMinutos = 30;
+
+    /**
+     * Días máximos hacia adelante que los clientes pueden reservar turnos.
+     * Default: 30 días
+     */
+    @Column(name = "dias_maximos_reserva")
+    private Integer diasMaximosReserva = 30;
+
     @Column(nullable = false)
     private Boolean activa = true;
 
-    @OneToOne
+    @OneToOne(optional = false)
     @JoinColumn(name = "dueno_id", nullable = false, unique = true)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.RESTRICT)
     private Dueno dueno;
 
     @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL)

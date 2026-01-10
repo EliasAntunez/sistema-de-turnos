@@ -10,7 +10,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "especialidades")
+@Table(name = "especialidades",
+    indexes = {
+        @Index(name = "idx_especialidad_nombre", columnList = "nombre"),
+        @Index(name = "idx_especialidad_activa", columnList = "activa")
+    }
+)
 public class Especialidad {
 
     @Id
