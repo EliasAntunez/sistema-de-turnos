@@ -64,17 +64,25 @@ async function handleLogin() {
     })
 
     if (response.data.exito) {
-      // Guardar usuario y credenciales
-      authStore.setUsuario(response.data.datos, {
-        email: email.value,
-        contrasena: contrasena.value
-      })
+      // ACTUALIZADO: Solo guardar datos del usuario (NO credenciales)
+      // Spring Security gestiona la sesión con cookies HttpOnly
+      authStore.setUsuario(response.data.datos)
+
+      // Obtener CSRF token antes de redirigir
+      // Esto asegura que la cookie XSRF-TOKEN esté disponible para requests subsiguientes
+      try {
+        await api.getCsrfToken()
+      } catch (csrfError) {
+        console.warn('No se pudo obtener CSRF token, pero continuando...', csrfError)
+      }
 
       // Redirigir según rol
       if (response.data.datos.rol === 'SUPER_ADMIN') {
         router.push('/admin')
       } else if (response.data.datos.rol === 'DUENO') {
         router.push('/dueno')
+      } else if (response.data.datos.rol === 'PROFESIONAL') {
+        router.push('/profesional')
       } else {
         error.value = 'No tienes permisos para acceder'
       }

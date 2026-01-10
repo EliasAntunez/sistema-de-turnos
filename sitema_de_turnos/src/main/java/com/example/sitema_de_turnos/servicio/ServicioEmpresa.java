@@ -45,6 +45,7 @@ public class ServicioEmpresa {
         // 2. Crear la Empresa asociada al Dueño
         Empresa empresa = new Empresa();
         empresa.setNombre(request.getEmpresa().getNombre());
+        empresa.setSlug(request.getEmpresa().getSlug());
         empresa.setDescripcion(request.getEmpresa().getDescripcion());
         empresa.setCuit(request.getEmpresa().getCuit());
         empresa.setDireccion(request.getEmpresa().getDireccion());
@@ -52,6 +53,9 @@ public class ServicioEmpresa {
         empresa.setProvincia(request.getEmpresa().getProvincia());
         empresa.setTelefono(request.getEmpresa().getTelefono());
         empresa.setEmail(request.getEmpresa().getEmail());
+        empresa.setDiasMaximosReserva(request.getEmpresa().getDiasMaximosReserva() != null 
+                ? request.getEmpresa().getDiasMaximosReserva() 
+                : 30); // Default 30 días
         empresa.setActiva(true);
         empresa.setDueno(dueno);
 
@@ -108,6 +112,11 @@ public class ServicioEmpresa {
         // Validar unicidad del CUIT (crítico - documento fiscal único en Argentina)
         if (repositorioEmpresa.existsByCuit(empresaRequest.getCuit())) {
             throw new RuntimeException("Ya existe una empresa registrada con ese CUIT");
+        }
+        
+        // Validar unicidad del slug
+        if (repositorioEmpresa.findBySlugAndActivaTrue(empresaRequest.getSlug()).isPresent()) {
+            throw new RuntimeException("Ya existe una empresa activa con ese slug");
         }
     }
 

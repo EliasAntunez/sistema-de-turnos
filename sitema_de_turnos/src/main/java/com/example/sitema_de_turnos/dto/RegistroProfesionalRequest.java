@@ -29,13 +29,11 @@ public class RegistroProfesionalRequest {
     @Size(max = 150, message = "El email no puede exceder 150 caracteres")
     private String email;
 
-    @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 8, max = 255, message = "La contraseña debe tener al menos 8 caracteres")
-    private String contrasena;
+    @Size(max = 255, message = "La contraseña no puede exceder 255 caracteres")
+    private String contrasena; // Opcional en actualización. La validación de longitud mínima se hace en el servicio
 
-    @NotBlank(message = "El teléfono es obligatorio")
-    @Pattern(regexp = "^\\d{10,15}$", message = "El teléfono debe contener entre 10 y 15 dígitos numéricos")
-    private String telefono;
+    @Pattern(regexp = "^$|^\\d{10,15}$", message = "El teléfono debe estar vacío o contener entre 10 y 15 dígitos numéricos")
+    private String telefono; // Opcional
 
     @NotNull(message = "Debe especificar al menos una especialidad")
     @Size(min = 1, message = "Debe especificar al menos una especialidad")
