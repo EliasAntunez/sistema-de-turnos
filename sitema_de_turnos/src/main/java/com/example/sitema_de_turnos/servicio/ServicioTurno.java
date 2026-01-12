@@ -424,4 +424,22 @@ public class ServicioTurno {
                 break;
         }
     }
+
+    // ==================== MÉTODOS PARA CLIENTE ====================
+
+    /**
+     * Obtener todos los turnos de un cliente (su historial completo)
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<TurnoResponsePublico> obtenerTurnosPorCliente(Long clienteId) {
+        
+        Cliente cliente = repositorioCliente.findById(clienteId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
+
+        java.util.List<Turno> turnos = repositorioTurno.findByClienteOrderByFechaDescHoraInicioDesc(cliente);
+
+        return turnos.stream()
+                .map(this::mapearATurnoResponsePublico)
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

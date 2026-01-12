@@ -146,5 +146,20 @@ export default {
       datos
     )
     return response.data.datos
+  },
+
+  /**
+   * Verificar si un teléfono tiene cuenta registrada (detección pasiva)
+   */
+  async verificarTelefonoRegistrado(empresaSlug: string, telefono: string): Promise<boolean> {
+    try {
+      const response = await publicClient.get<ApiResponse<boolean>>(
+        `/empresa/${empresaSlug}/verificar-telefono`,
+        { params: { telefono } }
+      )
+      return response.data.datos
+    } catch {
+      return false // En caso de error, asumir que no está registrado
+    }
   }
 }

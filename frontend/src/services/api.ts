@@ -23,15 +23,16 @@ function getCsrfToken(): string | null {
 
 // Interceptor para agregar CSRF token a requests que modifican datos
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Excluir login y logout porque están exentos de CSRF en el backend
-  const isLoginOrLogout = config.url === '/auth/login' || config.url === '/auth/logout'
+  // Excluir endpoints que no requieren CSRF según backend
+  const isExemptFromCsrf = 
+    config.url?.startsWith('/auth/login') || 
+    config.url?.startsWith('/auth/logout') ||
+    config.url?.startsWith('/publico/') // Endpoints públicos no requieren CSRF
   
-  if (!isLoginOrLogout && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+  if (!isExemptFromCsrf && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
     const csrfToken = getCsrfToken()
     if (csrfToken && config.headers) {
       config.headers['X-XSRF-TOKEN'] = csrfToken
-    } else {
-      console.warn('CSRF token no disponible para request:', config.url)
     }
   }
   return config
@@ -42,10 +43,15 @@ apiClient.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      // Sesión expirada o no autenticado
-      // Limpiar estado local y redirigir a login
-      localStorage.removeItem('usuario')
-      if (window.location.pathname !== '/login') {
+      // Solo redirigir si NO estamos en páginas de autenticación
+      const currentPath = window.location.pathname
+      const isAuthPage = currentPath === '/login' || 
+                        currentPath.includes('/login-cliente') || 
+                        currentPath.includes('/registro-cliente')
+      
+      if (!isAuthPage) {
+        // Sesión expirada - limpiar y redirigir
+        localStorage.removeItem('usuario')
         window.location.href = '/login'
       }
     }
@@ -160,5 +166,23 @@ export default {
 
   agregarObservacionesTurno(turnoId: number, datos: { observaciones: string }) {
     return apiClient.put(`/profesional/turnos/${turnoId}/observaciones`, datos)
+  },
+
+  // Cliente - Autenticación
+  registrarCliente(empresaSlug: string, datos: { telefono: string; email: string; contrasena: string; confirmarContrasena: string }) {
+    return apiClient.post(`/publico/empresa/${empresaSlug}/registro-cliente`, datos)
+  },
+
+  loginCliente(empresaSlug: string, credenciales: { telefono: string; contrasena: string }) {
+    return apiClient.post(`/publico/empresa/${empresaSlug}/login-cliente`, credenciales)
+  },
+
+  // Cliente - Endpoints protegidos
+  obtenerMisTurnos() {
+    return apiClient.get('/cliente/mis-turnos')
+  },
+
+  obtenerPerfilCliente() {
+    return apiClient.get('/cliente/perfil')
   }
 }

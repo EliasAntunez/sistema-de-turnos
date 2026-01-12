@@ -17,6 +17,12 @@ public interface RepositorioCliente extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findByEmpresaAndTelefonoAndActivoTrue(Empresa empresa, String telefono);
 
     /**
+     * Busca un cliente con usuario (cuenta registrada) por empresa y teléfono.
+     * Usado para autenticación de clientes.
+     */
+    Optional<Cliente> findByEmpresaAndTelefonoAndTieneUsuarioTrueAndActivoTrue(Empresa empresa, String telefono);
+
+    /**
      * Buscar cliente por email dentro de una empresa
      */
     Optional<Cliente> findByEmpresaAndEmailAndActivoTrue(Empresa empresa, String email);

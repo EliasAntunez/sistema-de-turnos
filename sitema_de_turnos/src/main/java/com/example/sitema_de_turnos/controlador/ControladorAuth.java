@@ -51,4 +51,5 @@ public class ControladorAuth {
      * Los SuperAdmins se crean automáticamente al iniciar la aplicación (ver InicializadorDatos.java)
      * o manualmente a través de scripts de base de datos.
      */
+
 }
