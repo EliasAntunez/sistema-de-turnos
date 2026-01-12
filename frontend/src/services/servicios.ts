@@ -24,17 +24,17 @@ export interface ServicioResponse {
 export const servicioService = {
   async obtenerServicios(): Promise<ServicioResponse[]> {
     const response = await api.get('/dueno/servicios')
-    return response.data
+    return response.data.datos || response.data || []
   },
 
   async crearServicio(datos: ServicioRequest): Promise<ServicioResponse> {
     const response = await api.post('/dueno/servicios', datos)
-    return response.data
+    return response.data.datos || response.data
   },
 
   async actualizarServicio(id: number, datos: ServicioRequest): Promise<ServicioResponse> {
     const response = await api.put(`/dueno/servicios/${id}`, datos)
-    return response.data
+    return response.data.datos || response.data
   },
 
   async activarServicio(id: number): Promise<void> {

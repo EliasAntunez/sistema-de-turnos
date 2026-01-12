@@ -656,7 +656,7 @@ async function cargarProfesionales() {
   loading.value = true
   try {
     const response = await api.get('/dueno/profesionales')
-    profesionales.value = response.data
+    profesionales.value = response.data.datos || response.data || []
   } catch (err: any) {
     console.error('Error al cargar profesionales:', err)
     error.value = 'Error al cargar la lista de profesionales'
@@ -952,7 +952,8 @@ async function cargarHorarios() {
   loadingHorarios.value = true
   try {
     const response = await api.obtenerHorariosEmpresa()
-    horarios.value = response.data
+    // Verificar si la respuesta tiene estructura ApiResponse
+    horarios.value = response.data.datos || response.data || []
     agruparHorariosPorDia()
   } catch (err: any) {
     console.error('Error al cargar horarios:', err)

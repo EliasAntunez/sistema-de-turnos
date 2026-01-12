@@ -71,4 +71,10 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
         LocalDate fechaInicio,
         LocalDate fechaFin
     );
+
+    /**
+     * Buscar todos los turnos de un cliente (historial completo)
+     * Ordenados por fecha descendente (más recientes primero)
+     */
+    List<Turno> findByClienteOrderByFechaDescHoraInicioDesc(Cliente cliente);
 }

@@ -13,25 +13,23 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegistroClienteRequest {
     
-    @NotBlank(message = "El nombre es obligatorio")
-    @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
-    private String nombre;
-    
-    @NotBlank(message = "El apellido es obligatorio")
-    @Size(max = 100, message = "El apellido no puede superar 100 caracteres")
-    private String apellido;
+    @NotBlank(message = "El teléfono es obligatorio")
+    @Pattern(regexp = "^[+]?[0-9\\s\\-()]{8,20}$", message = "Formato de teléfono inválido")
+    private String telefono;
     
     @NotBlank(message = "El email es obligatorio")
     @Email(message = "Formato de email inválido")
-    @Size(max = 150, message = "El email no puede superar 150 caracteres")
+    @Size(max = 150, message = "El email no puede exceder 150 caracteres")
     private String email;
     
     @NotBlank(message = "La contraseña es obligatoria")
-    @Size(min = 6, max = 100, message = "La contraseña debe tener entre 6 y 100 caracteres")
+    @Size(min = 8, max = 100, message = "La contraseña debe tener entre 8 y 100 caracteres")
+    @Pattern(
+        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$",
+        message = "La contraseña debe contener al menos una mayúscula, una minúscula y un número"
+    )
     private String contrasena;
     
-    @NotBlank(message = "El teléfono es obligatorio")
-    @Pattern(regexp = "^[0-9+\\-\\s()]+$", message = "Formato de teléfono inválido")
-    @Size(max = 20, message = "El teléfono no puede superar 20 caracteres")
-    private String telefono;
+    @NotBlank(message = "Debe confirmar la contraseña")
+    private String confirmarContrasena;
 }

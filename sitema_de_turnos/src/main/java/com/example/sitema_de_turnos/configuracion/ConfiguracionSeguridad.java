@@ -103,9 +103,9 @@ public class ConfiguracionSeguridad {
                     .csrfTokenRepository(csrfTokenRepository())
                     .csrfTokenRequestHandler(requestHandler)
                     .ignoringRequestMatchers(
-                        "/api/publico/**",      // Endpoints públicos
-                        "/api/auth/login",      // Login no requiere CSRF (primera petición)
-                        "/api/auth/logout"      // Logout manejado por Spring Security
+                        "/api/publico/**",        // Endpoints públicos
+                        "/api/auth/login",        // Login usuarios no requiere CSRF
+                        "/api/auth/logout"        // Logout manejado por Spring Security
                     );
             })
             
