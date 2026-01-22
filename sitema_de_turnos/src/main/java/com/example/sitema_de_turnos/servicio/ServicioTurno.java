@@ -1,13 +1,16 @@
 package com.example.sitema_de_turnos.servicio;
+import com.example.sitema_de_turnos.util.NormalizadorDatos;
 
 import com.example.sitema_de_turnos.dto.publico.CrearTurnoRequest;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
+import com.example.sitema_de_turnos.dto.publico.ReservaModificarRequest;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponseProfesional;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.*;
 import com.example.sitema_de_turnos.repositorio.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -19,7 +22,10 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
+import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
+
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ServicioTurno {
 
@@ -36,7 +42,7 @@ public class ServicioTurno {
      * El constraint único en BD (idx_turno_no_overlap) es la defensa definitiva.
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ)
-    public TurnoResponsePublico crearTurnoPublico(String empresaSlug, CrearTurnoRequest request) {
+    public TurnoResponsePublico crearTurnoPublico(String empresaSlug, Cliente clienteAutenticado, CrearTurnoRequest request) {
         // 1. Obtener empresa
         Empresa empresa = repositorioEmpresa.findBySlugAndActivaTrue(empresaSlug)
             .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada"));
@@ -98,7 +104,16 @@ public class ServicioTurno {
         }
 
         // 8. Obtener o crear cliente
-        Cliente cliente = obtenerOCrearCliente(empresa, request);
+        Cliente cliente;
+        if (clienteAutenticado != null) {
+            // Verificar que el cliente autenticado pertenezca a la empresa
+            if (!clienteAutenticado.getEmpresa().getId().equals(empresa.getId())) {
+                throw new AccesoDenegadoException("No tienes permisos para reservar en esta empresa");
+            }
+            cliente = clienteAutenticado;
+        } else {
+            cliente = obtenerOCrearCliente(empresa, request);
+        }
 
         // 9. Crear turno
         Turno turno = new Turno();
@@ -127,6 +142,156 @@ public class ServicioTurno {
     }
 
     /**
+     * Modificar datos permitidos de una reserva por el cliente propietario.
+     */
+    @Transactional
+    public TurnoResponsePublico modificarReservaPorCliente(Long turnoId, Cliente cliente, ReservaModificarRequest request) {
+        Turno turno = repositorioTurno.findById(turnoId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
+
+        log.info("modificarReservaPorCliente called: turnoId={}, turnoClienteId={}, requesterClienteId={}", turnoId, turno.getCliente().getId(), cliente.getId());
+
+        if (!turno.getCliente().getId().equals(cliente.getId())) {
+            throw new com.example.sitema_de_turnos.excepcion.AccesoDenegadoException("No tienes permiso para modificar este turno");
+        }
+
+        if (turno.getEstado() == EstadoTurno.CANCELADO || turno.getEstado() == EstadoTurno.ATENDIDO) {
+            throw new ValidacionException("No se puede modificar un turno cancelado o ya atendido");
+        }
+
+        // Validar que el turno no sea pasado ni esté muy cerca (menos de 1 hora)
+        LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
+        LocalDateTime ahora = LocalDateTime.now();
+
+        if (inicioTurno.isBefore(ahora)) {
+            log.info("Rechazando modificación: turno pasado turnoId={}, inicio={}, ahora={}", turnoId, inicioTurno, ahora);
+            throw new ValidacionException("No se puede modificar un turno que ya pasó");
+        }
+
+        if (inicioTurno.minusHours(1).isBefore(ahora)) {
+            log.info("Rechazando modificación: poca anticipación turnoId={}, inicio={}, ahora={}", turnoId, inicioTurno, ahora);
+            throw new ValidacionException("No se puede modificar un turno con menos de 1 hora de anticipación");
+        }
+
+        boolean clienteActualizado = false;
+        if (request.getNombreCliente() != null && !request.getNombreCliente().trim().isEmpty()) {
+            cliente.setNombre(NormalizadorDatos.normalizarNombre(request.getNombreCliente()));
+            clienteActualizado = true;
+        }
+
+        if (request.getObservaciones() != null) {
+            turno.setObservaciones(request.getObservaciones());
+        }
+
+        if (clienteActualizado) {
+            repositorioCliente.save(cliente);
+        }
+
+        turno = repositorioTurno.save(turno);
+        return mapearATurnoResponsePublico(turno);
+    }
+
+    /**
+     * Reprogramar (cambiar fecha/hora y opcionalmente profesional) una reserva por el cliente propietario.
+     */
+    @Transactional
+    public TurnoResponsePublico reprogramarReservaPorCliente(Long turnoId, Cliente cliente, com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request) {
+        Turno turno = repositorioTurno.findById(turnoId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
+
+        log.info("reprogramarReservaPorCliente called: turnoId={}, turnoClienteId={}, requesterClienteId={}", turnoId, turno.getCliente().getId(), cliente.getId());
+
+        if (!turno.getCliente().getId().equals(cliente.getId())) {
+            throw new com.example.sitema_de_turnos.excepcion.AccesoDenegadoException("No tienes permiso para reprogramar este turno");
+        }
+
+        if (turno.getEstado() == EstadoTurno.CANCELADO || turno.getEstado() == EstadoTurno.ATENDIDO) {
+            throw new ValidacionException("No se puede reprogramar un turno cancelado o ya atendido");
+        }
+
+        // Validar que el turno origen no sea pasado ni esté muy cerca (menos de 1 hora)
+        LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
+        LocalDateTime ahora = LocalDateTime.now();
+
+        if (inicioTurno.isBefore(ahora)) {
+            throw new ValidacionException("No se puede reprogramar un turno que ya pasó");
+        }
+
+        if (inicioTurno.minusHours(1).isBefore(ahora)) {
+            throw new ValidacionException("No se puede reprogramar un turno con menos de 1 hora de anticipación");
+        }
+
+        // Campos solicitados (parse desde strings para compatibilidad de serialización en tests)
+        java.time.LocalDate nuevaFecha = request.getFechaAsLocalDate();
+        java.time.LocalTime nuevaHoraInicio = request.getHoraInicioAsLocalTime();
+        Long nuevoProfesionalId = request.getProfesionalId();
+
+        if (nuevaFecha == null || nuevaHoraInicio == null) {
+            throw new ValidacionException("Fecha y hora inicio son requeridos para reprogramar");
+        }
+
+        // Validar fecha no pasada
+        if (nuevaFecha.isBefore(LocalDate.now())) {
+            throw new ValidacionException("No se puede reprogramar a una fecha pasada");
+        }
+
+        // Determinar profesional objetivo
+        Profesional profesionalDestino;
+        if (nuevoProfesionalId != null) {
+            profesionalDestino = repositorioProfesional.findById(nuevoProfesionalId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
+            if (!profesionalDestino.getActivo() || !profesionalDestino.getEmpresa().getId().equals(turno.getEmpresa().getId())) {
+                throw new ValidacionException("Profesional no disponible");
+            }
+        } else {
+            profesionalDestino = turno.getProfesional();
+        }
+
+        // Validar bloqueos de fecha del profesional destino
+        if (tieneBloqueoDeFecha(profesionalDestino, nuevaFecha)) {
+            throw new ValidacionException("El profesional no está disponible en la fecha seleccionada");
+        }
+
+        // Calcular hora fin usando la duración y buffer del turno actual
+        LocalTime nuevaHoraFin = nuevaHoraInicio.plusMinutes(turno.getDuracionMinutos()).plusMinutes(turno.getBufferMinutos());
+
+        // Validar disponibilidad: buscar turnos activos del profesional en esa fecha y comprobar solapamientos (excluyendo este turno)
+        java.util.List<Turno> turnosProfesional = repositorioTurno.findTurnosActivosByProfesionalAndFecha(profesionalDestino, nuevaFecha);
+        for (Turno t : turnosProfesional) {
+            if (t.getId().equals(turno.getId())) continue;
+            if (t.getHoraInicio().isBefore(nuevaHoraFin) && t.getHoraFin().isAfter(nuevaHoraInicio)) {
+                throw new ValidacionException("El horario seleccionado ya no está disponible");
+            }
+        }
+
+        // Si todo OK, aplicar cambios
+        turno.setProfesional(profesionalDestino);
+        turno.setFecha(nuevaFecha);
+        turno.setHoraInicio(nuevaHoraInicio);
+        turno.setHoraFin(nuevaHoraFin);
+
+        turno = repositorioTurno.save(turno);
+
+        return mapearATurnoResponsePublico(turno);
+    }
+
+    /**
+     * Cancelar turno actuando como cliente autenticado.
+     */
+    @Transactional
+    public void cancelarTurnoPorCliente(Long turnoId, Cliente cliente, String motivo) {
+        Turno turno = repositorioTurno.findById(turnoId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
+
+        if (!turno.getCliente().getId().equals(cliente.getId())) {
+            throw new com.example.sitema_de_turnos.excepcion.AccesoDenegadoException("No tienes permiso para cancelar este turno");
+        }
+
+        // Delega en la lógica existente que valida tiempos y estados
+        cancelarTurno(turnoId, motivo, "CLIENTE");
+    }
+
+    /**
      * Verificar si el profesional tiene bloqueo en una fecha específica
      */
     private boolean tieneBloqueoDeFecha(Profesional profesional, LocalDate fecha) {
@@ -151,19 +316,26 @@ public class ServicioTurno {
         );
 
         if (clienteExistente.isPresent()) {
-            return clienteExistente.get();
+            Cliente c = clienteExistente.get();
+            // Si el cliente ya tiene cuenta registrada, NO se puede asociar automáticamente
+            if (Boolean.TRUE.equals(c.getTieneUsuario())) {
+                throw new com.example.sitema_de_turnos.excepcion.ConflictoException(
+                    "El teléfono pertenece a una cuenta registrada. Por favor, iniciá sesión o usá otro número."
+                );
+            }
+            return c; // cliente invitado -> asociar
         }
 
         // Crear nuevo cliente invitado
         Cliente nuevoCliente = new Cliente();
         nuevoCliente.setEmpresa(empresa);
-        nuevoCliente.setNombre(request.getNombreCliente());
+            nuevoCliente.setNombre(NormalizadorDatos.normalizarNombre(request.getNombreCliente()));
         nuevoCliente.setTelefono(request.getTelefonoCliente());
         
         // Solo setear email si no está vacío
         String email = request.getEmailCliente();
         if (email != null && !email.trim().isEmpty()) {
-            nuevoCliente.setEmail(email.trim());
+                nuevoCliente.setEmail(NormalizadorDatos.normalizarEmail(email));
         }
         
         nuevoCliente.setTieneUsuario(false);
@@ -195,9 +367,13 @@ public class ServicioTurno {
             throw new ValidacionException("No se puede cancelar un turno ya atendido");
         }
 
-        // Validar anticipación de 1 hora
+        // Validar que el turno no sea pasado y que la cancelación respete la anticipación mínima (1 hora)
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
         LocalDateTime ahora = LocalDateTime.now();
+
+        if (inicioTurno.isBefore(ahora)) {
+            throw new ValidacionException("No se puede cancelar un turno que ya pasó");
+        }
 
         if (inicioTurno.minusHours(1).isBefore(ahora)) {
             throw new ValidacionException(

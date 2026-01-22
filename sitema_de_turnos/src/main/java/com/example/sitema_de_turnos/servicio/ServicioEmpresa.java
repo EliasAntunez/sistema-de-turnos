@@ -1,3 +1,4 @@
+
 package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.dto.*;
@@ -13,6 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ServicioEmpresa {
+    /**
+     * Obtener empresa por slug (retorna entidad Empresa, no DTO)
+     */
+    @Transactional(readOnly = true)
+    public Empresa obtenerPorSlug(String slug) {
+        return repositorioEmpresa.findBySlugAndActivaTrue(slug).orElse(null);
+    }
 
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioDueno repositorioDueno;
@@ -30,11 +38,11 @@ public class ServicioEmpresa {
 
         // 1. Crear el Dueño primero
         Dueno dueno = new Dueno();
-        dueno.setNombre(request.getDueno().getNombre());
-        dueno.setApellido(request.getDueno().getApellido());
-        dueno.setEmail(request.getDueno().getEmail());
+        dueno.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getDueno().getNombre()));
+        dueno.setApellido(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getDueno().getApellido()));
+        dueno.setEmail(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(request.getDueno().getEmail()));
         dueno.setContrasena(passwordEncoder.encode(request.getDueno().getContrasena()));
-        dueno.setTelefono(request.getDueno().getTelefono());
+        dueno.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(request.getDueno().getTelefono()));
         dueno.setDocumento(request.getDueno().getDocumento());
         dueno.setTipoDocumento(request.getDueno().getTipoDocumento());
         dueno.setActivo(true);
@@ -44,7 +52,7 @@ public class ServicioEmpresa {
 
         // 2. Crear la Empresa asociada al Dueño
         Empresa empresa = new Empresa();
-        empresa.setNombre(request.getEmpresa().getNombre());
+        empresa.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getEmpresa().getNombre()));
         empresa.setSlug(request.getEmpresa().getSlug());
         empresa.setDescripcion(request.getEmpresa().getDescripcion());
         empresa.setCuit(request.getEmpresa().getCuit());
@@ -86,6 +94,15 @@ public class ServicioEmpresa {
     }
 
     /**
+     * Obtener empresa por ID (retorna entidad Empresa, no DTO)
+     */
+    @Transactional(readOnly = true)
+    public Empresa obtenerPorId(Long id) {
+        return repositorioEmpresa.findById(id)
+                .orElseThrow(() -> new RuntimeException("Empresa no encontrada con ID: " + id));
+    }
+
+    /**
      * Activar/Desactivar empresa
      * Solo SuperAdmin puede realizar esta operación
      */
@@ -118,6 +135,11 @@ public class ServicioEmpresa {
         if (repositorioEmpresa.findBySlugAndActivaTrue(empresaRequest.getSlug()).isPresent()) {
             throw new RuntimeException("Ya existe una empresa activa con ese slug");
         }
+    }
+
+    // Agregá este método en tu servicio de Empresa
+    public Empresa obtenerPorDueno(Long duenoId) {
+        return repositorioEmpresa.findByDuenoId(duenoId).orElse(null);
     }
 
     private void validarDatosDueno(RegistroDuenoRequest duenoRequest) {

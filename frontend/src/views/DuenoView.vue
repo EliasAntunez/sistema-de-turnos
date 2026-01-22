@@ -2,7 +2,8 @@
   <div class="dueno-container">
     <!-- Header -->
     <header class="dueno-header">
-      <h1>Mi Empresa</h1>
+      <!-- Mostrar el nombre de la empresa del dueño -->
+      <h1>{{ nombreEmpresa }}</h1>
       <div class="user-info">
         <span>{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
         <span class="badge-dueno">Dueño</span>
@@ -29,6 +30,12 @@
         @click="activeTab = 'horarios'"
       >
         Horarios de la Empresa
+      </button>
+      <button 
+        :class="['tab', { active: activeTab === 'politicas' }]" 
+        @click="activeTab = 'politicas'"
+      >
+        Políticas de Cancelación
       </button>
     </div>
 
@@ -200,6 +207,145 @@
       </div>
     </main>
 
+    <!-- Tab: Políticas de Cancelación -->
+<main v-if="activeTab === 'politicas'" class="dueno-content">
+  <div class="section-header">
+    <h2>Políticas de Cancelación e Inasistencias</h2>
+    <button class="btn-add" @click="openModalPolitica()">+ Nueva Política</button>
+  </div>
+  <div v-if="errorPolitica" class="error-message" style="margin-bottom: 1rem;">
+    {{ errorPolitica }}
+  </div>
+  <!-- Loading State -->
+  <div v-if="loadingPoliticas" class="loading">Cargando...</div>
+
+  <!-- Políticas Grid -->
+  <div v-else-if="politicas.length > 0" class="profesionales-grid">
+     <div v-for="politica in politicas.filter(p => p.empresaId === empresaId)" :key="politica.id" class="profesional-card">
+      <div class="card-header">
+        <h3>{{ politica.tipo === 'CANCELACION' ? 'Cancelación' : (politica.tipo === 'INASISTENCIA' ? 'Inasistencia' : 'Ambos') }}</h3>
+        <span :class="['badge-status', politica.activa ? 'activo' : 'inactivo']">
+          {{ politica.activa ? 'Activa' : 'Inactiva' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="info-item card-descripcion" :title="politica.descripcion">
+          <strong>Descripción:</strong>
+          <span class="truncate-text">{{ politica.descripcion }}</span>
+        </div>
+        <div v-if="politica.mensajeCliente" class="info-item card-mensaje" :title="politica.mensajeCliente">
+          <strong>Mensaje para cliente:</strong>
+          <span class="truncate-text">{{ politica.mensajeCliente }}</span>
+        </div>
+        <div class="info-item">
+          <strong>Horas límite:</strong> {{ politica.horasLimiteCancelacion }} horas
+        </div>
+        <div class="info-item">
+          <strong>Penalización:</strong> {{ formatearPenalizacion(politica.penalizacion) }}
+        </div>
+        <div class="info-item" v-if="politica.fechaCreacion">
+          <strong>Creada:</strong> {{ formatearFecha(politica.fechaCreacion) }}
+        </div>
+      </div>
+      <div class="card-actions">
+        <button 
+          @click="togglePoliticaActiva(politica)" 
+          :class="politica.activa ? 'btn-delete' : 'btn-activate'"
+        >
+          {{ politica.activa ? 'Desactivar' : 'Activar' }}
+        </button>
+        <button 
+          @click="openModalPolitica(politica)" 
+          class="btn-edit"
+        >
+          Editar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div v-else class="empty-state">
+    <p>No hay políticas registradas</p>
+    <p class="empty-hint">Haz clic en "Nueva Política" para comenzar</p>
+  </div>
+</main>
+
+<!-- Modal Form Políticas -->
+<div v-if="showModalPolitica" class="modal-overlay" @click="closeModalPolitica">
+  <div class="modal" @click.stop>
+    <div class="modal-header">
+      <h2>Nueva Política de Cancelación</h2>
+      <button @click="closeModalPolitica" class="btn-close">&times;</button>
+    </div>
+    <form @submit.prevent="submitFormPolitica" class="modal-form">
+      <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.descripcion }">
+        <label>Descripción *</label>
+        <textarea 
+          v-model="formDataPolitica.descripcion" 
+          required 
+          rows="3"
+          placeholder="Descripción de la política de cancelación"
+        ></textarea>
+        <span v-if="fieldErrorsPolitica.descripcion" class="field-error">{{ fieldErrorsPolitica.descripcion }}</span>
+      </div>
+      <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.mensajeCliente }">
+        <label>Mensaje para cliente (opcional)</label>
+        <input
+          v-model="formDataPolitica.mensajeCliente"
+          type="text"
+          maxlength="300"
+          placeholder="Mensaje corto para recordatorio en WhatsApp"
+        />
+        <span v-if="fieldErrorsPolitica.mensajeCliente" class="field-error">{{ fieldErrorsPolitica.mensajeCliente }}</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.horasLimiteCancelacion }">
+          <label>Horas límite para cancelar *</label>
+          <input 
+            v-model.number="formDataPolitica.horasLimiteCancelacion" 
+            type="number" 
+            min="1" 
+            required 
+            placeholder="24"
+          />
+          <span v-if="fieldErrorsPolitica.horasLimiteCancelacion" class="field-error">{{ fieldErrorsPolitica.horasLimiteCancelacion }}</span>
+        </div>
+
+        <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.tipo }">
+          <label>Tipo de política *</label>
+          <select v-model="formDataPolitica.tipo" required>
+            <option value="CANCELACION">Cancelación</option>
+            <option value="INASISTENCIA">Inasistencia</option>
+            <option value="AMBOS">Ambos</option>
+          </select>
+          <span v-if="fieldErrorsPolitica.tipo" class="field-error">{{ fieldErrorsPolitica.tipo }}</span>
+        </div>
+      </div>
+
+      <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.penalizacion }">
+        <label>Penalización *</label>
+        <select v-model="formDataPolitica.penalizacion" required>
+          <option value="NINGUNA">Ninguna</option>
+          <option value="ADVERTENCIA">Advertencia</option>
+          <option value="BLOQUEO">Bloqueo</option>
+          <option value="MULTA">Multa</option>
+        </select>
+        <span v-if="fieldErrorsPolitica.penalizacion" class="field-error">{{ fieldErrorsPolitica.penalizacion }}</span>
+      </div>
+
+      <div v-if="errorPolitica" class="error-message">{{ errorPolitica }}</div>
+
+      <div class="modal-actions">
+        <button type="button" @click="closeModalPolitica" class="btn-cancel">Cancelar</button>
+        <button type="submit" class="btn-submit" :disabled="submittingPolitica">
+          {{ submittingPolitica ? 'Guardando...' : (editingPolitica ? 'Actualizar' : 'Crear') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+    
     <!-- Modal Form Profesionales -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
       <div class="modal" @click.stop>
@@ -323,7 +469,7 @@
                   :class="['btn-toggle', servicio.disponible ? 'activo' : 'inactivo']"
                   :disabled="submittingToggle"
                 >
-                  {{ servicio.disponible ? 'Desactivar' : 'Activar' }}
+                  {{ servicio.disponible ? (submittingToggle ? 'Guardando...' : 'Desactivar') : (submittingToggle ? 'Guardando...' : 'Activar') }}
                 </button>
               </div>
             </div>
@@ -546,12 +692,36 @@ import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import { servicioService, type ServicioRequest, type ServicioResponse } from '../services/servicios'
 import { especialidadService, type EspecialidadResponse } from '../services/especialidades'
+import PoliticasService from '../services/politicasCancelacion'
+import type { PoliticaCancelacionRequest, PoliticaCancelacionResponse } from '../types/politicasCancelacion'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
+const nombreEmpresa = ref('')
+const empresaId = ref<number | null>(null)
+
 // Tab activo
-const activeTab = ref<'profesionales' | 'servicios' | 'horarios'>('profesionales')
+const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas'>('profesionales')
+
+// Estado para el formulario de política de cancelación
+const mostrarFormularioPolitica = ref(false)
+// Estado para Políticas de Cancelación
+const politicas = ref<PoliticaCancelacionResponse[]>([])
+const loadingPoliticas = ref(false)
+const showModalPolitica = ref(false)
+const errorPolitica = ref('')
+const submittingPolitica = ref(false)
+const fieldErrorsPolitica = ref<Record<string, string>>({})
+
+const formDataPolitica = ref<PoliticaCancelacionRequest>({
+  tipo: 'CANCELACION',
+  descripcion: '',
+  mensajeCliente: '',
+  horasLimiteCancelacion: 24,
+  penalizacion: 'NINGUNA',
+  activa: true
+})
 
 // Estado para Profesionales
 const profesionales = ref<any[]>([])
@@ -645,20 +815,240 @@ function agruparHorariosPorDia() {
   horariosAgrupados.value = agrupados
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await cargarNombreEmpresa()
   cargarProfesionales()
   cargarServicios()
   cargarHorarios()
   cargarEspecialidadesDisponibles()
+  await cargarPoliticasCancelacion()
 })
+
+// ====Funcion para cargar Nombre de la empresa====
+async function cargarNombreEmpresa() {
+  try {
+    const response = await api.get('/dueno/empresa')
+    let data = response.data
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data)
+        console.warn('[FRONTEND] Se forzó parseo de string a objeto:', data)
+      } catch (e) {
+        console.error('[FRONTEND] Error al parsear data:', e, data)
+        data = {}
+      }
+    }
+    nombreEmpresa.value = data?.nombre || 'Mi Empresa'
+    empresaId.value = data?.id || null
+    if (!empresaId.value) {
+      console.warn('[FRONTEND] No se obtuvo el id de la empresa en la respuesta:', data)
+    }
+  } catch (err) {
+    console.error('[FRONTEND] Error al obtener empresa:', err)
+    nombreEmpresa.value = 'Mi Empresa'
+    empresaId.value = null
+  }
+}
+
+// ==================== FUNCIONES PARA POLÍTICAS ====================
+
+async function cargarPoliticasCancelacion() {
+  loadingPoliticas.value = true
+  errorPolitica.value = ''
+  try {
+    console.log('[FRONTEND] empresaId antes de cargar políticas:', empresaId.value)
+    if (!empresaId.value) {
+      console.warn('[FRONTEND] No se pudo obtener el id de la empresa para cargar políticas')
+      politicas.value = []
+      errorPolitica.value = 'No se pudo obtener el id de la empresa.'
+      return
+    }
+    // Nuevo endpoint backend-driven: no requiere empresaId
+    const response = await PoliticasService.getTodas()
+    let politicasData = response.data
+    if (typeof politicasData === 'string') {
+      try {
+        politicasData = JSON.parse(politicasData)
+        console.warn('[FRONTEND] Se forzó parseo de string a array de políticas:', politicasData)
+      } catch (e) {
+        console.error('[FRONTEND] Error al parsear políticas:', e, politicasData)
+        politicasData = []
+      }
+    }
+    console.log('[FRONTEND] Respuesta de getTodasPorEmpresa:', politicasData)
+    politicas.value = Array.isArray(politicasData) ? politicasData : []
+  } catch (err: any) {
+    console.error('[FRONTEND] Error al cargar políticas:', err)
+    politicas.value = []
+    errorPolitica.value = 'Error al cargar las políticas de cancelación.'
+  } finally {
+    loadingPoliticas.value = false
+  }
+}
+
+const editingPolitica = ref<PoliticaCancelacionResponse | null>(null)
+
+function openModalPolitica(politica?: PoliticaCancelacionResponse) {
+  errorPolitica.value = ''
+  if (politica) {
+    formDataPolitica.value = { 
+      tipo: politica.tipo,
+      descripcion: politica.descripcion,
+      mensajeCliente: politica.mensajeCliente || '',
+      horasLimiteCancelacion: politica.horasLimiteCancelacion,
+      penalizacion: politica.penalizacion,
+      activa: politica.activa
+    };
+    editingPolitica.value = politica;
+  
+  } else {
+    formDataPolitica.value = {
+      tipo: 'CANCELACION',
+      descripcion: '',
+      mensajeCliente: '',
+      horasLimiteCancelacion: 24,
+      penalizacion: 'NINGUNA',
+      activa: true
+    };
+      editingPolitica.value = null;
+    }
+  showModalPolitica.value = true
+}
+
+function closeModalPolitica() {
+  showModalPolitica.value = false
+  formDataPolitica.value = {
+    tipo: 'CANCELACION',
+    descripcion: '',
+    horasLimiteCancelacion: 24,
+    penalizacion: 'NINGUNA',
+    activa: true
+  }
+  fieldErrorsPolitica.value = {}
+  errorPolitica.value = ''
+}
+
+async function submitFormPolitica() {
+  submittingPolitica.value = true
+  fieldErrorsPolitica.value = {}
+  errorPolitica.value = ''
+  
+  try {
+    if (editingPolitica.value) {
+      // Validación básica
+      if (!formDataPolitica.value.descripcion) {
+        fieldErrorsPolitica.value.descripcion = 'La descripción es obligatoria.'
+        submittingPolitica.value = false
+        return
+      }
+      if (!formDataPolitica.value.horasLimiteCancelacion || formDataPolitica.value.horasLimiteCancelacion < 1) {
+        fieldErrorsPolitica.value.horasLimiteCancelacion = 'Debe indicar las horas límite.'
+        submittingPolitica.value = false
+        return
+      }
+      /* Actualizar política existente con metodo */
+      await PoliticasService.actualizar(editingPolitica.value!.id, formDataPolitica.value);
+    } else {
+      // Validación básica
+      if (!formDataPolitica.value.descripcion) {
+        fieldErrorsPolitica.value.descripcion = 'La descripción es obligatoria.'
+        submittingPolitica.value = false
+        return
+      }
+      if (!formDataPolitica.value.horasLimiteCancelacion || formDataPolitica.value.horasLimiteCancelacion < 1) {
+        fieldErrorsPolitica.value.horasLimiteCancelacion = 'Debe indicar las horas límite.'
+        submittingPolitica.value = false
+        return
+      }
+      await PoliticasService.crear(formDataPolitica.value);
+    }
+    await cargarPoliticasCancelacion()
+    showModalPolitica.value = false
+  } catch (err: any) {
+    console.error('Error al guardar política:', err);
+    if (err.response?.data?.errores) {
+      fieldErrorsPolitica.value = err.response.data.errores
+      errorPolitica.value = 'Por favor corrija los errores en el formulario.'
+    } else if (err.response?.data?.mensaje) {
+      errorPolitica.value = err.response.data.mensaje
+    } else {
+      errorPolitica.value = 'Error al crear la política.'
+    }
+  } finally {
+    submittingPolitica.value = false
+  }
+}
+
+async function togglePoliticaActiva(politica: PoliticaCancelacionResponse) {
+  try {
+    if (politica.activa) {
+      await PoliticasService.desactivar(politica.id)
+    } else {
+      await PoliticasService.activar(politica.id)
+    }
+    await cargarPoliticasCancelacion()
+  } catch (err) {
+      console.error('Error al cambiar estado de política:', err)
+      if (typeof err === 'object' && err !== null && 'response' in err && (err as any).response?.data?.mensaje) {
+        errorPolitica.value = (err as any).response.data.mensaje
+      } else if (err instanceof Error && err.message) {
+        errorPolitica.value = err.message
+      } else {
+        errorPolitica.value = 'Error al cambiar el estado de la política.'
+      }
+    }
+}
+
+async function eliminarPolitica(id: number) {
+  const confirmacion = confirm('¿Está seguro de eliminar esta política? Esta acción no se puede deshacer.')
+  
+  if (!confirmacion) return
+  
+  try {
+    await PoliticasService.eliminar(id)
+    await cargarPoliticasCancelacion()
+  } catch (err) {
+    console.error('Error al eliminar política:', err)
+    errorPolitica.value = 'Error al eliminar la política.'
+  }
+}
+
+// ==================== FUNCIONES AUXILIARES ====================
+
+function formatearPenalizacion(penalizacion: string): string {
+  const formatos: Record<string, string> = {
+    'NINGUNA': 'Ninguna',
+    'ADVERTENCIA': 'Advertencia',
+    'BLOQUEO': 'Bloqueo temporal',
+    'MULTA': 'Multa económica'
+  }
+  return formatos[penalizacion] || penalizacion
+}
+
+function formatearFecha(fecha: string): string {
+  if (!fecha) return ''
+  try {
+    const date = new Date(fecha)
+    return date.toLocaleDateString('es-AR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  } catch {
+    return fecha
+  }
+}
+
 
 async function cargarProfesionales() {
   loading.value = true
   try {
     const response = await api.get('/dueno/profesionales')
-    profesionales.value = response.data.datos || response.data || []
+    // El backend retorna directamente el array, no envuelto en ApiResponse
+    profesionales.value = Array.isArray(response.data) ? response.data : []
   } catch (err: any) {
     console.error('Error al cargar profesionales:', err)
+    profesionales.value = [] // Limpiar en caso de error
     error.value = 'Error al cargar la lista de profesionales'
   } finally {
     loading.value = false
@@ -850,6 +1240,7 @@ async function cargarServicios() {
     servicios.value = await servicioService.obtenerServicios()
   } catch (err: any) {
     console.error('Error al cargar servicios:', err)
+    servicios.value = [] // Limpiar in caso de error
     errorServicio.value = 'Error al cargar la lista de servicios'
   } finally {
     loadingServicios.value = false
@@ -952,11 +1343,13 @@ async function cargarHorarios() {
   loadingHorarios.value = true
   try {
     const response = await api.obtenerHorariosEmpresa()
-    // Verificar si la respuesta tiene estructura ApiResponse
-    horarios.value = response.data.datos || response.data || []
+    // El backend retorna directamente el array
+    horarios.value = Array.isArray(response.data) ? response.data : []
     agruparHorariosPorDia()
   } catch (err: any) {
     console.error('Error al cargar horarios:', err)
+    horarios.value = [] // Limpiar en caso de error
+    agruparHorariosPorDia() // Reagrupar con array vacío
     errorHorario.value = 'Error al cargar los horarios de la empresa'
   } finally {
     loadingHorarios.value = false
@@ -1113,6 +1506,21 @@ async function confirmarCopiarHorarios() {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding-bottom: 2rem;
+}
+
+.card-descripcion .truncate-text,
+.card-mensaje .truncate-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  max-width: 100%;
+}
+.card-body {
+  min-height: 80px;
 }
 
 .dueno-header {

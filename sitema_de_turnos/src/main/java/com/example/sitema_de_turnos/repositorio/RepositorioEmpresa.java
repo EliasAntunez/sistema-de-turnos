@@ -16,4 +16,7 @@ public interface RepositorioEmpresa extends JpaRepository<Empresa, Long> {
     Optional<Empresa> findBySlugAndActivaTrue(String slug);
     
     long countByActiva(Boolean activa);
+
+    // Agregá este método en tu repositorio de Empresa
+    Optional<Empresa> findByDuenoId(Long duenoId);
 }

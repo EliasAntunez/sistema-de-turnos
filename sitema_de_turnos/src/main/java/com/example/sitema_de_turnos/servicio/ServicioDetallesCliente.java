@@ -2,13 +2,9 @@ package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.modelo.Cliente;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
-
-import java.util.Collections;
 
 /**
  * Servicio auxiliar para cargar detalles de clientes.
@@ -53,15 +49,7 @@ public class ServicioDetallesCliente {
             throw new UsernameNotFoundException("Cliente sin cuenta de usuario");
         }
 
-        // Crear UserDetails con autoridad CLIENTE
-        return User.builder()
-                .username(username) // Mantener formato completo
-                .password(cliente.getContrasena())
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority("CLIENTE")))
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(!cliente.getActivo())
-                .build();
+        // Crear UserDetails personalizado con el cliente
+        return new ClienteUserDetails(cliente);
     }
 }

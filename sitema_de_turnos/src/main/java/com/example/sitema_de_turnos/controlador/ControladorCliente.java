@@ -22,6 +22,77 @@ public class ControladorCliente {
 
     private final ServicioTurno servicioTurno;
     private final ServicioAutenticacionCliente servicioAutenticacionCliente;
+    
+    /**
+     * Cancelar una reserva del cliente autenticado
+     */
+    @PostMapping("/reservas/{id}/cancelar")
+    public ResponseEntity<ApiResponse<Object>> cancelarReserva(
+            @PathVariable Long id,
+            @RequestBody com.example.sitema_de_turnos.dto.publico.CancelarReservaRequest request,
+            Authentication authentication
+    ) {
+        String username = authentication.getName();
+        String[] parts = username.split(":", 3);
+        if (parts.length != 3 || !"cliente".equals(parts[0])) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Sesión inválida"));
+        }
+        String empresaSlug = parts[1];
+        String telefono = parts[2];
+
+        Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, telefono);
+
+        servicioTurno.cancelarTurnoPorCliente(id, cliente, request.getMotivo());
+
+        return ResponseEntity.ok(ApiResponse.exito(null, "Turno cancelado exitosamente"));
+    }
+
+    /**
+     * Modificar reserva del cliente autenticado
+     */
+    @PutMapping("/reservas/{id}")
+    public ResponseEntity<ApiResponse<com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico>> modificarReserva(
+            @PathVariable Long id,
+            @RequestBody com.example.sitema_de_turnos.dto.publico.ReservaModificarRequest request,
+            Authentication authentication
+    ) {
+        String username = authentication.getName();
+        log.info("modificarReserva request - username={}", username);
+        String[] parts = username.split(":", 3);
+        if (parts.length != 3 || !"cliente".equals(parts[0])) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Sesión inválida"));
+        }
+        String empresaSlug = parts[1];
+        String telefono = parts[2];
+
+        Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, telefono);
+
+        var response = servicioTurno.modificarReservaPorCliente(id, cliente, request);
+        return ResponseEntity.ok(ApiResponse.exito(response, "Reserva modificada exitosamente"));
+    }
+
+    /**
+     * Reprogramar una reserva del cliente autenticado
+     */
+    @PutMapping("/reservas/{id}/reprogramar")
+    public ResponseEntity<ApiResponse<com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico>> reprogramarReserva(
+            @PathVariable Long id,
+            @RequestBody com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request,
+            Authentication authentication
+    ) {
+        String username = authentication.getName();
+        String[] parts = username.split(":", 3);
+        if (parts.length != 3 || !"cliente".equals(parts[0])) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Sesión inválida"));
+        }
+        String empresaSlug = parts[1];
+        String telefono = parts[2];
+
+        Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, telefono);
+
+        var response = servicioTurno.reprogramarReservaPorCliente(id, cliente, request);
+        return ResponseEntity.ok(ApiResponse.exito(response, "Reserva reprogramada exitosamente"));
+    }
 
     /**
      * Obtener todos los turnos del cliente autenticado

@@ -1,45 +1,62 @@
-package com.example.sitema_de_turnos.controlador;
+    package com.example.sitema_de_turnos.controlador;
 
-import com.example.sitema_de_turnos.dto.ApiResponse;
-import com.example.sitema_de_turnos.dto.ClienteAutenticadoResponse;
-import com.example.sitema_de_turnos.dto.publico.*;
-import com.example.sitema_de_turnos.servicio.ServicioAutenticacionCliente;
-import com.example.sitema_de_turnos.servicio.ServicioPublico;
-import com.example.sitema_de_turnos.servicio.ServicioTurno;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.web.bind.annotation.*;
+    import com.example.sitema_de_turnos.modelo.Cliente;
+    import org.springframework.security.core.annotation.AuthenticationPrincipal;
+    import jakarta.servlet.http.HttpServletRequest;
+    import jakarta.servlet.http.HttpSession;
+    import jakarta.validation.Valid;
+    import org.springframework.format.annotation.DateTimeFormat;
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.security.authentication.AuthenticationManager;
+    import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+    import org.springframework.security.core.Authentication;
+    import org.springframework.security.core.context.SecurityContext;
+    import org.springframework.security.core.context.SecurityContextHolder;
+    import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+    import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.util.List;
+    import java.time.LocalDate;
+    import java.util.List;
 
-@RestController
-@RequestMapping("/api/publico")
-@RequiredArgsConstructor
-@Slf4j
+    import com.example.sitema_de_turnos.servicio.ServicioPublico;
+    import com.example.sitema_de_turnos.servicio.ServicioTurno;
+    import com.example.sitema_de_turnos.servicio.ServicioAutenticacionCliente;
+    import com.example.sitema_de_turnos.servicio.ClienteUserDetails;
+    import com.example.sitema_de_turnos.dto.ApiResponse;
+    import com.example.sitema_de_turnos.dto.publico.EmpresaPublicaResponse;
+    import com.example.sitema_de_turnos.dto.publico.ServicioPublicoResponse;
+    import com.example.sitema_de_turnos.dto.publico.ProfesionalPublicoResponse;
+    import com.example.sitema_de_turnos.dto.publico.SlotDisponibleResponse;
+    import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
+    import com.example.sitema_de_turnos.dto.publico.CrearTurnoRequest;
+    import com.example.sitema_de_turnos.dto.ClienteAutenticadoResponse;
+    import com.example.sitema_de_turnos.dto.publico.RegistroClienteRequest;
+    import com.example.sitema_de_turnos.dto.publico.LoginClienteRequest;
+    import com.example.sitema_de_turnos.dto.publico.TelefonoInfoResponse;
+    import lombok.RequiredArgsConstructor;
+    import lombok.extern.slf4j.Slf4j;
+
+    @RestController
+    @RequestMapping("/api/publico")
+    @RequiredArgsConstructor
+    @Slf4j
 public class ControladorPublico {
 
+        /**
+         * Obtener políticas de cancelación activas de una empresa pública por slug
+         * GET /api/publico/empresa/{slug}/politicas-cancelacion/activas
+         */
+        @GetMapping("/empresa/{slug}/politicas-cancelacion/activas")
+        public ResponseEntity<ApiResponse<java.util.List<com.example.sitema_de_turnos.dto.PoliticaCancelacionResponse>>> obtenerPoliticasActivasPorSlug(@PathVariable String slug) {
+            java.util.List<com.example.sitema_de_turnos.dto.PoliticaCancelacionResponse> politicas = servicioPublico.obtenerPoliticasActivasPorEmpresa(slug);
+            return ResponseEntity.ok(ApiResponse.exito(politicas, "Políticas activas obtenidas exitosamente"));
+        }
     private final ServicioPublico servicioPublico;
     private final ServicioTurno servicioTurno;
     private final ServicioAutenticacionCliente servicioAutenticacionCliente;
     private final AuthenticationManager authenticationManager;
 
-    /**
-     * Obtener información pública de una empresa por slug
-     * GET /api/publico/empresa/{slug}
-     */
     @GetMapping("/empresa/{slug}")
     public ResponseEntity<ApiResponse<EmpresaPublicaResponse>> obtenerEmpresa(@PathVariable String slug) {
         EmpresaPublicaResponse empresa = servicioPublico.obtenerEmpresaPorSlug(slug);
@@ -94,9 +111,11 @@ public class ControladorPublico {
     @PostMapping("/empresa/{empresaSlug}/turnos")
     public ResponseEntity<ApiResponse<TurnoResponsePublico>> crearTurno(
             @PathVariable String empresaSlug,
+            @AuthenticationPrincipal ClienteUserDetails clienteUserDetails,
             @Valid @RequestBody CrearTurnoRequest request
     ) {
-        TurnoResponsePublico turno = servicioTurno.crearTurnoPublico(empresaSlug, request);
+        Cliente clienteAutenticado = clienteUserDetails != null ? clienteUserDetails.getCliente() : null;
+        TurnoResponsePublico turno = servicioTurno.crearTurnoPublico(empresaSlug, clienteAutenticado, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.exito(turno, "Turno creado exitosamente"));
     }
@@ -194,7 +213,7 @@ public class ControladorPublico {
 
     /**
      * Verificar si un teléfono tiene cuenta registrada (detección pasiva)
-     * GET /api/publico/empresa/{empresaSlug}/verificar-telefono?telefono=XXX
+     * GET /api/publico/empresa/{empresaSlug}/verificar-telefono?telefono=
      */
     @GetMapping("/empresa/{empresaSlug}/verificar-telefono")
     public ResponseEntity<ApiResponse<Boolean>> verificarTelefonoRegistrado(
@@ -203,5 +222,26 @@ public class ControladorPublico {
     ) {
         boolean tieneUsuario = servicioAutenticacionCliente.verificarTelefonoTieneUsuario(empresaSlug, telefono);
         return ResponseEntity.ok(ApiResponse.exito(tieneUsuario, "Verificación completada"));
+    }
+
+    /**
+     * Información pública ampliada sobre un teléfono dentro de la empresa.
+     * Devuelve si existe un cliente y si además tiene usuario.
+     */
+    @GetMapping("/empresa/{empresaSlug}/telefono-info")
+    public ResponseEntity<ApiResponse<com.example.sitema_de_turnos.dto.publico.TelefonoInfoResponse>> telefonoInfo(
+            @PathVariable String empresaSlug,
+            @RequestParam String telefono
+    ) {
+        boolean existe = servicioAutenticacionCliente.verificarTelefonoExiste(empresaSlug, telefono);
+        boolean tieneUsuario = servicioAutenticacionCliente.verificarTelefonoTieneUsuario(empresaSlug, telefono);
+
+        String nombreEnmascarado = null;
+        if (existe) {
+            nombreEnmascarado = servicioAutenticacionCliente.obtenerNombreEnmascarado(empresaSlug, telefono);
+        }
+
+        var dto = new TelefonoInfoResponse(existe, tieneUsuario, nombreEnmascarado);
+        return ResponseEntity.ok(ApiResponse.exito(dto, "Información de teléfono obtenida"));
     }
 }

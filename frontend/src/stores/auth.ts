@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import api from '@/services/api'
 
 interface Usuario {
   id?: number
@@ -21,24 +22,43 @@ export const useAuthStore = defineStore('auth', () => {
   function setUsuario(datosUsuario: Usuario) {
     usuario.value = datosUsuario
     autenticado.value = true
-    
-    // SOLO guardar datos del usuario (NO credenciales)
-    // Las sesiones se gestionan con cookies HttpOnly del servidor
-    localStorage.setItem('usuario', JSON.stringify(datosUsuario))
+    // NO persistir en localStorage. El estado se reconstruye desde el backend.
   }
 
   function logout() {
     usuario.value = null
     autenticado.value = false
-    localStorage.removeItem('usuario')
+    // No persistimos en localStorage; solo limpiar el estado en memoria
   }
 
-  function cargarUsuario() {
-    const usuarioGuardado = localStorage.getItem('usuario')
-    
-    if (usuarioGuardado) {
-      usuario.value = JSON.parse(usuarioGuardado) as Usuario
-      autenticado.value = true
+  async function cargarDesdeBackend(): Promise<boolean> {
+    try {
+      const response = await api.get('/auth/perfil')
+      // Puede devolver RespuestaApi (usuarios) o ApiResponse (cliente)
+      const payload = response.data?.datos ?? response.data
+
+      // Si el backend indicó exito=false, no hay sesión
+      if (response.data && response.data.exito === false) {
+        return false
+      }
+
+      // Detectar si es cliente (tendrá campo empresaId o rol CLIENTE)
+      // Nota: no seteamos el `cliente` globalmente desde aqui porque el cliente
+      // es específico por empresa. Las vistas públicas deben consultar el perfil
+      // y decidir si asociar la sesión al `cliente` según el `empresaSlug`/empresaId.
+      if (payload && (payload.empresaId !== undefined || payload.rol === 'CLIENTE')) {
+        return false
+      }
+
+      if (payload) {
+        usuario.value = payload as Usuario
+        autenticado.value = true
+        return true
+      }
+
+      return false
+    } catch (e) {
+      return false
     }
   }
 
@@ -47,6 +67,6 @@ export const useAuthStore = defineStore('auth', () => {
     autenticado,
     setUsuario,
     logout,
-    cargarUsuario
+    cargarDesdeBackend
   }
 })

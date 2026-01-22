@@ -1,26 +1,19 @@
 <template>
+  <ClienteNavbar v-if="showClientNavbar" />
+  <UnifiedNavbar v-if="!showClientNavbar && !isUserView" />
   <router-view />
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useClienteStore } from '@/stores/cliente'
-import api from '@/services/api'
+import { onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import UnifiedNavbar from '@/components/UnifiedNavbar.vue'
+import ClienteNavbar from '@/components/ClienteNavbar.vue'
+// No reconstruir `cliente` aquí: las vistas públicas se encargarán de asociar
+// la sesión del cliente según el `empresaSlug` en contexto.
+onMounted(() => {})
 
-const clienteStore = useClienteStore()
-
-// Intentar recuperar sesión activa al cargar la aplicación
-onMounted(async () => {
-  if (!clienteStore.isAuthenticated) {
-    try {
-      const response = await api.obtenerPerfilCliente()
-      if (response.data.exito) {
-        clienteStore.setCliente(response.data.datos)
-      }
-    } catch {
-      // Sin sesión activa, continuar normalmente
-      // El store permanece con cliente=null
-    }
-  }
-})
+const route = useRoute()
+const showClientNavbar = computed(() => !!route.meta?.clientView)
+const isUserView = computed(() => ['Admin', 'Dueno', 'Profesional', 'Login'].includes(route.name as string))
 </script>

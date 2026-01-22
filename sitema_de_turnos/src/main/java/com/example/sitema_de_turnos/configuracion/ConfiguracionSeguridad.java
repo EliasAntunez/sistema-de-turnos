@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +21,7 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
@@ -105,7 +107,8 @@ public class ConfiguracionSeguridad {
                     .ignoringRequestMatchers(
                         "/api/publico/**",        // Endpoints públicos
                         "/api/auth/login",        // Login usuarios no requiere CSRF
-                        "/api/auth/logout"        // Logout manejado por Spring Security
+                        "/api/auth/logout",       // Logout manejado por Spring Security
+                        "/api/auth/perfil"        // Perfil para verificar sesión
                     );
             })
             
@@ -145,11 +148,29 @@ public class ConfiguracionSeguridad {
                 .expiredUrl("/api/auth/session-expired")
                 .sessionRegistry(sessionRegistry()) // AGREGADO: Usar el SessionRegistry
             )
+
+            // Manejo de errores para APIs: devolver JSON en vez de redirecciones HTML
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"exito\":false,\"mensaje\":\"No autenticado\"}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"exito\":false,\"mensaje\":\"Acceso denegado\"}");
+                })
+            )
             
             .authorizeHttpRequests(auth -> auth
+                // Allow preflight CORS requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Endpoints públicos (sin autenticación)
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/publico/**").permitAll()
+                // Hacer público el endpoint de políticas activas
+                .requestMatchers("/api/politicas-cancelacion/empresa/*/activas").permitAll()
                 
                 // Endpoints de SuperAdmin
                 .requestMatchers("/api/admin/**").hasAuthority("SUPER_ADMIN")

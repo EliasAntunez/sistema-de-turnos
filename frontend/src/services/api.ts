@@ -29,7 +29,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.url?.startsWith('/auth/logout') ||
     config.url?.startsWith('/publico/') // Endpoints públicos no requieren CSRF
   
-  if (!isExemptFromCsrf && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+  if (!isExemptFromCsrf && ['post', 'put', 'patch', 'delete', 'get'].includes(config.method?.toLowerCase() || '')) {
     const csrfToken = getCsrfToken()
     if (csrfToken && config.headers) {
       config.headers['X-XSRF-TOKEN'] = csrfToken
@@ -38,23 +38,50 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
-// Interceptor para manejar sesión expirada
+// Interceptor para manejar sesión expirada o inválida
+let authCleanupDone = false // evita limpiar/redirigir múltiples veces en la misma pestaña
+
 apiClient.interceptors.response.use(
   response => response,
-  error => {
-    if (error.response?.status === 401) {
-      // Solo redirigir si NO estamos en páginas de autenticación
-      const currentPath = window.location.pathname
-      const isAuthPage = currentPath === '/login' || 
-                        currentPath.includes('/login-cliente') || 
-                        currentPath.includes('/registro-cliente')
-      
-      if (!isAuthPage) {
-        // Sesión expirada - limpiar y redirigir
-        localStorage.removeItem('usuario')
-        window.location.href = '/login'
+  async error => {
+    const status = error.response?.status
+    const isUnauthorized = status === 401 || status === 403
+
+    // Si el caller indicó que NO quiere el redirect automático, respetarlo
+    const skipRedirect = error.config?.headers?.['X-Skip-Auth-Redirect'] === 'true'
+
+    if (isUnauthorized) {
+      // Import dinámico de stores para limpiar estado (evita ciclos de import)
+      try {
+        const [authMod, clienteMod] = await Promise.allSettled([
+          import('@/stores/auth'),
+          import('@/stores/cliente')
+        ])
+
+        if (authMod.status === 'fulfilled') {
+          try { authMod.value.useAuthStore().logout() } catch (e) {}
+        }
+        if (clienteMod.status === 'fulfilled') {
+          try { clienteMod.value.useClienteStore().logout() } catch (e) {}
+        }
+      } catch (e) {
+        try { localStorage.removeItem('usuario') } catch (e) {}
+        try { localStorage.removeItem('cliente') } catch (e) {}
+      }
+
+      // Si el caller solicitó no redirect, devolver la respuesta de error como resuelta
+      if (skipRedirect) {
+        return Promise.resolve(error.response)
+      }
+
+      // Evitar múltiples limpiezas seguidas en la misma pestaña
+      if (!authCleanupDone) {
+        authCleanupDone = true
+        // Ya limpiamos `auth` y `cliente` arriba; no forzamos navegación global.
+        // Las vistas pueden decidir redirigir según contexto (por ejemplo, login-cliente con slug).
       }
     }
+
     return Promise.reject(error)
   }
 )
@@ -182,7 +209,30 @@ export default {
     return apiClient.get('/cliente/mis-turnos')
   },
 
+  // Modificar reserva como cliente autenticado
+  modifyReservation(turnoId: number, datos: { nombreCliente?: string; observaciones?: string }) {
+    return apiClient.put(`/cliente/reservas/${turnoId}`, datos)
+  },
+
+  // Cancelar reserva como cliente autenticado
+  cancelReservation(turnoId: number, datos: { motivo: string }) {
+    return apiClient.post(`/cliente/reservas/${turnoId}/cancelar`, datos)
+  },
+
+  // Reprogramar reserva como cliente autenticado
+  reprogramReservation(turnoId: number, datos: { fecha: string; horaInicio: string; profesionalId?: number }) {
+    return apiClient.put(`/cliente/reservas/${turnoId}/reprogramar`, datos)
+  },
+
   obtenerPerfilCliente() {
-    return apiClient.get('/cliente/perfil')
+    // Esta llamada puede ejecutarse desde páginas públicas para detectar sesión de cliente.
+    // Evitar que el interceptor haga redirect automático en ese caso.
+    // Usar el endpoint unificado de auth que devuelve exito=false cuando no hay sesión
+    // y evita que Spring devuelva 403 por autorización.
+    return apiClient.get('/auth/perfil', {
+      headers: {
+        'X-Skip-Auth-Redirect': 'true'
+      }
+    })
   }
 }

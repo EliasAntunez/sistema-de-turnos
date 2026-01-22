@@ -466,13 +466,15 @@ function cerrarFormulario() {
     },
     empresa: {
       nombre: '',
+      slug: '',
       descripcion: '',
       cuit: '',
       direccion: '',
       ciudad: '',
       provincia: '',
       telefono: '',
-      email: ''
+      email: '',
+      diasMaximosReserva: 30
     }
   }
 }

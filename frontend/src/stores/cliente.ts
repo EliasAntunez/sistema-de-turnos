@@ -22,6 +22,14 @@ export const useClienteStore = defineStore('cliente', () => {
     cliente.value = null
   }
 
+  function cargarCliente() {
+    // Ya no se utiliza localStorage para persistir sesión cliente.
+    // El estado se reconstruye desde el backend llamando a `/api/auth/perfil`.
+  }
+
+  // Cargar cliente desde localStorage al inicializar el store
+  // No cargar desde localStorage al iniciar
+
   return {
     cliente,
     isAuthenticated,

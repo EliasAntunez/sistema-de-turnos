@@ -55,7 +55,7 @@ public class ServicioServicio {
 
         // Crear servicio
         com.example.sitema_de_turnos.modelo.Servicio servicio = new com.example.sitema_de_turnos.modelo.Servicio();
-        servicio.setNombre(request.getNombre());
+        servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
         servicio.setDescripcion(request.getDescripcion());
         servicio.setDuracionMinutos(request.getDuracionMinutos());
         servicio.setBufferMinutos(request.getBufferMinutos());
@@ -108,7 +108,7 @@ public class ServicioServicio {
         Set<Especialidad> especialidadesAnteriores = new HashSet<>(servicio.getEspecialidades());
 
         // Actualizar servicio
-        servicio.setNombre(request.getNombre());
+        servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
         servicio.setDescripcion(request.getDescripcion());
         servicio.setDuracionMinutos(request.getDuracionMinutos());
         servicio.setBufferMinutos(request.getBufferMinutos());

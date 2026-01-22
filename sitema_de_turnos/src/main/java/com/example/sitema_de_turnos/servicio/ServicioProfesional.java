@@ -77,11 +77,11 @@ public class ServicioProfesional {
 
         // Crear profesional
         Profesional profesional = new Profesional();
-        profesional.setNombre(dto.getNombre());
-        profesional.setApellido(dto.getApellido());
-        profesional.setEmail(dto.getEmail());
+        profesional.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(dto.getNombre()));
+        profesional.setApellido(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(dto.getApellido()));
+        profesional.setEmail(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(dto.getEmail()));
         profesional.setContrasena(passwordEncoder.encode(dto.getContrasena()));
-        profesional.setTelefono(dto.getTelefono());
+        profesional.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(dto.getTelefono()));
         profesional.setEspecialidades(especialidades);
         profesional.setDescripcion(dto.getDescripcion());
         profesional.setRol(RolUsuario.PROFESIONAL);
@@ -109,11 +109,12 @@ public class ServicioProfesional {
         }
 
         // Validar email único (si cambió)
-        if (!profesional.getEmail().equals(dto.getEmail())) {
-            if (repositorioProfesional.findByEmail(dto.getEmail()).isPresent()) {
+        if (!profesional.getEmail().equalsIgnoreCase(dto.getEmail())) {
+            String emailNormalizado = com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(dto.getEmail());
+            if (repositorioProfesional.findByEmail(emailNormalizado).isPresent()) {
                 throw new IllegalArgumentException("El email " + dto.getEmail() + " ya está registrado");
             }
-            profesional.setEmail(dto.getEmail());
+            profesional.setEmail(emailNormalizado);
         }
 
         // Guardar especialidades anteriores para limpiar overrides huérfanos
@@ -126,9 +127,9 @@ public class ServicioProfesional {
         validarEspecialidadesActivas(especialidadesNuevas);
 
         // Actualizar datos
-        profesional.setNombre(dto.getNombre());
-        profesional.setApellido(dto.getApellido());
-        profesional.setTelefono(dto.getTelefono());
+        profesional.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(dto.getNombre()));
+        profesional.setApellido(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(dto.getApellido()));
+        profesional.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(dto.getTelefono()));
         profesional.setEspecialidades(especialidadesNuevas);
         profesional.setDescripcion(dto.getDescripcion());
         

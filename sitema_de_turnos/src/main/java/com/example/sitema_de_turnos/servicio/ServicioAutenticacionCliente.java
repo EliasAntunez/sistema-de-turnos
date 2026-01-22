@@ -65,7 +65,7 @@ public class ServicioAutenticacionCliente {
                 });
 
         // Actualizar cliente: agregar email y contraseña
-        cliente.setEmail(request.getEmail());
+        cliente.setEmail(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(request.getEmail()));
         cliente.setContrasena(passwordEncoder.encode(request.getContrasena()));
         cliente.setTieneUsuario(true);
         
@@ -122,6 +122,50 @@ public class ServicioAutenticacionCliente {
         } catch (Exception e) {
             log.warn("Error verificando teléfono: {}", e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Verifica si existe un cliente activo con el teléfono en la empresa (sin requerir que tenga usuario).
+     */
+    public boolean verificarTelefonoExiste(String empresaSlug, String telefono) {
+        try {
+            Empresa empresa = repositorioEmpresa.findBySlugAndActivaTrue(empresaSlug)
+                    .orElse(null);
+
+            if (empresa == null) {
+                return false;
+            }
+
+            return repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, telefono)
+                    .isPresent();
+        } catch (Exception e) {
+            log.warn("Error verificando existencia de teléfono: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Obtener nombre enmascarado (primer nombre inicial) para mostrar en UI sin exponer datos completos.
+     * Retorna null si no hay cliente o no hay nombre.
+     */
+    public String obtenerNombreEnmascarado(String empresaSlug, String telefono) {
+        try {
+            Empresa empresa = repositorioEmpresa.findBySlugAndActivaTrue(empresaSlug)
+                    .orElse(null);
+
+            if (empresa == null) return null;
+
+            var opt = repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, telefono);
+            if (opt.isEmpty()) return null;
+
+            String nombre = opt.get().getNombre();
+            if (nombre == null || nombre.trim().isEmpty()) return null;
+            String[] partes = nombre.trim().split(" ");
+            return partes[0].charAt(0) + ".";
+        } catch (Exception e) {
+            log.warn("Error obteniendo nombre enmascarado: {}", e.getMessage());
+            return null;
         }
     }
 }

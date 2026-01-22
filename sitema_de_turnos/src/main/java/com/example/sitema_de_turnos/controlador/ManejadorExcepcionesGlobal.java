@@ -74,6 +74,16 @@ public class ManejadorExcepcionesGlobal {
     }
 
     /**
+     * Maneja conflictos de negocio (409)
+     */
+    @ExceptionHandler(com.example.sitema_de_turnos.excepcion.ConflictoException.class)
+    public ResponseEntity<RespuestaApi<Void>> manejarConflicto(com.example.sitema_de_turnos.excepcion.ConflictoException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(RespuestaApi.error(ex.getMessage()));
+    }
+
+    /**
      * Maneja errores de acceso denegado de Spring Security (403)
      */
     @ExceptionHandler(AccessDeniedException.class)

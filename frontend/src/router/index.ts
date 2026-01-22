@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useClienteStore } from '../stores/cliente'
 import api from '../services/api'
+import publicoService from '@/services/publico'
 import LoginView from '../views/LoginView.vue'
 import AdminView from '../views/AdminView.vue'
 import DuenoView from '../views/DuenoView.vue'
@@ -10,6 +11,9 @@ import ReservarView from '../views/ReservarView.vue'
 import RegistroClienteView from '../views/RegistroClienteView.vue'
 import LoginClienteView from '../views/LoginClienteView.vue'
 import MisTurnosView from '../views/MisTurnosView.vue'
+
+// Lazy load para políticas de cancelación
+const AdminPoliticasCancelacionView = () => import('../views/AdminPoliticasCancelacionView.vue');
 
 const routes = [
   {
@@ -25,6 +29,7 @@ const routes = [
     path: '/reservar/:empresaSlug',
     name: 'Reservar',
     component: ReservarView
+    , meta: { clientView: true }
   },
   {
     path: '/empresa/:slug',
@@ -38,17 +43,19 @@ const routes = [
     path: '/empresa/:empresaSlug/registro-cliente',
     name: 'RegistroCliente',
     component: RegistroClienteView
+    , meta: { clientView: true }
   },
   {
     path: '/empresa/:empresaSlug/login-cliente',
     name: 'LoginCliente',
     component: LoginClienteView
+    , meta: { clientView: true }
   },
   {
     path: '/empresa/:empresaSlug/mis-turnos',
     name: 'MisTurnos',
     component: MisTurnosView,
-    meta: { requiresClienteAuth: true }
+    meta: { requiresClienteAuth: true, clientView: true }
   },
   {
     path: '/admin',
@@ -82,7 +89,12 @@ router.beforeEach(async (to, from, next) => {
   
   // Cargar usuario del localStorage si existe
   if (!authStore.autenticado) {
-    authStore.cargarUsuario()
+    // Intentar reconstruir estado desde backend
+    try {
+      await authStore.cargarDesdeBackend()
+    } catch (e) {
+      // si falla, continuar sin estado autenticado
+    }
   }
 
   // Rutas protegidas de cliente
@@ -91,17 +103,32 @@ router.beforeEach(async (to, from, next) => {
     if (!clienteStore.isAuthenticated) {
       try {
         const response = await api.obtenerPerfilCliente()
-        if (response.data.exito) {
-          clienteStore.setCliente(response.data.datos)
-          next() // Sesión válida, permitir navegación
-        } else {
-          // Sin sesión válida, redirigir a login
-          const empresaSlug = to.params.empresaSlug as string
-          next({
-            path: `/empresa/${empresaSlug}/login-cliente`,
-            query: { redirect: to.fullPath }
-          })
+          console.debug('[router] obtenerPerfilCliente response:', response)
+        // Aceptar sesión solo si status 200 y payload válido
+        if (response && response.status === 200) {
+          const payload = response.data?.datos ?? response.data
+          if (payload && (payload.id !== undefined || payload.empresaId !== undefined || payload.telefono !== undefined)) {
+            // Verificar que el perfil corresponde a la empresa solicitada
+            const empresaSlug = to.params.empresaSlug as string
+            try {
+              const empresa = await publicoService.obtenerEmpresa(empresaSlug)
+              if (payload.empresaId === empresa.id || payload.empresaSlug === empresa.slug) {
+                clienteStore.setCliente(payload)
+                console.debug('[router] cliente seteado en store desde guard]:', clienteStore.cliente)
+                next()
+                return
+              }
+            } catch (e) {
+              // Si no podemos cargar empresa, no asociar la sesión
+            }
+          }
         }
+        // Si no se cumple condición de sesión válida, redirigir a login
+        const empresaSlug = to.params.empresaSlug as string
+        next({
+          path: `/empresa/${empresaSlug}/login-cliente`,
+          query: { redirect: to.fullPath }
+        })
       } catch {
         // Error al verificar sesión, redirigir a login
         const empresaSlug = to.params.empresaSlug as string

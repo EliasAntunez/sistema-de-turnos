@@ -20,6 +20,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class ServicioPublico {
+    private final com.example.sitema_de_turnos.servicio.ServicioPoliticaCancelacion servicioPoliticaCancelacion;
+    /**
+     * Obtener políticas de cancelación activas de una empresa pública por slug
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.example.sitema_de_turnos.dto.PoliticaCancelacionResponse> obtenerPoliticasActivasPorEmpresa(String slug) {
+        return servicioPoliticaCancelacion.obtenerActivasPorEmpresaSlugDTO(slug);
+    }
 
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioServicio repositorioServicio;

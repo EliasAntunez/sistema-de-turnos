@@ -5,7 +5,8 @@ const publicClient: AxiosInstance = axios.create({
   baseURL: 'http://localhost:8080/api/publico',
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 })
 
 export interface EmpresaPublica {
@@ -88,6 +89,13 @@ export interface ApiResponse<T> {
 }
 
 export default {
+    /**
+     * Obtener políticas de cancelación activas de una empresa pública por slug
+     */
+    async obtenerPoliticasCancelacionActivas(slug: string): Promise<any[]> {
+      const response = await publicClient.get<ApiResponse<any[]>>(`/empresa/${slug}/politicas-cancelacion/activas`)
+      return response.data.datos
+    },
   /**
    * Obtener información pública de una empresa por slug
    */
@@ -160,6 +168,21 @@ export default {
       return response.data.datos
     } catch {
       return false // En caso de error, asumir que no está registrado
+    }
+  },
+  /**
+   * Obtener información amplia sobre un teléfono en la empresa.
+   * Retorna { existe: boolean, tieneUsuario: boolean, nombreEnmascarado?: string }
+   */
+  async telefonoInfo(empresaSlug: string, telefono: string): Promise<{ existe: boolean; tieneUsuario: boolean; nombreEnmascarado?: string } | null> {
+    try {
+      const response = await publicClient.get<ApiResponse<any>>(
+        `/empresa/${empresaSlug}/telefono-info`,
+        { params: { telefono } }
+      )
+      return response.data.datos
+    } catch (e) {
+      return null
     }
   }
 }

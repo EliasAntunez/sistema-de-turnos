@@ -1,5 +1,8 @@
 package com.example.sitema_de_turnos.controlador;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.example.sitema_de_turnos.dto.*;
 import com.example.sitema_de_turnos.servicio.ServicioHorarioEmpresa;
 import com.example.sitema_de_turnos.servicio.ServicioProfesional;
@@ -19,16 +22,46 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('DUENO')")
 public class ControladorDueno {
+    private static final Logger logger = LoggerFactory.getLogger(ControladorDueno.class);
 
     private final ServicioProfesional servicioProfesional;
     private final ServicioServicio servicioServicio;
     private final ServicioHorarioEmpresa servicioHorarioEmpresa;
+    private final com.example.sitema_de_turnos.servicio.ServicioDueno servicioDueno;
 
     @GetMapping("/profesionales")
     public ResponseEntity<List<ProfesionalResponse>> obtenerProfesionales(Authentication authentication) {
         String emailDueno = authentication.getName();
         List<ProfesionalResponse> profesionales = servicioProfesional.obtenerProfesionalesPorEmpresa(emailDueno);
         return ResponseEntity.ok(profesionales);
+    }
+
+    @GetMapping("/empresa")
+    public ResponseEntity<?> obtenerEmpresaDelDueno(org.springframework.security.core.Authentication authentication) {
+        String email = authentication.getName();
+        logger.info("[EMPRESA] Email recibido del usuario autenticado: {}", email);
+        com.example.sitema_de_turnos.modelo.Dueno dueno = null;
+        try {
+            dueno = servicioDueno.obtenerPorEmail(email);
+            logger.info("[EMPRESA] Dueño encontrado: {} (id: {})", dueno != null ? dueno.getEmail() : null, dueno != null ? dueno.getId() : null);
+        } catch (Exception e) {
+            logger.error("[EMPRESA] Error al buscar dueño por email: {} - {}", email, e.getMessage());
+            return ResponseEntity.status(500).body("Error al buscar dueño: " + e.getMessage());
+        }
+        if (dueno == null) {
+            logger.warn("[EMPRESA] No se encontró dueño para el email: {}", email);
+            return ResponseEntity.status(404).body("No se encontró dueño para el email: " + email);
+        }
+        if (dueno.getEmpresa() == null) {
+            logger.warn("[EMPRESA] El dueño con email {} no tiene empresa asociada", email);
+            return ResponseEntity.status(404).body("El dueño no tiene empresa asociada");
+        }
+        var empresa = dueno.getEmpresa();
+        logger.info("[EMPRESA] Empresa encontrada para el dueño {}: id {}", email, empresa.getId());
+        // Usar DTO plano para evitar referencias cíclicas
+        com.example.sitema_de_turnos.dto.EmpresaDto dto = new com.example.sitema_de_turnos.dto.EmpresaDto(empresa.getId(), empresa.getNombre());
+        logger.info("[EMPRESA] DTO a retornar: {}", dto);
+        return ResponseEntity.ok(dto);
     }
 
     @PostMapping("/profesionales")

@@ -32,6 +32,9 @@ public class Empresa {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    public Empresa(Long id) {
+        this.id = id;
+    }
 
     @Column(nullable = false, length = 200)
     private String nombre;

@@ -63,9 +63,6 @@ async function handleLogin() {
       contrasena: contrasena.value
     })
 
-    console.log('Response completa:', response)
-    console.log('Response data:', response.data)
-
     if (response.data.exito) {
       // ACTUALIZADO: Solo guardar datos del usuario (NO credenciales)
       // Spring Security gestiona la sesión con cookies HttpOnly

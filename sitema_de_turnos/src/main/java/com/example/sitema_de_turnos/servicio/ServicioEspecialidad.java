@@ -27,7 +27,7 @@ public class ServicioEspecialidad {
         }
 
         Especialidad especialidad = new Especialidad();
-        especialidad.setNombre(request.getNombre().trim());
+        especialidad.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
         especialidad.setDescripcion(request.getDescripcion() != null ? request.getDescripcion().trim() : null);
         especialidad.setActiva(true);
         especialidad.setFechaCreacion(LocalDateTime.now());
@@ -51,7 +51,7 @@ public class ServicioEspecialidad {
                     }
                 });
 
-        especialidad.setNombre(request.getNombre().trim());
+        especialidad.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
         especialidad.setDescripcion(request.getDescripcion() != null ? request.getDescripcion().trim() : null);
         especialidad.setFechaActualizacion(LocalDateTime.now());
 

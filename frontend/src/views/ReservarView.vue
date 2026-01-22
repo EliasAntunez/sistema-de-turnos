@@ -1,145 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header empresa con diseño mobile-first -->
-    <header v-if="empresa" class="bg-white shadow-sm sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Mobile: Stack vertical -->
-        <div class="py-4 space-y-4">
-          <!-- Fila 1: Nombre y botones principales -->
-          <div class="flex items-center justify-between">
-            <!-- Logo/Nombre empresa -->
-            <div class="flex-1 min-w-0">
-              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
-                {{ empresa.nombre }}
-              </h1>
-            </div>
-            
-            <!-- Botones de autenticación (móvil: iconos compactos) -->
-            <div class="flex items-center gap-2 ml-4">
-              <template v-if="clienteAutenticado">
-                <!-- Móvil: Solo iconos | Desktop: Botones completos -->
-                <button 
-                  @click="irAMisTurnos"
-                  class="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
-                  title="Mis Turnos"
-                >
-                  <svg class="w-5 h-5 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span class="hidden sm:inline">Mis Turnos</span>
-                </button>
-                <button 
-                  @click="cerrarSesion"
-                  class="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Cerrar Sesión"
-                >
-                  <svg class="w-5 h-5 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span class="hidden sm:inline">Salir</span>
-                </button>
-              </template>
-              <template v-else>
-                <button 
-                  @click="irALogin"
-                  class="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
-                >
-                  <span class="hidden xs:inline">Ingresar</span>
-                  <span class="xs:hidden">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
-                  </span>
-                </button>
-                <button 
-                  @click="irARegistro"
-                  class="inline-flex items-center justify-center px-3 py-2 sm:px-4 sm:py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors"
-                >
-                  Registrarse
-                </button>
-              </template>
-            </div>
-          </div>
-          
-          <!-- Fila 2: Descripción (opcional, solo si existe) -->
-          <p v-if="empresa.descripcion" class="text-sm sm:text-base text-gray-600 line-clamp-2">
-            {{ empresa.descripcion }}
-          </p>
-          
-          <!-- Fila 3: Info de contacto + Badge cliente autenticado -->
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <!-- Info empresa -->
-            <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-500">
-              <span v-if="empresa.ciudad" class="inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {{ empresa.ciudad }}
-              </span>
-              <span v-if="empresa.telefono" class="inline-flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                {{ empresa.telefono }}
-              </span>
-            </div>
-            
-            <!-- Badge usuario autenticado (solo móvil) -->
-            <div v-if="clienteAutenticado" class="sm:hidden">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                </svg>
-                {{ clienteStore.cliente?.nombre }}
-              </span>
-            </div>
-            
-            <!-- Badge usuario autenticado (desktop) -->
-            <div v-if="clienteAutenticado" class="hidden sm:block">
-              <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                </svg>
-                {{ clienteStore.cliente?.nombre }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Banner informativo de sesión activa -->
-    <div v-if="clienteAutenticado" class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="flex-shrink-0">
-              <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-blue-900">
-                ✨ Sesión activa: {{ clienteStore.cliente?.nombre }}
-              </p>
-              <p class="text-xs text-blue-700 mt-0.5">
-                Tus datos se completarán automáticamente en el paso final
-              </p>
-            </div>
-          </div>
-          <button 
-            @click="irAMisTurnos"
-            class="hidden sm:flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline transition-colors"
-          >
-            <span>Ver mis turnos</span>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Header removed: company header moved to unified navbar to avoid duplication -->
 
     <!-- Contenido principal con padding -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -161,9 +22,8 @@
             <span v-if="pasoActual > 1">✓</span>
             <span v-else>1</span>
           </div>
-          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center">
-            <span class="hidden sm:inline">Servicio</span>
-            <span class="sm:hidden">1</span>
+          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
+            Servicio
           </span>
         </div>
 
@@ -177,9 +37,8 @@
             <span v-if="pasoActual > 2">✓</span>
             <span v-else>2</span>
           </div>
-          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center">
-            <span class="hidden sm:inline">Profesional</span>
-            <span class="sm:hidden">2</span>
+          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
+            Profesional
           </span>
         </div>
 
@@ -193,9 +52,8 @@
             <span v-if="pasoActual > 3">✓</span>
             <span v-else>3</span>
           </div>
-          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center">
-            <span class="hidden sm:inline">Fecha</span>
-            <span class="sm:hidden">3</span>
+          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
+            Fecha
           </span>
         </div>
 
@@ -209,9 +67,8 @@
             <span v-if="pasoActual > 4">✓</span>
             <span v-else>4</span>
           </div>
-          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center">
-            <span class="hidden sm:inline">Hora</span>
-            <span class="sm:hidden">4</span>
+          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
+            Hora
           </span>
         </div>
 
@@ -223,9 +80,8 @@
           ]">
             5
           </div>
-          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center">
-            <span class="hidden sm:inline">Confirmar</span>
-            <span class="sm:hidden">5</span>
+          <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
+            Confirmar
           </span>
         </div>
       </div>
@@ -418,9 +274,25 @@
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
               <input v-model="datosCliente.aceptaCondiciones" type="checkbox" required />
-              <span>Acepto la política de cancelación e inasistencias *</span>
+              <span>
+                Acepto las
+                <span 
+                  class="politicas-link-azul"
+                  @click="abrirModalPoliticas"
+                  style="color: #1976d2; text-decoration: underline; cursor: pointer; font-weight: 500;"
+                >
+                  Ver Políticas
+                </span>
+                *
+              </span>
             </label>
           </div>
+
+          <PoliticasModal
+            v-if="mostrarModalPoliticas"
+            :politicas="politicasActivas"
+            @close="mostrarModalPoliticas = false"
+          />
           
           <button type="submit" class="btn-primary btn-confirmar" :disabled="cargando">
             <span v-if="!cargando">Confirmar Turno</span>
@@ -458,13 +330,7 @@
           <p v-if="turnoCreado.clienteEmail"><strong>Email:</strong> {{ turnoCreado.clienteEmail }}</p>
         </div>
         
-        <div class="info-box">
-          <p class="info-text">
-            📱 Recibirás una confirmación por WhatsApp/SMS al número registrado.
-          </p>
-        </div>
-        
-        <div class="cta-cuenta">
+        <div v-if="!clienteAutenticado" class="cta-cuenta">
           <div class="cta-icon">🎯</div>
           <h3>¿Querés gestionar tus turnos más fácil?</h3>
           <p>Creá tu cuenta y:</p>
@@ -492,60 +358,104 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 class="text-lg font-bold text-gray-900">Teléfono ya registrado</h3>
+            <h3 class="text-lg font-bold text-gray-900">Número ya en el sistema</h3>
             <p class="text-sm text-gray-600 mt-1">
-              El teléfono {{ telefonoConflicto }} tiene una cuenta activa
+              El número {{ telefonoConflicto }} ya existe en nuestra base de datos.
             </p>
           </div>
         </div>
-        
-        <p class="text-gray-700 mb-4">
-          Detectamos que este número de teléfono ya tiene una cuenta registrada. 
-          Podés elegir:
-        </p>
-        
+
+        <div class="mb-3">
+          <p class="text-gray-700">
+            <template v-if="telefonoInfoData && telefonoInfoData.tieneUsuario">
+              Detectamos que este número está asociado a una cuenta registrada{{ telefonoInfoData.nombreEnmascarado ? ' (' + telefonoInfoData.nombreEnmascarado + ')' : '' }}. Por motivos de seguridad no podemos asociar una reserva a una cuenta registrada sin que el titular inicie sesión.
+            </template>
+            <template v-else>
+              Detectamos que este número corresponde a un cliente existente en la empresa{{ telefonoInfoData && telefonoInfoData.nombreEnmascarado ? ' (' + telefonoInfoData.nombreEnmascarado + ')' : '' }}. Si continuás, la reserva se asociará a ese cliente.
+            </template>
+          </p>
+        </div>
+
         <div class="options-container mb-4">
           <div class="option-card">
             <div class="option-icon">🔐</div>
-            <h4>Iniciar Sesión (Recomendado)</h4>
-            <p>Accedé a tu cuenta para ver tu historial de turnos y gestionar tus reservas.</p>
+            <h4 v-if="telefonoInfoData && telefonoInfoData.tieneUsuario">Iniciar Sesión (Recomendado)</h4>
+            <h4 v-else>Completar registro</h4>
+            <p v-if="telefonoInfoData && telefonoInfoData.tieneUsuario">Ingresá para gestionar tus turnos y ver tu historial.</p>
+            <p v-else>Completá tus datos para asociar la reserva a tu perfil y acceder a tu historial.</p>
           </div>
-          <div class="option-card">
-            <div class="option-icon">👤</div>
-            <h4>Continuar como Invitado</h4>
-            <p>Reservá sin iniciar sesión. Este turno no se asociará a tu cuenta.</p>
+          <div v-if="!clienteAutenticado && (!telefonoInfoData || !telefonoInfoData.tieneUsuario)" class="option-card">
+            <div class="option-icon">🔗</div>
+            <h4>Continuar y asociar</h4>
+            <p>Reservá ahora: la reserva se vinculará al cliente existente con este teléfono.</p>
           </div>
         </div>
-        
-        <div class="flex gap-3">
+
+          <div class="flex gap-3">
           <button 
+            v-if="telefonoInfoData && telefonoInfoData.tieneUsuario"
             @click="irALoginDesdeConflicto"
             class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 font-medium transition-colors shadow-sm"
           >
             Iniciar Sesión
           </button>
           <button 
-            @click="continuarComoInvitado"
+            v-else-if="!clienteAutenticado"
+            @click="irARegistroDesdeConflicto"
+            class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 font-medium transition-colors shadow-sm"
+          >
+            Completar registro
+          </button>
+
+          <button 
+            v-if="!clienteAutenticado && (!telefonoInfoData || !telefonoInfoData.tieneUsuario)"
+            @click="continuarYAsociar"
             class="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-md hover:bg-gray-300 font-medium transition-colors"
           >
-            Continuar sin cuenta
+            Continuar y asociar
+          </button>
+          <button 
+            v-else-if="!clienteAutenticado && telefonoInfoData && telefonoInfoData.tieneUsuario"
+            disabled
+            title="Debés iniciar sesión para asociar este número a una cuenta registrada."
+            class="flex-1 bg-gray-100 text-gray-400 px-4 py-3 rounded-md font-medium"
+          >
+            Asociar (requiere login)
+          </button>
+           <button 
+            v-else-if="clienteAutenticado"
+            disabled
+            title="No podés asociar a una cuenta que ya está iniciada."
+            class="flex-1 bg-gray-100 text-gray-400 px-4 py-3 rounded-md font-medium"
+          >
+            Asociar (ya conectado)
           </button>
         </div>
-        
+
         <button 
           @click="cerrarModalTelefono"
           class="mt-3 w-full text-gray-500 hover:text-gray-700 text-sm underline"
         >
-          Cancelar y volver
+          Usar otro número / Cancelar
         </button>
       </div>
     </div>
     </main>
+
+    <!-- Footer -->
+    <Footer 
+      v-if="empresa"
+      :direccion="empresa.direccion"
+      :ciudad="empresa.ciudad"
+      :telefono="empresa.telefono"
+      :email="empresa.email"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { useClienteStore } from '@/stores/cliente'
 import api from '@/services/api'
@@ -557,14 +467,52 @@ import publicoService, {
   type CrearTurnoRequest,
   type TurnoResponse
 } from '@/services/publico'
+import Footer from '@/components/Footer.vue'
+import PoliticasModal from '@/components/PoliticasModal.vue'
+import PoliticasService from '@/services/politicasCancelacion'
+import type { PoliticaCancelacion } from '@/types/politicasCancelacion'
 
 const route = useRoute()
 const router = useRouter()
 const clienteStore = useClienteStore()
 
+// Estado para el modal de políticas
+const mostrarModalPoliticas = ref(false)
+const politicasActivas = ref<PoliticaCancelacion[]>([])
+
+async function abrirModalPoliticas() {
+  if (!empresaSlug.value) {
+    console.error('[Politicas] No hay slug de empresa, no se puede buscar políticas')
+    politicasActivas.value = []
+    mostrarModalPoliticas.value = true
+    return
+  }
+  try {
+    const politicas = await publicoService.obtenerPoliticasCancelacionActivas(empresaSlug.value)
+    console.log('[Politicas] Respuesta backend:', politicas)
+    if (!Array.isArray(politicas)) {
+      console.error('[Politicas] El formato de la respuesta no es un array:', politicas)
+      politicasActivas.value = []
+      mostrarModalPoliticas.value = true
+      return
+    }
+    if (politicas.length === 0) {
+      console.warn('[Politicas] El backend devolvió un array vacío de políticas activas')
+    }
+    politicasActivas.value = politicas
+    mostrarModalPoliticas.value = true
+  } catch (e) {
+    console.error('[Politicas] Error al obtener políticas activas:', e)
+    politicasActivas.value = []
+    mostrarModalPoliticas.value = true
+  }
+}
+
 // Estado
 const empresaSlug = ref(route.params.empresaSlug as string)
 const empresa = ref<EmpresaPublica | null>(null)
+const empresaIdActual = ref<number | null>(null)
+const empresaCargada = ref(false)
 const pasoActual = ref(1)
 
 // Paso 1: Servicios
@@ -588,7 +536,6 @@ const slotSeleccionado = ref<SlotDisponible | null>(null)
 const cargandoSlots = ref(false)
 
 // Paso 5: Datos cliente
-const usuarioLogueado = ref(false) // TODO: integrar con auth store
 const datosCliente = ref({
   nombre: '',
   telefono: '',
@@ -604,6 +551,7 @@ const mensajeError = ref<string | null>(null)
 // Modal de teléfono registrado
 const mostrarModalTelefonoRegistrado = ref(false)
 const telefonoConflicto = ref('')
+const telefonoInfoData = ref<{ existe: boolean; tieneUsuario: boolean; nombreEnmascarado?: string } | null>(null)
 
 // Computed
 const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -652,15 +600,19 @@ const puedeMesAnterior = computed(() => {
   const primeroDelMes = new Date(añoActual.value, mesActual.value, 1)
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
-  return primeroDelMes > hoy
+  return primeroDelMes >= hoy // Permite ir al mes anterior si el mes actual es el primero posible
 })
+
 
 const puedeMesSiguiente = computed(() => {
   const maxDias = empresa.value?.diasMaximosReserva || 30
   const ultimoDelMes = new Date(añoActual.value, mesActual.value + 1, 0)
   const fechaMaxima = new Date()
   fechaMaxima.setDate(fechaMaxima.getDate() + maxDias)
-  return ultimoDelMes < fechaMaxima
+  fechaMaxima.setHours(0,0,0,0) // Asegurarse de comparar solo la fecha
+  
+  // Si el último día del mes actual es anterior o igual a la fecha máxima permitida
+  return ultimoDelMes <= fechaMaxima
 })
 
 const fechaSeleccionadaFormateada = computed(() => {
@@ -677,17 +629,46 @@ const fechaSeleccionadaFormateada = computed(() => {
 onMounted(async () => {
   try {
     empresa.value = await publicoService.obtenerEmpresa(empresaSlug.value)
+    empresaCargada.value = true
+    empresaIdActual.value = empresa.value.id
     
-    // Intentar recuperar sesión activa si no está en el store
-    if (!clienteStore.isAuthenticated) {
-      try {
-        const response = await api.obtenerPerfilCliente()
-        if (response.data.exito) {
-          clienteStore.setCliente(response.data.datos)
+    // Intentar recuperar sesión activa de CLIENTE
+    try {
+      const response = await api.obtenerPerfilCliente()
+      console.debug('[ReservarView] obtenerPerfilCliente response:', response)
+      // Solo setear cliente si la respuesta es 200, payload válido y pertenece a esta empresa
+      if (response && response.status === 200) {
+        const data = response.data?.datos ?? response.data
+        if (data && (data.id !== undefined || data.empresaId !== undefined || data.telefono !== undefined)) {
+          try {
+            // Verificar que el perfil recuperado corresponde a la empresa actual
+            if (data.empresaId === empresa.value.id || data.empresaSlug === empresa.value.slug) {
+              clienteStore.setCliente(data)
+              console.debug('[ReservarView] cliente seteado en store:', clienteStore.cliente)
+              // Precargar datos del cliente en el formulario
+              datosCliente.value.nombre = data.nombre || ''
+              datosCliente.value.telefono = data.telefono || ''
+              datosCliente.value.email = data.email || ''
+            } else {
+              // Cliente pertenece a otra empresa, logout
+              clienteStore.logout()
+            }
+          } catch (e) {
+            // Si por alguna razón no tenemos empresa cargada, logout
+            clienteStore.logout()
+          }
+        } else {
+          // Payload inválido, logout
+          clienteStore.logout()
         }
-      } catch {
-        // Sin sesión activa, continuar como invitado
+      } else {
+        // No hay sesión, logout
+        clienteStore.logout()
       }
+    } catch (error) {
+      // Error al obtener perfil, logout
+      console.debug('[ReservarView] Error al obtener perfil, logout:', error)
+      clienteStore.logout()
     }
     
     await cargarServicios()
@@ -736,6 +717,13 @@ function seleccionarProfesional(profesional: ProfesionalPublico) {
 }
 
 function mesAnterior() {
+  // Validar si podemos retroceder más allá del mes actual (si hoy es el primer día del mes)
+  const hoy = new Date()
+  hoy.setHours(0,0,0,0)
+  const primerDiaDelMesActual = new Date(añoActual.value, mesActual.value, 1)
+  
+  if (primerDiaDelMesActual <= hoy) return; // Ya estamos en el mes más antiguo posible
+
   if (mesActual.value === 0) {
     mesActual.value = 11
     añoActual.value--
@@ -745,6 +733,16 @@ function mesAnterior() {
 }
 
 function mesSiguiente() {
+  const maxDias = empresa.value?.diasMaximosReserva || 30
+  const fechaMaxima = new Date()
+  fechaMaxima.setDate(fechaMaxima.getDate() + maxDias)
+  fechaMaxima.setHours(0,0,0,0) // Asegurarse de comparar solo la fecha
+
+  const ultimoDiaDelMesActual = new Date(añoActual.value, mesActual.value + 1, 0)
+
+  // Si el último día del mes actual ya supera la fecha máxima permitida, no avanzar
+  if (ultimoDiaDelMesActual > fechaMaxima) return;
+
   if (mesActual.value === 11) {
     mesActual.value = 0
     añoActual.value++
@@ -753,9 +751,21 @@ function mesSiguiente() {
   }
 }
 
+
 async function seleccionarFecha(fecha: string | null) {
   if (!fecha) return
-  fechaSeleccionada.value = new Date(fecha + 'T00:00:00')
+  // Corregido: crear la fecha en local sin desfase de zona horaria
+  // fecha es 'YYYY-MM-DD', separamos y creamos Date con año, mes, día
+  const [anio, mes, dia] = fecha.split('-').map(Number)
+  if (
+    typeof anio !== 'number' || isNaN(anio) ||
+    typeof mes !== 'number' || isNaN(mes) ||
+    typeof dia !== 'number' || isNaN(dia)
+  ) {
+    // No se puede crear la fecha, datos inválidos
+    return
+  }
+  fechaSeleccionada.value = new Date(anio, mes - 1, dia, 0, 0, 0, 0)
   pasoActual.value = 4
   await cargarSlots()
 }
@@ -789,45 +799,48 @@ function seleccionarSlot(slot: SlotDisponible) {
 }
 
 async function confirmarReserva() {
-  if (!usuarioLogueado.value) {
+  // Resetear el mensaje de error
+  mensajeError.value = null
+
+  // Si el cliente no está autenticado, realizamos la validación de datos y la detección pasiva de teléfono
+  if (!clienteAutenticado.value) {
     // Validar datos del cliente
     if (!datosCliente.value.nombre || !datosCliente.value.telefono || 
         !datosCliente.value.aceptaCondiciones) {
-      alert('Por favor completa todos los campos obligatorios')
+      alert('Por favor completa todos los campos obligatorios para continuar.')
       return
     }
 
-    // Detección pasiva: verificar si el teléfono tiene cuenta registrada
+    // Detección pasiva: obtener info amplia del teléfono
     try {
-      const tieneUsuario = await publicoService.verificarTelefonoRegistrado(
+      const info = await publicoService.telefonoInfo(
         empresaSlug.value,
         datosCliente.value.telefono
       )
-      
-      if (tieneUsuario) {
-        // Mostrar modal informativo sin bloquear
+
+      if (info && info.existe) {
         telefonoConflicto.value = datosCliente.value.telefono
+        telefonoInfoData.value = info
         mostrarModalTelefonoRegistrado.value = true
-        return // Esperar decisión del usuario
+        return // Esperar decisión del usuario en el modal
       }
     } catch (error) {
-      // Si falla la verificación, continuar con la reserva
-      console.warn('No se pudo verificar el teléfono, continuando...')
+      // Si falla la verificación de teléfono (ej. error de red), continuamos asumiendo que no hay conflicto
+      console.warn('No se pudo verificar el teléfono, continuando con el proceso de reserva...', error)
     }
   }
 
-  // Crear turno real
+  // Si el cliente está autenticado o si la detección de teléfono no arrojó conflicto, procesamos la reserva
   await procesarReserva()
 }
 
 async function procesarReserva() {
   try {
     cargando.value = true
-    mensajeError.value = null
-
+    
     if (!servicioSeleccionado.value || !profesionalSeleccionado.value || 
         !fechaSeleccionada.value || !slotSeleccionado.value) {
-      alert('Datos de reserva incompletos')
+      alert('Error interno: Faltan datos de reserva.')
       return
     }
 
@@ -836,11 +849,14 @@ async function procesarReserva() {
     const fecha = fechaSeleccionada.value!
     const slot = slotSeleccionado.value!
 
+    // Formatear fecha a YYYY-MM-DD
     const fechaISO: string = fecha.toISOString().split('T')[0]!
-    const horaPartes = slot.horaInicio.split('T')
-    const horaISO: string = (horaPartes[1]?.substring(0, 5) || slot.horaInicio.substring(0, 5))
 
-    // Si está autenticado, usar datos del store; si no, del formulario
+    // Extraer solo la hora y minutos del slot.horaInicio (que ya viene en formato ISO)
+    // Asegurarse de que sea HH:MM
+    const horaISO: string = slot.horaInicio.substring(11, 16)
+
+    // Preparar el objeto de solicitud para crear el turno
     const request: CrearTurnoRequest = {
       servicioId: servicio.id,
       profesionalId: profesional.id,
@@ -854,16 +870,27 @@ async function procesarReserva() {
         : datosCliente.value.telefono,
       emailCliente: clienteAutenticado.value 
         ? clienteStore.cliente!.email 
-        : (datosCliente.value.email?.trim() || undefined)
+        : (datosCliente.value.email?.trim() || undefined) // Email opcional
     }
 
     const respuesta = await publicoService.crearTurno(empresaSlug.value, request)
     turnoCreado.value = respuesta
     
-    // Mostrar modal de confirmación con datos reales
+    // Mostrar modal de confirmación con los datos del turno creado
     mostrarModalFinal.value = true
   } catch (err: any) {
     console.error('Error al crear turno:', err)
+
+    // Manejar el error específico de teléfono conflictivo con cuenta registrada
+    if (err.response?.status === 409) {
+      telefonoConflicto.value = clienteAutenticado.value ? clienteStore.cliente!.telefono : datosCliente.value.telefono
+      // Asumimos que tieneUsuario es true porque es un conflicto 409
+      telefonoInfoData.value = { existe: true, tieneUsuario: true, nombreEnmascarado: err.response.data?.nombreEnmascarado }
+      mostrarModalTelefonoRegistrado.value = true
+      return // Detener el flujo hasta que el usuario decida en el modal
+    }
+
+    // Para otros errores, mostrar mensaje genérico o específico del backend
     mensajeError.value = err.response?.data?.mensaje || 'Error al crear la reserva. Por favor intenta nuevamente.'
     alert(mensajeError.value)
   } finally {
@@ -873,33 +900,48 @@ async function procesarReserva() {
 
 function cerrarModal() {
   mostrarModalFinal.value = false
+  // Opcionalmente, podrías redirigir o resetear el formulario aquí
 }
 
 function cerrarModalTelefono() {
   mostrarModalTelefonoRegistrado.value = false
+  // Limpiar estado del modal
   telefonoConflicto.value = ''
-}
-
-function continuarComoInvitado() {
-  // Cerrar modal y procesar la reserva de todos modos
-  mostrarModalTelefonoRegistrado.value = false
-  procesarReserva()
+  telefonoInfoData.value = null
 }
 
 function irALoginDesdeConflicto() {
+  // Redirigir a la página de login de cliente, pasando el número de teléfono
   router.push({
     name: 'LoginCliente',
     params: { empresaSlug: empresaSlug.value },
     query: { 
-      redirect: `/reservar/${empresaSlug.value}`,
+      redirect: `/reservar/${empresaSlug.value}`, // Volver a este componente después del login
       telefono: telefonoConflicto.value
     }
   })
 }
 
+function irARegistroDesdeConflicto() {
+  // Redirigir a la página de registro de cliente, pasando el número de teléfono
+  router.push({
+    name: 'RegistroCliente',
+    params: { empresaSlug: empresaSlug.value },
+    query: { telefono: telefonoConflicto.value }
+  })
+}
+
+function continuarYAsociar() {
+  // Cerrar el modal y proceder con la reserva.
+  // El backend se encargará de asociar la reserva al cliente existente.
+  cerrarModalTelefono()
+  procesarReserva() // Vuelve a intentar la reserva
+}
+
 function finalizarYSalir() {
   mostrarModalFinal.value = false
-  // Redirigir al login de cliente
+  // El usuario puede querer ir a "Mis Turnos" o al login.
+  // Redirigir al login por ahora.
   router.push({
     name: 'LoginCliente',
     params: { empresaSlug: empresaSlug.value }
@@ -907,7 +949,7 @@ function finalizarYSalir() {
 }
 
 function reservarOtroTurno() {
-  // Resetear formulario pero mantener la empresa
+  // Resetear todo el estado del componente para iniciar una nueva reserva
   mostrarModalFinal.value = false
   servicioSeleccionado.value = null
   profesionalSeleccionado.value = null
@@ -915,33 +957,29 @@ function reservarOtroTurno() {
   slotSeleccionado.value = null
   slots.value = []
   profesionales.value = []
-  datosCliente.value = {
+  datosCliente.value = { // Resetear campos de invitado
     nombre: '',
     telefono: '',
     email: '',
     aceptaCondiciones: false
   }
   turnoCreado.value = null
-  pasoActual.value = 1
-  // Scroll al inicio
+  pasoActual.value = 1 // Volver al primer paso
+
+  // Scroll suave al principio de la página
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function irCrearCuenta() {
-  if (turnoCreado.value && datosCliente.value.telefono) {
-    // Redirigir a registro de cliente con el teléfono pre-cargado
-    router.push({
-      name: 'RegistroCliente',
-      params: { empresaSlug: empresaSlug.value },
-      query: { telefono: datosCliente.value.telefono }
-    })
-  } else {
-    cerrarModal()
-    router.push({
-      name: 'RegistroCliente',
-      params: { empresaSlug: empresaSlug.value }
-    })
-  }
+  // Si tenemos datos del cliente (sea del login o del formulario), pre-cargarlos en el registro
+  const telefonoParaRegistro = datosCliente.value.telefono || clienteStore.cliente?.telefono || ''
+  
+  router.push({
+    name: 'RegistroCliente',
+    params: { empresaSlug: empresaSlug.value },
+    query: { telefono: telefonoParaRegistro } // Pasar el teléfono si está disponible
+  })
+  cerrarModal() // Cerrar el modal de confirmación
 }
 
 function volverPaso(paso: number) {
@@ -956,6 +994,7 @@ function formatearFechaISO(fecha: Date): string {
 }
 
 function formatearFechaCompleta(fechaISO: string): string {
+  // Asegurarse de que la fecha ISO sea procesada correctamente, añadiendo hora 00:00:00
   const fecha = new Date(fechaISO + 'T00:00:00')
   const dia = fecha.getDate()
   const mes = mesesNombre[fecha.getMonth()]
@@ -965,100 +1004,147 @@ function formatearFechaCompleta(fechaISO: string): string {
 }
 
 function formatearHora(isoString: string): string {
-  const fecha = new Date(isoString)
-  return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+  // La hora ya viene en formato ISO (ej: "2023-10-27T10:00:00")
+  // Queremos extraer HH:MM
+  try {
+    const fecha = new Date(isoString);
+    return fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+  } catch (e) {
+    console.error("Error formateando hora:", isoString, e);
+    return isoString; // Devolver el string original si hay error
+  }
 }
 
-// Computed para verificar si el cliente está autenticado
-const clienteAutenticado = computed(() => clienteStore.isAuthenticated)
+// Computed para verificar si el cliente está autenticado Y pertenece a la empresa actual
+const clienteValido = computed(() => {
+  if (!clienteStore.isAuthenticated) return false
+  if (!empresaCargada.value || !empresa.value) return false // Asegurarse de que la empresa esté cargada
+  const clienteEmpresaId = clienteStore.cliente?.empresaId
+  // Verificar que el cliente tenga una empresa asignada y que coincida con la empresa actual
+  return clienteEmpresaId !== undefined && clienteEmpresaId !== null && clienteEmpresaId === empresa.value.id
+})
 
-// Métodos de navegación de autenticación
-function irALogin() {
-  router.push({
-    name: 'LoginCliente',
-    params: { empresaSlug: empresaSlug.value }
-  })
-}
-
-function irARegistro() {
-  router.push({
-    name: 'RegistroCliente',
-    params: { empresaSlug: empresaSlug.value }
-  })
-}
-
-function irAMisTurnos() {
-  router.push({
-    name: 'MisTurnos',
-    params: { empresaSlug: empresaSlug.value }
-  })
-}
-
-async function cerrarSesion() {
-  await clienteStore.logout()
-  // Recargar la página para actualizar el estado
-  window.location.reload()
-}
+// Indica si el cliente está autenticado Y su cuenta está asociada a la empresa actual
+const clienteAutenticado = computed(() => clienteStore.isAuthenticated && clienteValido.value)
 
 </script>
 
 <style scoped>
-/* Los estilos del header y stepper ahora usan Tailwind CSS */
-/* Solo mantenemos estilos para componentes internos */
+/* Estilos completamente responsive y mobile-first */
 
 .paso-content {
   background: white;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+@media (min-width: 640px) {
+  .paso-content {
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .paso-content {
+    padding: 30px;
+  }
 }
 
 .paso-content h2 {
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   color: #2c3e50;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+@media (min-width: 640px) {
+  .paso-content h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
 }
 
 .btn-back {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  touch-action: manipulation;
+}
+
+@media (min-width: 640px) {
+  .btn-back {
+    margin-bottom: 20px;
+  }
 }
 
 .loading, .empty-state {
   text-align: center;
-  padding: 40px;
+  padding: 40px 20px;
   color: #666;
 }
 
-/* Servicios Grid */
+/* Servicios Grid - responsive para móvil */
 .servicios-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .servicios-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .servicios-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
 }
 
 .servicio-card {
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 16px;
   cursor: pointer;
   transition: all 0.3s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.servicio-card:hover {
+@media (min-width: 640px) {
+  .servicio-card {
+    padding: 20px;
+  }
+}
+
+.servicio-card:hover, .servicio-card:active {
   border-color: #007bff;
   box-shadow: 0 4px 12px rgba(0,123,255,0.2);
   transform: translateY(-2px);
 }
 
 .servicio-card h3 {
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
   color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+@media (min-width: 640px) {
+  .servicio-card h3 {
+    margin-bottom: 10px;
+    font-size: 20px;
+  }
 }
 
 .servicio-card .descripcion {
   color: #666;
   font-size: 14px;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  line-height: 1.4;
 }
 
 .servicio-details {
@@ -1066,22 +1152,37 @@ async function cerrarSesion() {
   justify-content: space-between;
   align-items: center;
   font-weight: 600;
+  gap: 8px;
 }
 
 .duracion {
   color: #666;
+  font-size: 14px;
 }
 
 .precio {
-  font-size: 20px;
+  font-size: 18px;
   color: #28a745;
+  white-space: nowrap;
 }
 
-/* Profesionales List */
+@media (min-width: 640px) {
+  .precio {
+    font-size: 20px;
+  }
+}
+
+/* Profesionales List - mejor para móvil */
 .profesionales-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .profesionales-list {
+    gap: 15px;
+  }
 }
 
 .profesional-card {
@@ -1089,54 +1190,132 @@ async function cerrarSesion() {
   justify-content: space-between;
   align-items: center;
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 16px;
   cursor: pointer;
   transition: all 0.3s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.profesional-card:hover {
+@media (min-width: 640px) {
+  .profesional-card {
+    padding: 20px;
+  }
+}
+
+.profesional-card:hover, .profesional-card:active {
   border-color: #007bff;
   box-shadow: 0 4px 12px rgba(0,123,255,0.2);
 }
 
 .profesional-info h3 {
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (min-width: 640px) {
+  .profesional-info h3 {
+    margin-bottom: 8px;
+    font-size: 18px;
+  }
 }
 
 .profesional-info p {
   margin: 0;
   color: #666;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .profesional-info p {
+    font-size: 14px;
+  }
 }
 
 .arrow {
-  font-size: 24px;
+  font-size: 20px;
   color: #007bff;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
-/* Calendario */
+@media (min-width: 640px) {
+  .arrow {
+    font-size: 24px;
+  }
+}
+
+/* Calendario completamente responsive y mobile-first */
 .calendario-container {
-  max-width: 600px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .calendario-container {
+    max-width: 500px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .calendario-container {
+    max-width: 600px;
+  }
 }
 
 .calendario-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .calendario-header {
+    margin-bottom: 20px;
+  }
+}
+
+.calendario-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+  flex: 1;
+}
+
+@media (min-width: 640px) {
+  .calendario-header h3 {
+    font-size: 18px;
+  }
 }
 
 .calendario-header button {
   background: #007bff;
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
+  border-radius: 8px;
+  padding: 8px 12px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
+  min-width: 40px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s;
+}
+
+@media (min-width: 640px) {
+  .calendario-header button {
+    padding: 8px 16px;
+    font-size: 18px;
+  }
 }
 
 .calendario-header button:disabled {
@@ -1144,17 +1323,49 @@ async function cerrarSesion() {
   cursor: not-allowed;
 }
 
+.calendario-header button:not(:disabled):active {
+  background: #0056b3;
+}
+
 .calendario-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 4px;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .calendario-grid {
+    gap: 6px;
+  }
+}
+
+@media (min-width: 768px) {
+  .calendario-grid {
+    gap: 8px;
+  }
 }
 
 .dia-header {
   text-align: center;
-  font-weight: bold;
-  padding: 10px;
+  font-weight: 600;
+  padding: 6px 2px;
   color: #666;
+  font-size: 11px;
+}
+
+@media (min-width: 640px) {
+  .dia-header {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .dia-header {
+    padding: 10px;
+    font-size: 14px;
+  }
 }
 
 .dia-cell {
@@ -1165,11 +1376,30 @@ async function cerrarSesion() {
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
   font-weight: 600;
+  font-size: 13px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 40px;
 }
 
-.dia-cell:not(.disabled):hover {
+@media (min-width: 640px) {
+  .dia-cell {
+    font-size: 14px;
+    min-height: 48px;
+  }
+}
+
+@media (min-width: 768px) {
+  .dia-cell {
+    font-size: 16px;
+    border-radius: 10px;
+  }
+}
+
+.dia-cell:not(.disabled):hover,
+.dia-cell:not(.disabled):active {
   border-color: #007bff;
   background: #e7f3ff;
 }
@@ -1191,44 +1421,82 @@ async function cerrarSesion() {
   font-weight: bold;
 }
 
-/* Slots List */
+/* Slots List - grid responsive para móvil */
 .fecha-seleccionada {
   text-align: center;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .fecha-seleccionada {
+    font-size: 17px;
+    margin-bottom: 20px;
+  }
 }
 
 .slots-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .slots-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (min-width: 640px) {
+  .slots-list {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 15px;
+  }
 }
 
 .slot-btn {
-  padding: 15px;
+  padding: 14px 10px;
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: white;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.slot-btn:hover {
+@media (min-width: 640px) {
+  .slot-btn {
+    padding: 15px;
+    font-size: 16px;
+  }
+}
+
+.slot-btn:hover, .slot-btn:active {
   border-color: #007bff;
   background: #e7f3ff;
   transform: translateY(-2px);
 }
 
-/* Resumen */
+/* Resumen - mejor lectura en móvil */
 .resumen-reserva {
   background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 30px;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 640px) {
+  .resumen-reserva {
+    padding: 20px;
+    margin-bottom: 30px;
+  }
 }
 
 .resumen-item {
@@ -1236,38 +1504,87 @@ async function cerrarSesion() {
   justify-content: space-between;
   padding: 10px 0;
   border-bottom: 1px solid #e0e0e0;
+  gap: 12px;
+  font-size: 14px;
+}
+
+@media (min-width: 640px) {
+  .resumen-item {
+    font-size: 16px;
+  }
+}
+
+.resumen-item strong {
+  flex-shrink: 0;
+  min-width: 90px;
+}
+
+.resumen-item span {
+  text-align: right;
+  word-break: break-word;
 }
 
 .resumen-item:last-child {
   border-bottom: none;
 }
 
+/* Formulario optimizado para móvil */
 .formulario-cliente {
-  margin-top: 30px;
+  margin-top: 20px;
+}
+
+@media (min-width: 640px) {
+  .formulario-cliente {
+    margin-top: 30px;
+  }
 }
 
 .formulario-cliente h3 {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+@media (min-width: 640px) {
+  .formulario-cliente h3 {
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 640px) {
+  .form-group {
+    margin-bottom: 16px;
+  }
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   font-weight: 600;
   color: #2c3e50;
+  font-size: 14px;
+}
+
+@media (min-width: 640px) {
+  .form-group label {
+    font-size: 15px;
+  }
 }
 
 .form-group input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 2px solid #e0e0e0;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 16px;
+  touch-action: manipulation;
+  transition: border-color 0.2s;
 }
 
 .form-group input:focus {
@@ -1275,23 +1592,76 @@ async function cerrarSesion() {
   border-color: #007bff;
 }
 
+.checkbox-group {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+  .checkbox-label {
+    font-size: 15px;
+  }
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.politicas-link-azul {
+  color: #1976d2;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
 .info-text {
   background: #fff3cd;
   border: 1px solid #ffc107;
-  border-radius: 4px;
-  padding: 15px;
-  margin: 20px 0;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
   color: #856404;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
+@media (min-width: 640px) {
+  .info-text {
+    padding: 15px;
+  }
+}
+
+/* Botones optimizados para mobile-first */
 .btn-primary, .btn-secondary {
-  padding: 12px 24px;
+  padding: 14px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 640px) {
+  .btn-primary, .btn-secondary {
+    padding: 14px 24px;
+  }
 }
 
 .btn-primary {
@@ -1299,8 +1669,13 @@ async function cerrarSesion() {
   color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover, .btn-primary:active {
   background: #0056b3;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -1308,7 +1683,7 @@ async function cerrarSesion() {
   color: white;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover, .btn-secondary:active {
   background: #545b62;
 }
 
@@ -1316,32 +1691,57 @@ async function cerrarSesion() {
   background: transparent;
   color: #6c757d;
   border: 2px solid #6c757d;
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 12px 18px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 16px;
-  transition: all 0.3s ease;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.btn-outline:hover {
+@media (min-width: 640px) {
+  .btn-outline {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+}
+
+.btn-outline:hover, .btn-outline:active {
   background: #6c757d;
   color: white;
 }
 
 .modal-actions {
   display: flex;
-  gap: 15px;
-  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
   margin-top: 20px;
+}
+
+@media (min-width: 640px) {
+  .modal-actions {
+    flex-direction: row;
+    gap: 15px;
+    justify-content: center;
+  }
 }
 
 .btn-confirmar {
   width: 100%;
-  padding: 15px;
-  font-size: 18px;
+  padding: 16px;
+  font-size: 17px;
 }
 
-/* Modal */
+@media (min-width: 640px) {
+  .btn-confirmar {
+    padding: 16px;
+    font-size: 18px;
+  }
+}
+
+/* Modal responsive para móvil */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1353,60 +1753,120 @@ async function cerrarSesion() {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 16px;
 }
 
 .modal-content {
   background: white;
-  padding: 30px;
-  border-radius: 8px;
+  padding: 20px;
+  border-radius: 12px;
   max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
+  width: 100%;
+  max-height: 90vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 640px) {
+  .modal-content {
+    padding: 30px;
+    max-height: 85vh;
+  }
 }
 
 .modal-content h2 {
   margin-top: 0;
   color: #28a745;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+@media (min-width: 640px) {
+  .modal-content h2 {
+    font-size: 24px;
+  }
 }
 
 .resumen-completo {
   background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  margin: 20px 0;
+  padding: 16px;
+  border-radius: 10px;
+  margin: 16px 0;
+}
+
+@media (min-width: 640px) {
+  .resumen-completo {
+    padding: 20px;
+    margin: 20px 0;
+  }
 }
 
 .resumen-completo p {
-  margin: 10px 0;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+@media (min-width: 640px) {
+  .resumen-completo p {
+    margin: 10px 0;
+    font-size: 15px;
+  }
 }
 
 .resumen-completo hr {
-  margin: 15px 0;
+  margin: 12px 0;
   border: none;
   border-top: 2px solid #e0e0e0;
+}
+
+@media (min-width: 640px) {
+  .resumen-completo hr {
+    margin: 15px 0;
+  }
 }
 
 .turno-numero {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 15px;
-  border-radius: 8px;
+  padding: 14px;
+  border-radius: 10px;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (min-width: 640px) {
+  .turno-numero {
+    padding: 15px;
+    margin-bottom: 20px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 
 .turno-numero .label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: normal;
 }
 
+@media (min-width: 640px) {
+  .turno-numero .label {
+    font-size: 14px;
+  }
+}
+
 .turno-numero .numero {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: bold;
+}
+
+@media (min-width: 640px) {
+  .turno-numero .numero {
+    font-size: 24px;
+  }
 }
 
 .badge-estado {
@@ -1414,81 +1874,160 @@ async function cerrarSesion() {
   color: white;
   padding: 4px 12px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   text-transform: uppercase;
+  display: inline-block;
+}
+
+@media (min-width: 640px) {
+  .badge-estado {
+    font-size: 12px;
+  }
 }
 
 .info-box {
   background: #e3f2fd;
   border-left: 4px solid #2196f3;
-  padding: 15px;
-  border-radius: 4px;
-  margin: 20px 0;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 16px 0;
+}
+
+@media (min-width: 640px) {
+  .info-box {
+    padding: 15px;
+    margin: 20px 0;
+  }
 }
 
 .info-text {
   margin: 0;
   color: #1976d2;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+  .info-text {
+    font-size: 14px;
+  }
 }
 
 .cta-cuenta {
   background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-  padding: 25px;
+  padding: 20px;
   border-radius: 12px;
-  margin: 20px 0;
+  margin: 16px 0;
   text-align: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+@media (min-width: 640px) {
+  .cta-cuenta {
+    padding: 25px;
+    margin: 20px 0;
+  }
+}
+
 .cta-icon {
-  font-size: 48px;
-  margin-bottom: 10px;
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 640px) {
+  .cta-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+  }
 }
 
 .cta-cuenta h3 {
   color: #2d3436;
-  margin: 10px 0;
-  font-size: 20px;
+  margin: 8px 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+@media (min-width: 640px) {
+  .cta-cuenta h3 {
+    margin: 10px 0;
+    font-size: 20px;
+  }
 }
 
 .cta-cuenta p {
   color: #636e72;
-  margin: 10px 0;
-  font-size: 16px;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+@media (min-width: 640px) {
+  .cta-cuenta p {
+    margin: 10px 0;
+    font-size: 16px;
+  }
 }
 
 .cta-cuenta ul {
   list-style: none;
   padding: 0;
-  margin: 15px 0;
+  margin: 12px 0;
   text-align: left;
   max-width: 400px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.cta-cuenta li {
-  padding: 8px 0;
-  color: #2d3436;
-  font-size: 14px;
+@media (min-width: 640px) {
+  .cta-cuenta ul {
+    margin: 15px auto;
+  }
 }
 
-.btn-secondary {
+.cta-cuenta li {
+  padding: 6px 0;
+  color: #2d3436;
+  font-size: 13px;
+}
+
+@media (min-width: 640px) {
+  .cta-cuenta li {
+    padding: 8px 0;
+    font-size: 14px;
+  }
+}
+
+.cta-cuenta .btn-secondary {
   background: #6c5ce7;
   color: white;
   border: none;
-  padding: 12px 30px;
-  border-radius: 6px;
+  padding: 14px 24px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
-  margin-top: 15px;
-  transition: all 0.3s ease;
+  margin-top: 12px;
+  transition: all 0.2s ease;
+  width: 100%;
 }
 
-.btn-secondary:hover {
+@media (min-width: 480px) {
+  .cta-cuenta .btn-secondary {
+    width: auto;
+  }
+}
+
+@media (min-width: 640px) {
+  .cta-cuenta .btn-secondary {
+    padding: 14px 30px;
+    font-size: 16px;
+    margin-top: 15px;
+  }
+}
+
+.cta-cuenta .btn-secondary:hover,
+.cta-cuenta .btn-secondary:active {
   background: #5f4dd1;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
@@ -1498,12 +2037,21 @@ async function cerrarSesion() {
   background: #f8d7da;
   border: 1px solid #f5c6cb;
   color: #721c24;
-  padding: 15px;
-  border-radius: 4px;
-  margin: 20px 0;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-/* Modal de teléfono registrado */
+@media (min-width: 640px) {
+  .advertencia {
+    padding: 15px;
+    margin: 20px 0;
+  }
+}
+
+/* Modal de teléfono registrado - responsive */
 .modal-telefono-registrado {
   max-width: 550px;
 }
@@ -1520,6 +2068,10 @@ async function cerrarSesion() {
   margin-bottom: 1rem;
 }
 
+.modal-telefono-registrado .mb-3 {
+  margin-bottom: 0.75rem;
+}
+
 .modal-telefono-registrado .mr-3 {
   margin-right: 0.75rem;
 }
@@ -1530,6 +2082,7 @@ async function cerrarSesion() {
 
 .modal-telefono-registrado .w-12 {
   width: 3rem;
+  flex-shrink: 0;
 }
 
 .modal-telefono-registrado .h-12 {
@@ -1542,10 +2095,12 @@ async function cerrarSesion() {
 
 .modal-telefono-registrado .text-lg {
   font-size: 1.125rem;
+  line-height: 1.3;
 }
 
 .modal-telefono-registrado .text-sm {
   font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .modal-telefono-registrado .text-gray-900 {
@@ -1564,6 +2119,10 @@ async function cerrarSesion() {
   color: #6b7280;
 }
 
+.modal-telefono-registrado .text-gray-400 {
+  color: #9ca3af;
+}
+
 .modal-telefono-registrado .font-bold {
   font-weight: 700;
 }
@@ -1574,16 +2133,28 @@ async function cerrarSesion() {
 
 .options-container {
   display: grid;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .options-container {
+    margin-bottom: 1.5rem;
+  }
 }
 
 .option-card {
   background: #f9fafb;
   border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: 10px;
+  padding: 12px;
   transition: all 0.2s;
+}
+
+@media (min-width: 640px) {
+  .option-card {
+    padding: 1rem;
+  }
 }
 
 .option-card:hover {
@@ -1592,21 +2163,41 @@ async function cerrarSesion() {
 }
 
 .option-icon {
-  font-size: 2rem;
+  font-size: 1.75rem;
   margin-bottom: 0.5rem;
 }
 
+@media (min-width: 640px) {
+  .option-icon {
+    font-size: 2rem;
+  }
+}
+
 .option-card h4 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #111827;
   margin: 0.5rem 0;
+  line-height: 1.3;
+}
+
+@media (min-width: 640px) {
+  .option-card h4 {
+    font-size: 1rem;
+  }
 }
 
 .option-card p {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #6b7280;
   margin: 0;
+  line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .option-card p {
+    font-size: 0.875rem;
+  }
 }
 
 .modal-telefono-registrado .gap-3 {
@@ -1615,6 +2206,7 @@ async function cerrarSesion() {
 
 .modal-telefono-registrado .flex-1 {
   flex: 1;
+  min-width: 0;
 }
 
 .modal-telefono-registrado .bg-blue-600 {
@@ -1636,7 +2228,7 @@ async function cerrarSesion() {
 }
 
 .modal-telefono-registrado .rounded-md {
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
 }
 
 .modal-telefono-registrado .hover\:bg-blue-700:hover {
@@ -1645,6 +2237,10 @@ async function cerrarSesion() {
 
 .modal-telefono-registrado .bg-gray-200 {
   background-color: #e5e7eb;
+}
+
+.modal-telefono-registrado .bg-gray-100 {
+  background-color: #f3f4f6;
 }
 
 .modal-telefono-registrado .hover\:bg-gray-300:hover {
@@ -1674,5 +2270,14 @@ async function cerrarSesion() {
 
 .modal-telefono-registrado .underline {
   text-decoration: underline;
+}
+
+/* Estilos para prevenir zoom en iOS al hacer focus en inputs */
+@supports (-webkit-touch-callout: none) {
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px;
+  }
 }
 </style>
