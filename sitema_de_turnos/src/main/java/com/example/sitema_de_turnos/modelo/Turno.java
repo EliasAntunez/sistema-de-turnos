@@ -22,7 +22,17 @@ import java.time.LocalTime;
         
         // Índice para reportes por empresa y fecha de creación
         @Index(name = "idx_turno_empresa_fecha_creacion", 
-               columnList = "empresa_id, fecha_creacion")
+               columnList = "empresa_id, fecha_creacion"),
+        
+        // Índice optimizado para job batch de recordatorios
+        // Query típica: WHERE empresa_id = ? AND fecha = ? AND estado IN ('CONFIRMADO', 'CREADO') ORDER BY hora_inicio
+        // Beneficios:
+        // - Filtrado rápido por empresa (multi-tenant)
+        // - Búsqueda eficiente de turnos de una fecha específica (ej: mañana)
+        // - Filtro por estado sin table scan
+        // - Sort por hora_inicio ya ordenado en índice (sin sort adicional)
+        @Index(name = "idx_turno_recordatorios", 
+               columnList = "empresa_id, fecha, estado, hora_inicio")
     },
     check = {
         @CheckConstraint(name = "chk_turno_hora_valida",

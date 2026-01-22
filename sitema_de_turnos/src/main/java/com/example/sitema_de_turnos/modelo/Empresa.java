@@ -91,6 +91,20 @@ public class Empresa {
     @Column(name = "dias_maximos_reserva")
     private Integer diasMaximosReserva = 30;
 
+    /**
+     * Zona horaria de la empresa para cálculos de fecha/hora.
+     * Usado para validar turnos "hoy", horas límite, etc.
+     * Default: America/Argentina/Buenos_Aires (Misiones, Argentina)
+     * 
+     * Preparado para futuro soporte multi-timezone:
+     * - America/Argentina/Cordoba
+     * - America/Argentina/Ushuaia
+     * - America/Sao_Paulo (Brasil)
+     * - etc.
+     */
+    @Column(name = "timezone", length = 50, nullable = true)
+    private String timezone = "America/Argentina/Buenos_Aires";
+
     @Column(nullable = false)
     private Boolean activa = true;
 
