@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
@@ -35,6 +37,17 @@ public class ServicioTurno {
     private final RepositorioProfesional repositorioProfesional;
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
+
+    /**
+     * Obtener fecha/hora actual en la zona horaria de la empresa.
+     * CRÍTICO: Todas las validaciones temporales ("turno pasado", "hoy", etc.)
+     * deben usar este método en lugar de LocalDate.now() / LocalDateTime.now()
+     * para soporte multi-timezone.
+     */
+    private ZonedDateTime obtenerAhoraEmpresa(Empresa empresa) {
+        ZoneId zoneId = ZoneId.of(empresa.getTimezone());
+        return ZonedDateTime.now(zoneId);
+    }
 
     /**
      * Crear un turno desde la vista pública.
@@ -76,16 +89,20 @@ public class ServicioTurno {
             throw new ValidacionException("El profesional no está disponible en la fecha seleccionada");
         }
 
-        // 5. Validar que la fecha no sea pasada
-        if (fecha.isBefore(LocalDate.now())) {
+        // 5. Validar que la fecha no sea pasada (usando timezone de empresa)
+        ZonedDateTime ahoraEmpresa = obtenerAhoraEmpresa(empresa);
+        LocalDate fechaHoyEmpresa = ahoraEmpresa.toLocalDate();
+        LocalTime horaActualEmpresa = ahoraEmpresa.toLocalTime();
+        
+        if (fecha.isBefore(fechaHoyEmpresa)) {
             throw new ValidacionException("No se puede reservar en una fecha pasada");
         }
         
         // 5.1. Validar tiempo mínimo de anticipación para el día actual
-        if (fecha.isEqual(LocalDate.now())) {
+        if (fecha.isEqual(fechaHoyEmpresa)) {
             int tiempoMinimo = empresa.getTiempoMinimoAnticipacionMinutos() != null ? 
                 empresa.getTiempoMinimoAnticipacionMinutos() : 30;
-            LocalTime horaLimite = LocalTime.now().plusMinutes(tiempoMinimo);
+            LocalTime horaLimite = horaActualEmpresa.plusMinutes(tiempoMinimo);
             if (horaInicio.isBefore(horaLimite)) {
                 throw new ValidacionException("Debe reservar con al menos " + tiempoMinimo + 
                     " minutos de anticipación. Próximo horario disponible: " + horaLimite.format(DateTimeFormatter.ofPattern("HH:mm")));
@@ -94,7 +111,7 @@ public class ServicioTurno {
 
         // 6. Validar límite de días de reserva
         int diasMaximos = empresa.getDiasMaximosReserva() != null ? empresa.getDiasMaximosReserva() : 30;
-        if (fecha.isAfter(LocalDate.now().plusDays(diasMaximos))) {
+        if (fecha.isAfter(fechaHoyEmpresa.plusDays(diasMaximos))) {
             throw new ValidacionException("No se puede reservar con más de " + diasMaximos + " días de anticipación");
         }
 
@@ -160,16 +177,17 @@ public class ServicioTurno {
         }
 
         // Validar que el turno no sea pasado ni esté muy cerca (menos de 1 hora)
+        ZonedDateTime ahoraEmpresa = obtenerAhoraEmpresa(turno.getEmpresa());
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime ahoraLocal = ahoraEmpresa.toLocalDateTime();
 
-        if (inicioTurno.isBefore(ahora)) {
-            log.info("Rechazando modificación: turno pasado turnoId={}, inicio={}, ahora={}", turnoId, inicioTurno, ahora);
+        if (inicioTurno.isBefore(ahoraLocal)) {
+            log.info("Rechazando modificación: turno pasado turnoId={}, inicio={}, ahora={}", turnoId, inicioTurno, ahoraLocal);
             throw new ValidacionException("No se puede modificar un turno que ya pasó");
         }
 
-        if (inicioTurno.minusHours(1).isBefore(ahora)) {
-            log.info("Rechazando modificación: poca anticipación turnoId={}, inicio={}, ahora={}", turnoId, inicioTurno, ahora);
+        if (inicioTurno.minusHours(1).isBefore(ahoraLocal)) {
+            log.info("Rechazando modificación: poca anticipación turnoId={}, inicio={}, ahora={}", turnoId, inicioTurno, ahoraLocal);
             throw new ValidacionException("No se puede modificar un turno con menos de 1 hora de anticipación");
         }
 
@@ -210,14 +228,16 @@ public class ServicioTurno {
         }
 
         // Validar que el turno origen no sea pasado ni esté muy cerca (menos de 1 hora)
+        ZonedDateTime ahoraEmpresa = obtenerAhoraEmpresa(turno.getEmpresa());
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime ahoraLocal = ahoraEmpresa.toLocalDateTime();
+        LocalDate fechaHoyEmpresa = ahoraEmpresa.toLocalDate();
 
-        if (inicioTurno.isBefore(ahora)) {
+        if (inicioTurno.isBefore(ahoraLocal)) {
             throw new ValidacionException("No se puede reprogramar un turno que ya pasó");
         }
 
-        if (inicioTurno.minusHours(1).isBefore(ahora)) {
+        if (inicioTurno.minusHours(1).isBefore(ahoraLocal)) {
             throw new ValidacionException("No se puede reprogramar un turno con menos de 1 hora de anticipación");
         }
 
@@ -230,8 +250,8 @@ public class ServicioTurno {
             throw new ValidacionException("Fecha y hora inicio son requeridos para reprogramar");
         }
 
-        // Validar fecha no pasada
-        if (nuevaFecha.isBefore(LocalDate.now())) {
+        // Validar fecha no pasada (usando timezone de empresa)
+        if (nuevaFecha.isBefore(fechaHoyEmpresa)) {
             throw new ValidacionException("No se puede reprogramar a una fecha pasada");
         }
 
@@ -368,14 +388,15 @@ public class ServicioTurno {
         }
 
         // Validar que el turno no sea pasado y que la cancelación respete la anticipación mínima (1 hora)
+        ZonedDateTime ahoraEmpresa = obtenerAhoraEmpresa(turno.getEmpresa());
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
-        LocalDateTime ahora = LocalDateTime.now();
+        LocalDateTime ahoraLocal = ahoraEmpresa.toLocalDateTime();
 
-        if (inicioTurno.isBefore(ahora)) {
+        if (inicioTurno.isBefore(ahoraLocal)) {
             throw new ValidacionException("No se puede cancelar un turno que ya pasó");
         }
 
-        if (inicioTurno.minusHours(1).isBefore(ahora)) {
+        if (inicioTurno.minusHours(1).isBefore(ahoraLocal)) {
             throw new ValidacionException(
                 "No se puede cancelar con menos de 1 hora de anticipación. " +
                 "Por favor, comuníquese con la empresa al teléfono: " + 
@@ -386,7 +407,7 @@ public class ServicioTurno {
         turno.setEstado(EstadoTurno.CANCELADO);
         turno.setMotivoCancelacion(motivo);
         turno.setCanceladoPor(canceladoPor);
-        turno.setFechaCancelacion(LocalDateTime.now());
+        turno.setFechaCancelacion(ahoraLocal);
 
         repositorioTurno.save(turno);
     }
@@ -460,16 +481,16 @@ public class ServicioTurno {
             turnos = repositorioTurno.findTurnosActivosByProfesionalAndFecha(profesional, fechaFiltro);
         } else if (fechaDesde != null && fechaHasta != null) {
             // Filtrar por rango de fechas
+            // OPTIMIZADO: Una sola query con JOIN FETCH en lugar de 1 + 3N queries
             LocalDate desde = LocalDate.parse(fechaDesde);
             LocalDate hasta = LocalDate.parse(fechaHasta);
-            turnos = repositorioTurno.findByProfesionalAndFechaBetweenOrderByFechaAscHoraInicioAsc(
-                profesional, desde, hasta);
+            turnos = repositorioTurno.findByProfesionalWithDetails(profesional, desde, hasta);
         } else {
             // Por defecto, mostrar turnos de hoy en adelante
+            // OPTIMIZADO: Una sola query con JOIN FETCH
             LocalDate hoy = LocalDate.now();
             LocalDate enUnaSemana = hoy.plusDays(7);
-            turnos = repositorioTurno.findByProfesionalAndFechaBetweenOrderByFechaAscHoraInicioAsc(
-                profesional, hoy, enUnaSemana);
+            turnos = repositorioTurno.findByProfesionalWithDetails(profesional, hoy, enUnaSemana);
         }
 
         return turnos.stream()
@@ -605,6 +626,7 @@ public class ServicioTurno {
 
     /**
      * Obtener todos los turnos de un cliente (su historial completo)
+     * OPTIMIZADO: Usa JOIN FETCH para evitar N+1 queries
      */
     @Transactional(readOnly = true)
     public java.util.List<TurnoResponsePublico> obtenerTurnosPorCliente(Long clienteId) {
@@ -612,7 +634,8 @@ public class ServicioTurno {
         Cliente cliente = repositorioCliente.findById(clienteId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
 
-        java.util.List<Turno> turnos = repositorioTurno.findByClienteOrderByFechaDescHoraInicioDesc(cliente);
+        // OPTIMIZADO: Una sola query con JOIN FETCH en lugar de 1 + 3N queries
+        java.util.List<Turno> turnos = repositorioTurno.findByClienteWithDetails(cliente);
 
         return turnos.stream()
                 .map(this::mapearATurnoResponsePublico)
