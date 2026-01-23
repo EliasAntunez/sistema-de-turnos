@@ -2,6 +2,8 @@
 package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.dto.*;
+import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
+import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.Dueno;
 import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.repositorio.RepositorioDueno;
@@ -186,5 +188,41 @@ public class ServicioEmpresa {
         response.setDocumento(dueno.getDocumento());
         response.setTipoDocumento(dueno.getTipoDocumento());
         return response;
+    }
+
+    /**
+     * Obtiene la configuración de recordatorios de una empresa.
+     * Usado por el dueño para ver la configuración actual.
+     */
+    @Transactional(readOnly = true)
+    public ConfiguracionRecordatoriosDTO obtenerConfiguracionRecordatorios(Long empresaId) {
+        Empresa empresa = repositorioEmpresa.findById(empresaId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada"));
+        
+        return new ConfiguracionRecordatoriosDTO(
+            empresa.getActivarRecordatorios(),
+            empresa.getHorasAnticipacionRecordatorio()
+        );
+    }
+
+    /**
+     * Actualiza la configuración de recordatorios de una empresa.
+     * Usado por el dueño para activar/desactivar recordatorios y configurar horas de anticipación.
+     */
+    @Transactional
+    public void actualizarConfiguracionRecordatorios(Long empresaId, ConfiguracionRecordatoriosDTO dto) {
+        Empresa empresa = repositorioEmpresa.findById(empresaId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada"));
+        
+        // Validar horas de anticipación
+        if (dto.getHorasAnticipacion() != null && dto.getHorasAnticipacion() <= 0) {
+            throw new ValidacionException("Las horas de anticipación deben ser mayores a 0");
+        }
+        
+        // Actualizar configuración
+        empresa.setActivarRecordatorios(dto.getActivarRecordatorios());
+        empresa.setHorasAnticipacionRecordatorio(dto.getHorasAnticipacion());
+        
+        repositorioEmpresa.save(empresa);
     }
 }

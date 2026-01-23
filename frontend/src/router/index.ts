@@ -14,6 +14,7 @@ import MisTurnosView from '../views/MisTurnosView.vue'
 
 // Lazy load para políticas de cancelación
 const AdminPoliticasCancelacionView = () => import('../views/AdminPoliticasCancelacionView.vue');
+const DuenoConfiguracionRecordatoriosView = () => import('../views/DuenoConfiguracionRecordatoriosView.vue');
 
 const routes = [
   {
@@ -67,6 +68,12 @@ const routes = [
     path: '/dueno',
     name: 'Dueno',
     component: DuenoView,
+    meta: { requiresAuth: true, role: 'DUENO' }
+  },
+  {
+    path: '/dueno/configuracion-recordatorios',
+    name: 'DuenoConfiguracionRecordatorios',
+    component: DuenoConfiguracionRecordatoriosView,
     meta: { requiresAuth: true, role: 'DUENO' }
   },
   {

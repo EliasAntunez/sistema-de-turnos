@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RepositorioTurno extends JpaRepository<Turno, Long> {
@@ -26,6 +27,22 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * Buscar turnos de un cliente en una empresa
      */
     List<Turno> findByClienteAndEmpresaOrderByFechaDescHoraInicioDesc(Cliente cliente, Empresa empresa);
+
+    /**
+     * Buscar turnos de una empresa en una fecha específica con estados específicos.
+     * Usado por el job de recordatorios para buscar turnos que necesitan ser notificados.
+     */
+    List<Turno> findByEmpresaAndFechaAndEstadoInOrderByHoraInicio(
+        Empresa empresa,
+        LocalDate fecha,
+        List<EstadoTurno> estados
+    );
+
+    /**
+     * Buscar turno por ID de mensaje de WhatsApp.
+     * Usado por el webhook para correlacionar respuestas de clientes con turnos.
+     */
+    Optional<Turno> findByWhatsappMessageId(String whatsappMessageId);
 
     /**
      * Buscar turnos de una empresa en un rango de fechas

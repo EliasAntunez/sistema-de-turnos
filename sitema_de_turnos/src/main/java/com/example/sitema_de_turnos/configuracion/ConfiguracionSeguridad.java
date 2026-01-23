@@ -108,7 +108,8 @@ public class ConfiguracionSeguridad {
                         "/api/publico/**",        // Endpoints públicos
                         "/api/auth/login",        // Login usuarios no requiere CSRF
                         "/api/auth/logout",       // Logout manejado por Spring Security
-                        "/api/auth/perfil"        // Perfil para verificar sesión
+                        "/api/auth/perfil",       // Perfil para verificar sesión
+                        "/api/webhook/whatsapp"   // Webhook de WhatsApp (validado con HMAC)
                     );
             })
             
@@ -169,6 +170,7 @@ public class ConfiguracionSeguridad {
                 // Endpoints públicos (sin autenticación)
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/publico/**").permitAll()
+                .requestMatchers("/api/webhook/whatsapp").permitAll() // Webhook WhatsApp (validado con HMAC)
                 // Hacer público el endpoint de políticas activas
                 .requestMatchers("/api/politicas-cancelacion/empresa/*/activas").permitAll()
                 

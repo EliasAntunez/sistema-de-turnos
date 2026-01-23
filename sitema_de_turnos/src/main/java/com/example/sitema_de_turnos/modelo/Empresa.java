@@ -105,6 +105,23 @@ public class Empresa {
     @Column(name = "timezone", length = 50, nullable = true)
     private String timezone = "America/Argentina/Buenos_Aires";
 
+    /**
+     * Horas de anticipación para enviar recordatorios de turnos.
+     * Ejemplo: 24 = enviar recordatorio 24 horas antes del turno.
+     * Default: 24 horas
+     */
+    @Column(name = "horas_anticipacion_recordatorio")
+    private Integer horasAnticipacionRecordatorio = 24;
+
+    /**
+     * Indica si los recordatorios automáticos por WhatsApp están activos.
+     * false = no enviar recordatorios (job ignora esta empresa)
+     * true = enviar recordatorios según configuración
+     * Default: false (opt-in, el dueño debe activarlo explícitamente)
+     */
+    @Column(name = "activar_recordatorios", nullable = true)
+    private Boolean activarRecordatorios = false;
+
     @Column(nullable = false)
     private Boolean activa = true;
 

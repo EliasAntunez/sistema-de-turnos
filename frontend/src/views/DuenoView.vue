@@ -37,6 +37,12 @@
       >
         Políticas de Cancelación
       </button>
+      <button 
+        :class="['tab', { active: activeTab === 'recordatorios' }]" 
+        @click="navigateToRecordatorios"
+      >
+        Recordatorios WhatsApp
+      </button>
     </div>
 
     <!-- Tab: Profesionales -->
@@ -345,7 +351,112 @@
     </form>
   </div>
 </div>
-    
+
+    <!-- Tab: Recordatorios WhatsApp -->
+    <main v-if="activeTab === 'recordatorios'" class="dueno-content">
+      <div class="section-header">
+        <h2>Configuración de Recordatorios WhatsApp</h2>
+      </div>
+
+      <div class="recordatorios-container">
+        <div v-if="mensajeRecordatorio" :class="[
+          'mensaje-recordatorio',
+          mensajeRecordatorio.tipo === 'exito' ? 'mensaje-exito' : 'mensaje-error'
+        ]">
+          {{ mensajeRecordatorio.texto }}
+        </div>
+
+        <div v-if="cargandoRecordatorios" class="loading">
+          <div class="spinner"></div>
+          <p>Cargando configuración...</p>
+        </div>
+
+        <form v-else @submit.prevent="guardarConfiguracionRecordatorios" class="recordatorios-form">
+          <!-- Activar recordatorios -->
+          <div class="form-section">
+            <div class="toggle-section">
+              <div class="toggle-info">
+                <h3>Activar Recordatorios por WhatsApp</h3>
+                <p class="descripcion-secundaria">
+                  Los clientes recibirán un mensaje de WhatsApp antes de su turno para confirmar asistencia
+                </p>
+              </div>
+              <button
+                type="button"
+                @click="configuracionRecordatorios.activarRecordatorios = !configuracionRecordatorios.activarRecordatorios"
+                :class="[
+                  'toggle-button',
+                  configuracionRecordatorios.activarRecordatorios ? 'toggle-active' : 'toggle-inactive'
+                ]"
+              >
+                <span class="toggle-slider" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Horas de anticipación -->
+          <div class="form-section">
+            <label class="form-label">
+              Horas de Anticipación
+            </label>
+            <p class="descripcion-secundaria" style="margin-bottom: 1rem;">
+              Con cuántas horas de anticipación se enviará el recordatorio antes del turno
+            </p>
+            <div class="input-with-suffix">
+              <input
+                v-model.number="configuracionRecordatorios.horasAnticipacion"
+                type="number"
+                min="1"
+                max="168"
+                required
+                class="form-input"
+                :disabled="!configuracionRecordatorios.activarRecordatorios"
+              />
+              <span class="input-suffix">horas</span>
+            </div>
+            <p class="input-hint">
+              Valores sugeridos: 24 horas (1 día), 48 horas (2 días), 72 horas (3 días)
+            </p>
+          </div>
+
+          <!-- Información adicional -->
+          <div class="info-box">
+            <div class="info-header">
+              <svg class="info-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+              <h4>¿Cómo funcionan los recordatorios?</h4>
+            </div>
+            <ul class="info-list">
+              <li>El sistema envía automáticamente un mensaje de WhatsApp a cada cliente</li>
+              <li>El cliente puede responder "SI" para confirmar o "NO" para cancelar</li>
+              <li>Los recordatorios se envían diariamente a las 8:00 AM</li>
+              <li>Solo se envían a turnos en estado "Creado" (no confirmados previamente)</li>
+            </ul>
+          </div>
+
+          <!-- Botones -->
+          <div class="form-actions">
+            <button
+              type="button"
+              @click="cargarConfiguracionRecordatorios"
+              class="btn-cancel"
+              :disabled="guardandoRecordatorios"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn-submit"
+              :disabled="guardandoRecordatorios"
+            >
+              {{ guardandoRecordatorios ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+
     <!-- Modal Form Profesionales -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
       <div class="modal" @click.stop>
@@ -702,7 +813,7 @@ const nombreEmpresa = ref('')
 const empresaId = ref<number | null>(null)
 
 // Tab activo
-const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas'>('profesionales')
+const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas' | 'recordatorios'>('profesionales')
 
 // Estado para el formulario de política de cancelación
 const mostrarFormularioPolitica = ref(false)
@@ -722,6 +833,26 @@ const formDataPolitica = ref<PoliticaCancelacionRequest>({
   penalizacion: 'NINGUNA',
   activa: true
 })
+
+// Estado para Recordatorios
+interface ConfiguracionRecordatorios {
+  activarRecordatorios: boolean
+  horasAnticipacion: number
+}
+
+interface MensajeRecordatorio {
+  tipo: 'exito' | 'error'
+  texto: string
+}
+
+const configuracionRecordatorios = ref<ConfiguracionRecordatorios>({
+  activarRecordatorios: false,
+  horasAnticipacion: 24
+})
+
+const cargandoRecordatorios = ref(false)
+const guardandoRecordatorios = ref(false)
+const mensajeRecordatorio = ref<MensajeRecordatorio | null>(null)
 
 // Estado para Profesionales
 const profesionales = ref<any[]>([])
@@ -1230,6 +1361,55 @@ function handleLogout() {
       authStore.logout()
       router.push('/login')
     })
+}
+
+function navigateToRecordatorios() {
+  activeTab.value = 'recordatorios'
+  cargarConfiguracionRecordatorios()
+}
+
+// ==================== FUNCIONES RECORDATORIOS ====================
+
+async function cargarConfiguracionRecordatorios() {
+  cargandoRecordatorios.value = true
+  mensajeRecordatorio.value = null
+  
+  try {
+    const response = await api.get('/dueno/empresa/configuracion-recordatorios')
+    configuracionRecordatorios.value = response.data
+  } catch (error: any) {
+    mensajeRecordatorio.value = {
+      tipo: 'error',
+      texto: error.response?.data?.mensaje || 'Error al cargar la configuración'
+    }
+  } finally {
+    cargandoRecordatorios.value = false
+  }
+}
+
+async function guardarConfiguracionRecordatorios() {
+  guardandoRecordatorios.value = true
+  mensajeRecordatorio.value = null
+  
+  try {
+    await api.put('/dueno/empresa/configuracion-recordatorios', configuracionRecordatorios.value)
+    mensajeRecordatorio.value = {
+      tipo: 'exito',
+      texto: 'Configuración guardada exitosamente'
+    }
+    
+    // Ocultar mensaje después de 3 segundos
+    setTimeout(() => {
+      mensajeRecordatorio.value = null
+    }, 3000)
+  } catch (error: any) {
+    mensajeRecordatorio.value = {
+      tipo: 'error',
+      texto: error.response?.data?.mensaje || 'Error al guardar la configuración'
+    }
+  } finally {
+    guardandoRecordatorios.value = false
+  }
 }
 
 // ==================== FUNCIONES PARA SERVICIOS ====================
@@ -2398,6 +2578,231 @@ async function confirmarCopiarHorarios() {
 
 .modal-small {
   max-width: 500px;
+}
+
+/* Estilos para Recordatorios */
+.recordatorios-container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+}
+
+.mensaje-recordatorio {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.mensaje-exito {
+  background: #d1fae5;
+  color: #065f46;
+  border-left: 4px solid #10b981;
+}
+
+.mensaje-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border-left: 4px solid #dc2626;
+}
+
+.recordatorios-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-section {
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.toggle-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.toggle-info {
+  flex: 1;
+}
+
+.toggle-info h3 {
+  color: #1f2937;
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.descripcion-secundaria {
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.toggle-button {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.toggle-active {
+  background: #3b82f6;
+}
+
+.toggle-inactive {
+  background: #d1d5db;
+}
+
+.toggle-slider {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-inactive .toggle-slider {
+  left: 2px;
+}
+
+.toggle-active .toggle-slider {
+  left: 20px;
+}
+
+.form-label {
+  display: block;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.input-with-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input {
+  flex: 1;
+  padding: 0.75rem 5rem 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 1rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.input-hint {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.info-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.info-icon {
+  width: 20px;
+  height: 20px;
+  color: #3b82f6;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-header h4 {
+  color: #1e40af;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.info-list {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0;
+  color: #1e40af;
+}
+
+.info-list li {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.info-list li:last-child {
+  margin-bottom: 0;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.spinner {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f4f6;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .modal-small .modal-content {

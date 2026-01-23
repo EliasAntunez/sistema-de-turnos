@@ -114,6 +114,27 @@ public class Turno {
     @Column(name = "fecha_cancelacion")
     private LocalDateTime fechaCancelacion;
 
+    /**
+     * Fecha y hora en que se envió el recordatorio por WhatsApp.
+     * Se setea cuando el turno pasa de CREADO a PENDIENTE_CONFIRMACION.
+     */
+    @Column(name = "fecha_envio_recordatorio")
+    private LocalDateTime fechaEnvioRecordatorio;
+
+    /**
+     * ID del mensaje de WhatsApp enviado (wamid.XXX).
+     * Usado para correlacionar respuestas del webhook.
+     */
+    @Column(name = "whatsapp_message_id", length = 255)
+    private String whatsappMessageId;
+
+    /**
+     * Fecha y hora en que el cliente respondió al recordatorio.
+     * Se setea cuando llega la respuesta SI/NO vía webhook.
+     */
+    @Column(name = "fecha_respuesta_recordatorio")
+    private LocalDateTime fechaRespuestaRecordatorio;
+
     @Column(length = 500)
     private String observaciones;
 

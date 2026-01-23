@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.example.sitema_de_turnos.dto.*;
+import com.example.sitema_de_turnos.servicio.ServicioEmpresa;
 import com.example.sitema_de_turnos.servicio.ServicioHorarioEmpresa;
 import com.example.sitema_de_turnos.servicio.ServicioProfesional;
 import com.example.sitema_de_turnos.servicio.ServicioServicio;
@@ -28,6 +29,7 @@ public class ControladorDueno {
     private final ServicioServicio servicioServicio;
     private final ServicioHorarioEmpresa servicioHorarioEmpresa;
     private final com.example.sitema_de_turnos.servicio.ServicioDueno servicioDueno;
+    private final ServicioEmpresa servicioEmpresa;
 
     @GetMapping("/profesionales")
     public ResponseEntity<List<ProfesionalResponse>> obtenerProfesionales(Authentication authentication) {
@@ -260,6 +262,47 @@ public class ControladorDueno {
                     String.format("Se copiaron %d horarios exitosamente", horariosCreados),
                     String.valueOf(horariosCreados)
                 )
+        );
+    }
+
+    /**
+     * Obtiene la configuración de recordatorios de la empresa del dueño.
+     */
+    @GetMapping("/empresa/configuracion-recordatorios")
+    public ResponseEntity<ConfiguracionRecordatoriosDTO> obtenerConfiguracionRecordatorios(
+            Authentication authentication) {
+        String emailDueno = authentication.getName();
+        com.example.sitema_de_turnos.modelo.Dueno dueno = servicioDueno.obtenerPorEmail(emailDueno);
+        
+        if (dueno.getEmpresa() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        
+        ConfiguracionRecordatoriosDTO config = servicioEmpresa.obtenerConfiguracionRecordatorios(
+            dueno.getEmpresa().getId()
+        );
+        
+        return ResponseEntity.ok(config);
+    }
+
+    /**
+     * Actualiza la configuración de recordatorios de la empresa del dueño.
+     */
+    @PutMapping("/empresa/configuracion-recordatorios")
+    public ResponseEntity<RespuestaApi<Void>> actualizarConfiguracionRecordatorios(
+            @Valid @RequestBody ConfiguracionRecordatoriosDTO dto,
+            Authentication authentication) {
+        String emailDueno = authentication.getName();
+        com.example.sitema_de_turnos.modelo.Dueno dueno = servicioDueno.obtenerPorEmail(emailDueno);
+        
+        if (dueno.getEmpresa() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        
+        servicioEmpresa.actualizarConfiguracionRecordatorios(dueno.getEmpresa().getId(), dto);
+        
+        return ResponseEntity.ok(
+            RespuestaApi.exitosa("Configuración de recordatorios actualizada exitosamente", null)
         );
     }
 }
