@@ -172,8 +172,8 @@ public class ControladorPublico {
             HttpServletRequest httpRequest
     ) {
         try {
-            // Construir username con formato: "cliente:{empresaSlug}:{telefono}"
-            String username = String.format("cliente:%s:%s", empresaSlug, request.getTelefono());
+            // Construir username con formato: "cliente:{empresaSlug}:{emailOrNombreUsuario}"
+            String username = String.format("cliente:%s:%s", empresaSlug, request.getIdentificador());
             
             // Autenticar con Spring Security
             Authentication authentication = authenticationManager.authenticate(
@@ -189,10 +189,10 @@ public class ControladorPublico {
             HttpSession session = httpRequest.getSession(true);
             session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, securityContext);
 
-            log.info("Login exitoso - Cliente: {} - Empresa: {}", request.getTelefono(), empresaSlug);
+            log.info("Login exitoso - Cliente: {} - Empresa: {}", request.getIdentificador(), empresaSlug);
 
             // Obtener datos del cliente
-            var cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, request.getTelefono());
+            var cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, request.getIdentificador());
             ClienteAutenticadoResponse clienteResponse = new ClienteAutenticadoResponse(
                 cliente.getId(),
                 cliente.getNombre(),
@@ -207,7 +207,7 @@ public class ControladorPublico {
         } catch (Exception e) {
             log.warn("Error en login de cliente: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Teléfono o contraseña incorrectos"));
+                    .body(ApiResponse.error("Email/usuario o contraseña incorrectos"));
         }
     }
 

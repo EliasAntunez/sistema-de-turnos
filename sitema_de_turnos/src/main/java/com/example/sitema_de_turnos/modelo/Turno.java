@@ -123,6 +123,43 @@ public class Turno {
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
 
+    // ===========================
+    // Campos para Sistema de Recordatorios
+    // ===========================
+    
+    /**
+     * Indica si el recordatorio fue enviado exitosamente
+     */
+    @Column(name = "recordatorio_enviado")
+    private Boolean recordatorioEnviado = false;
+
+    /**
+     * Fecha y hora en que se envió el recordatorio exitosamente
+     */
+    @Column(name = "fecha_recordatorio_enviado")
+    private LocalDateTime fechaRecordatorioEnviado;
+
+    /**
+     * Marca temporal del primer intento de envío (A4 - Previene duplicados).
+     * Se setea ANTES de iniciar el proceso de envío para que el scheduler
+     * no vuelva a seleccionar este turno en la siguiente ejecución.
+     * Si el proceso falla completamente, se resetea a NULL para reintentar más tarde.
+     */
+    @Column(name = "recordatorio_primer_intento")
+    private LocalDateTime recordatorioPrimerIntento;
+
+    /**
+     * Número de intentos de envío de recordatorio
+     */
+    @Column(name = "recordatorio_intentos")
+    private Integer recordatorioIntentos = 0;
+
+    /**
+     * Mensaje de error si el envío falló (últimos 500 caracteres)
+     */
+    @Column(name = "recordatorio_error", length = 500)
+    private String recordatorioError;
+
     @PrePersist
     protected void onCreate() {
         fechaCreacion = LocalDateTime.now();

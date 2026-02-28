@@ -108,6 +108,16 @@ public class ControladorAuth {
         perfilUsuario.setTelefono(usuario.getTelefono());
         perfilUsuario.setRol(usuario.getRol().name());
         perfilUsuario.setActivo(usuario.getActivo());
+        
+        // Agregar información de la empresa si es profesional
+        if (usuario instanceof com.example.sitema_de_turnos.modelo.Profesional) {
+            com.example.sitema_de_turnos.modelo.Profesional profesional = 
+                    (com.example.sitema_de_turnos.modelo.Profesional) usuario;
+            if (profesional.getEmpresa() != null) {
+                perfilUsuario.setEmpresaId(profesional.getEmpresa().getId());
+                perfilUsuario.setEmpresaNombre(profesional.getEmpresa().getNombre());
+            }
+        }
 
         return ResponseEntity.ok(RespuestaApi.exitosa("Perfil obtenido", perfilUsuario));
     }

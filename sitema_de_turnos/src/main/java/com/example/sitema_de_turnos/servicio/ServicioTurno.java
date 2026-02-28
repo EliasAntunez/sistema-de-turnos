@@ -37,6 +37,12 @@ public class ServicioTurno {
     private final RepositorioProfesional repositorioProfesional;
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
+    private final ServicioNotificacion servicioNotificacion;
+
+    // ✅ M2: Constantes estáticas para formateo de fechas
+    private static final DateTimeFormatter FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter FORMATTER_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATTER_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * Obtener fecha/hora actual en la zona horaria de la empresa.
@@ -105,7 +111,7 @@ public class ServicioTurno {
             LocalTime horaLimite = horaActualEmpresa.plusMinutes(tiempoMinimo);
             if (horaInicio.isBefore(horaLimite)) {
                 throw new ValidacionException("Debe reservar con al menos " + tiempoMinimo + 
-                    " minutos de anticipación. Próximo horario disponible: " + horaLimite.format(DateTimeFormatter.ofPattern("HH:mm")));
+                    " minutos de anticipación. Próximo horario disponible: " + horaLimite.format(FORMATTER_HORA));
             }
         }
 
@@ -154,7 +160,10 @@ public class ServicioTurno {
             throw new ValidacionException("El horario seleccionado ya no está disponible. Por favor, seleccione otro horario.");
         }
 
-        // 10. Mapear respuesta PÚBLICA (sin exponer datos de otros clientes)
+        // 10. Enviar notificación al profesional
+        enviarNotificacionNuevoTurno(turno);
+
+        // 11. Mapear respuesta PÚBLICA (sin exponer datos de otros clientes)
         return mapearATurnoResponsePublico(turno);
     }
 
@@ -255,6 +264,18 @@ public class ServicioTurno {
             throw new ValidacionException("No se puede reprogramar a una fecha pasada");
         }
 
+        // Validar tiempo mínimo de anticipación para la nueva fecha/hora
+        LocalDateTime nuevoInicioTurno = LocalDateTime.of(nuevaFecha, nuevaHoraInicio);
+        Integer tiempoMinimoAnticipacion = turno.getEmpresa().getTiempoMinimoAnticipacionMinutos();
+        if (tiempoMinimoAnticipacion == null) {
+            tiempoMinimoAnticipacion = 30; // Default
+        }
+        LocalDateTime horaLimiteReserva = ahoraLocal.plusMinutes(tiempoMinimoAnticipacion);
+        
+        if (nuevoInicioTurno.isBefore(horaLimiteReserva)) {
+            throw new ValidacionException("La nueva fecha/hora debe ser al menos " + tiempoMinimoAnticipacion + " minutos después de ahora");
+        }
+
         // Determinar profesional objetivo
         Profesional profesionalDestino;
         if (nuevoProfesionalId != null) {
@@ -291,6 +312,9 @@ public class ServicioTurno {
         turno.setHoraFin(nuevaHoraFin);
 
         turno = repositorioTurno.save(turno);
+
+        // Enviar notificación de reprogramación al profesional
+        enviarNotificacionReprogramacion(turno, inicioTurno, nuevoInicioTurno);
 
         return mapearATurnoResponsePublico(turno);
     }
@@ -329,10 +353,13 @@ public class ServicioTurno {
      * Obtener cliente existente o crear uno nuevo
      */
     private Cliente obtenerOCrearCliente(Empresa empresa, CrearTurnoRequest request) {
-        // Buscar por teléfono
-        Optional<Cliente> clienteExistente = repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(
+        // Normalizar email
+        String emailNormalizado = NormalizadorDatos.normalizarEmail(request.getEmailCliente());
+        
+        // Buscar por email
+        Optional<Cliente> clienteExistente = repositorioCliente.findByEmpresaAndEmailAndActivoTrue(
             empresa, 
-            request.getTelefonoCliente()
+            emailNormalizado
         );
 
         if (clienteExistente.isPresent()) {
@@ -340,7 +367,7 @@ public class ServicioTurno {
             // Si el cliente ya tiene cuenta registrada, NO se puede asociar automáticamente
             if (Boolean.TRUE.equals(c.getTieneUsuario())) {
                 throw new com.example.sitema_de_turnos.excepcion.ConflictoException(
-                    "El teléfono pertenece a una cuenta registrada. Por favor, iniciá sesión o usá otro número."
+                    "El email pertenece a una cuenta registrada. Por favor, iniciá sesión o usá otro email."
                 );
             }
             return c; // cliente invitado -> asociar
@@ -349,13 +376,17 @@ public class ServicioTurno {
         // Crear nuevo cliente invitado
         Cliente nuevoCliente = new Cliente();
         nuevoCliente.setEmpresa(empresa);
-            nuevoCliente.setNombre(NormalizadorDatos.normalizarNombre(request.getNombreCliente()));
-        nuevoCliente.setTelefono(request.getTelefonoCliente());
+        nuevoCliente.setNombre(NormalizadorDatos.normalizarNombre(request.getNombreCliente()));
+        nuevoCliente.setEmail(emailNormalizado);
         
-        // Solo setear email si no está vacío
-        String email = request.getEmailCliente();
-        if (email != null && !email.trim().isEmpty()) {
-                nuevoCliente.setEmail(NormalizadorDatos.normalizarEmail(email));
+        // Solo setear teléfono si no está vacío
+        String telefono = request.getTelefonoCliente();
+        if (telefono != null && !telefono.trim().isEmpty()) {
+            // Validar formato del teléfono
+            if (!telefono.matches("^[+]?[0-9\\s\\-()]{8,20}$")) {
+                throw new ValidacionException("Formato de teléfono inválido");
+            }
+            nuevoCliente.setTelefono(telefono);
         }
         
         nuevoCliente.setTieneUsuario(false);
@@ -366,7 +397,7 @@ public class ServicioTurno {
             return repositorioCliente.save(nuevoCliente);
         } catch (DataIntegrityViolationException e) {
             // Otro thread creó el cliente simultáneamente, reintentamos la búsqueda
-            return repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, request.getTelefonoCliente())
+            return repositorioCliente.findByEmpresaAndEmailAndActivoTrue(empresa, emailNormalizado)
                     .orElseThrow(() -> new ValidacionException("Error al crear el cliente. Intente nuevamente."));
         }
     }
@@ -410,6 +441,9 @@ public class ServicioTurno {
         turno.setFechaCancelacion(ahoraLocal);
 
         repositorioTurno.save(turno);
+
+        // Enviar notificación de cancelación al profesional
+        enviarNotificacionCancelacion(turno, canceladoPor);
     }
 
     /**
@@ -444,8 +478,8 @@ public class ServicioTurno {
         response.setProfesionalNombre(turno.getProfesional().getNombre());
         response.setProfesionalApellido(turno.getProfesional().getApellido());
         response.setFecha(turno.getFecha().toString());
-        response.setHoraInicio(turno.getHoraInicio().format(DateTimeFormatter.ofPattern("HH:mm")));
-        response.setHoraFin(turno.getHoraFin().format(DateTimeFormatter.ofPattern("HH:mm")));
+        response.setHoraInicio(turno.getHoraInicio().format(FORMATTER_HORA));
+        response.setHoraFin(turno.getHoraFin().format(FORMATTER_HORA));
         response.setDuracionMinutos(turno.getDuracionMinutos());
         response.setBufferMinutos(turno.getBufferMinutos());
         response.setPrecio(turno.getPrecio());
@@ -640,5 +674,147 @@ public class ServicioTurno {
         return turnos.stream()
                 .map(this::mapearATurnoResponsePublico)
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    // ==================== MÉTODOS PRIVADOS PARA NOTIFICACIONES ====================
+
+    /**
+     * Enviar notificación de nuevo turno al profesional
+     */
+    private void enviarNotificacionNuevoTurno(Turno turno) {
+        try {
+            String titulo = "Nuevo turno asignado";
+            String mensaje = String.format(
+                "Nuevo turno: %s con %s para %s a las %s",
+                turno.getServicio().getNombre(),
+                turno.getCliente().getNombre(),
+                turno.getFecha().format(FORMATTER_FECHA),
+                turno.getHoraInicio().format(FORMATTER_HORA)
+            );
+
+            // Datos adicionales para el frontend
+            java.util.Map<String, Object> datos = new java.util.HashMap<>();
+            datos.put("turnoId", turno.getId());
+            datos.put("clienteNombre", turno.getCliente().getNombre());
+            datos.put("clienteTelefono", turno.getCliente().getTelefono());
+            datos.put("clienteEmail", turno.getCliente().getEmail());
+            datos.put("servicioNombre", turno.getServicio().getNombre());
+            datos.put("fecha", turno.getFecha().toString());
+            datos.put("horaInicio", turno.getHoraInicio().format(FORMATTER_HORA));
+            datos.put("horaFin", turno.getHoraFin().format(FORMATTER_HORA));
+            datos.put("duracionMinutos", turno.getDuracionMinutos());
+            datos.put("observaciones", turno.getObservaciones());
+            datos.put("estado", turno.getEstado().name());
+
+            servicioNotificacion.enviarNotificacion(
+                turno.getProfesional().getId(),
+                TipoNotificacion.NUEVO_TURNO,
+                titulo,
+                mensaje,
+                datos,
+                turno.getId()
+            );
+        } catch (Exception e) {
+            log.error("Error al enviar notificación de nuevo turno", e);
+            // No interrumpir el flujo principal si falla la notificación
+        }
+    }
+
+    /**
+     * Enviar notificación de cancelación al profesional
+     */
+    private void enviarNotificacionCancelacion(Turno turno, String canceladoPor) {
+        try {
+            TipoNotificacion tipo = "CLIENTE".equals(canceladoPor) 
+                ? TipoNotificacion.CANCELACION_CLIENTE 
+                : TipoNotificacion.CANCELACION_EMPRESA;
+
+            String titulo = "CLIENTE".equals(canceladoPor) 
+                ? "Turno cancelado por el cliente" 
+                : "Turno cancelado por la empresa";
+
+            String mensaje = String.format(
+                "Turno cancelado: %s con %s previsto para %s a las %s. Motivo: %s",
+                turno.getServicio().getNombre(),
+                turno.getCliente().getNombre(),
+                turno.getFecha().format(FORMATTER_FECHA),
+                turno.getHoraInicio().format(FORMATTER_HORA),
+                turno.getMotivoCancelacion() != null ? turno.getMotivoCancelacion() : "No especificado"
+            );
+
+            java.util.Map<String, Object> datos = new java.util.HashMap<>();
+            datos.put("turnoId", turno.getId());
+            datos.put("clienteNombre", turno.getCliente().getNombre());
+            datos.put("servicioNombre", turno.getServicio().getNombre());
+            datos.put("fecha", turno.getFecha().toString());
+            datos.put("horaInicio", turno.getHoraInicio().format(FORMATTER_HORA));
+            datos.put("motivoCancelacion", turno.getMotivoCancelacion());
+            datos.put("canceladoPor", canceladoPor);
+            datos.put("fechaCancelacion", turno.getFechaCancelacion().format(FORMATTER_DATETIME));
+
+            servicioNotificacion.enviarNotificacion(
+                turno.getProfesional().getId(),
+                tipo,
+                titulo,
+                mensaje,
+                datos,
+                turno.getId()
+            );
+        } catch (Exception e) {
+            log.error("Error al enviar notificación de cancelación", e);
+        }
+    }
+
+    /**
+     * Enviar notificación de reprogramación al profesional
+     */
+    private void enviarNotificacionReprogramacion(Turno turno, LocalDateTime fechaHoraAnterior, LocalDateTime fechaHoraNueva) {
+        try {
+            String titulo = "Turno reprogramado por el cliente";
+            String mensaje = String.format(
+                "Turno reprogramado: %s con %s. Anterior: %s a las %s. Nuevo: %s a las %s",
+                turno.getServicio().getNombre(),
+                turno.getCliente().getNombre(),
+                fechaHoraAnterior.toLocalDate().format(FORMATTER_FECHA),
+                fechaHoraAnterior.toLocalTime().format(FORMATTER_HORA),
+                fechaHoraNueva.toLocalDate().format(FORMATTER_FECHA),
+                fechaHoraNueva.toLocalTime().format(FORMATTER_HORA)
+            );
+
+            // ✅ M1: Datos extraídos a método reutilizable
+            java.util.Map<String, Object> datos = construirDatosNotificacionBase(turno);
+            
+            // Datos específicos de reprogramación
+            datos.put("fechaAnterior", fechaHoraAnterior.toLocalDate().toString());
+            datos.put("horaAnterior", fechaHoraAnterior.toLocalTime().format(FORMATTER_HORA));
+            datos.put("fechaNueva", turno.getFecha().toString());
+            datos.put("horaNueva", turno.getHoraInicio().format(FORMATTER_HORA));
+
+            servicioNotificacion.enviarNotificacion(
+                turno.getProfesional().getId(),
+                TipoNotificacion.REPROGRAMACION_CLIENTE,
+                titulo,
+                mensaje,
+                datos,
+                turno.getId()
+            );
+        } catch (Exception e) {
+            log.error("Error al enviar notificación de reprogramación", e);
+        }
+    }
+
+    /**
+     * ✅ M1: Construir datos de notificación base para el frontend
+     * Extrae la lógica duplicada de los 3 métodos de notificación
+     */
+    private java.util.Map<String, Object> construirDatosNotificacionBase(Turno turno) {
+        java.util.Map<String, Object> datos = new java.util.HashMap<>();
+        datos.put("turnoId", turno.getId());
+        datos.put("clienteNombre", turno.getCliente().getNombre());
+        datos.put("servicioNombre", turno.getServicio().getNombre());
+        datos.put("fecha", turno.getFecha().toString());
+        datos.put("horaInicio", turno.getHoraInicio().format(FORMATTER_HORA));
+        datos.put("horaFin", turno.getHoraFin().format(FORMATTER_HORA));
+        return datos;
     }
 }

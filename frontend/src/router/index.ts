@@ -103,7 +103,7 @@ router.beforeEach(async (to, from, next) => {
     if (!clienteStore.isAuthenticated) {
       try {
         const response = await api.obtenerPerfilCliente()
-          console.debug('[router] obtenerPerfilCliente response:', response)
+        if (import.meta.env.DEV) console.debug('[router] obtenerPerfilCliente response:', response)
         // Aceptar sesión solo si status 200 y payload válido
         if (response && response.status === 200) {
           const payload = response.data?.datos ?? response.data
@@ -114,7 +114,7 @@ router.beforeEach(async (to, from, next) => {
               const empresa = await publicoService.obtenerEmpresa(empresaSlug)
               if (payload.empresaId === empresa.id || payload.empresaSlug === empresa.slug) {
                 clienteStore.setCliente(payload)
-                console.debug('[router] cliente seteado en store desde guard]:', clienteStore.cliente)
+                if (import.meta.env.DEV) console.debug('[router] cliente seteado en store desde guard]:', clienteStore.cliente)
                 next()
                 return
               }

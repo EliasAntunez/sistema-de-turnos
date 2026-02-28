@@ -105,6 +105,23 @@ public class Empresa {
     @Column(name = "timezone", length = 50, nullable = true)
     private String timezone = "America/Argentina/Buenos_Aires";
 
+    /**
+     * Horas de anticipación antes del turno para enviar recordatorio.
+     * Permite que cada empresa configure cuándo enviar recordatorios.
+     * Default: 24 horas (1 día antes del turno)
+     * Rango válido: 1-168 horas (1 hora a 7 días)
+     */
+    @Column(name = "horas_antes_recordatorio")
+    private Integer horasAntesRecordatorio = 24;
+
+    /**
+     * Indica si la empresa tiene habilitado el envío de recordatorios.
+     * Permite desactivar recordatorios sin cambiar la configuración.
+     * Default: true (recordatorios activos)
+     */
+    @Column(name = "enviar_recordatorios")
+    private Boolean enviarRecordatorios = true;
+
     @Column(nullable = false)
     private Boolean activa = true;
 

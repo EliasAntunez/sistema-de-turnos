@@ -48,6 +48,19 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-validation</artifactId>
 	</dependency>
+		
+		<!-- Spring Boot Mail para notificaciones por email -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		
+		<!-- Spring Boot WebSocket para notificaciones en tiempo real -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
+		
 		<dependency>			
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -75,10 +88,10 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Jackson para serialización JSON (usado en notificaciones) -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 

@@ -161,6 +161,17 @@ public class ControladorProfesional {
         response.setTelefono(usuario.getTelefono());
         response.setRol(usuario.getRol().getDescripcion());
         response.setActivo(usuario.getActivo());
+        
+        // Agregar información de la empresa si es profesional
+        if (usuario instanceof com.example.sitema_de_turnos.modelo.Profesional) {
+            com.example.sitema_de_turnos.modelo.Profesional profesional = 
+                    (com.example.sitema_de_turnos.modelo.Profesional) usuario;
+            if (profesional.getEmpresa() != null) {
+                response.setEmpresaId(profesional.getEmpresa().getId());
+                response.setEmpresaNombre(profesional.getEmpresa().getNombre());
+            }
+        }
+        
         return response;
     }
 

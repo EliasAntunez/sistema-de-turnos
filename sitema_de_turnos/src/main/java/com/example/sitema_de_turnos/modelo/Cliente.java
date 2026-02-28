@@ -1,6 +1,7 @@
 package com.example.sitema_de_turnos.modelo;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -15,16 +16,24 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "clientes", 
     uniqueConstraints = {
+        @UniqueConstraint(name = "uk_cliente_empresa_email",
+                         columnNames = {"empresa_id", "email"}),
+        @UniqueConstraint(name = "uk_cliente_empresa_nombreusuario",
+                         columnNames = {"empresa_id", "nombre_usuario"}),
         @UniqueConstraint(name = "uk_cliente_empresa_telefono",
                          columnNames = {"empresa_id", "telefono"})
     },
     indexes = {
         @Index(name = "idx_cliente_empresa_activo",
-               columnList = "empresa_id, activo")
+               columnList = "empresa_id, activo"),
+        @Index(name = "idx_cliente_email",
+               columnList = "email"),
+        @Index(name = "idx_cliente_nombreusuario",
+               columnList = "nombre_usuario")
     },
     check = {
         @CheckConstraint(name = "chk_telefono_formato",
-                        constraint = "telefono ~ '^[\\+]?[0-9\\s\\-\\(\\)]{7,20}$'")
+                        constraint = "telefono IS NULL OR telefono ~ '^[\\+]?[0-9\\s\\-\\(\\)]{7,20}$'")
     }
 )
 public class Cliente {
@@ -40,10 +49,14 @@ public class Cliente {
     @Column(nullable = false, length = 100)
     private String nombre;
 
-    @Column(nullable = false, length = 20)
+    @Column(name = "nombre_usuario", length = 50)
+    @Pattern(regexp = "^[a-zA-Z0-9._-]{3,50}$", message = "El nombre de usuario debe tener entre 3 y 50 caracteres y solo puede contener letras, números, puntos, guiones y guiones bajos")
+    private String nombreUsuario;
+
+    @Column(length = 20)
     private String telefono;
 
-    @Column(length = 150)
+    @Column(nullable = false, length = 150)
     private String email;
 
     @JsonIgnore
