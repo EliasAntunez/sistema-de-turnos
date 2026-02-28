@@ -1203,10 +1203,10 @@ async function cambiarEstado(turno: any, nuevoEstado: string) {
       turnos.value[index] = response.data.datos
     }
     
-    alert('Estado actualizado exitosamente')
+    toastStore.show('Estado actualizado exitosamente')
   } catch (error: any) {
     console.error('Error al cambiar estado:', error)
-    alert('Error al cambiar estado: ' + (error.response?.data?.mensaje || error.message))
+    toastStore.show('Error al cambiar estado: ' + (error.response?.data?.mensaje || error.message))
   }
 }
 

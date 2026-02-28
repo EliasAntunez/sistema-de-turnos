@@ -12,9 +12,6 @@ import RegistroClienteView from '../views/RegistroClienteView.vue'
 import LoginClienteView from '../views/LoginClienteView.vue'
 import MisTurnosView from '../views/MisTurnosView.vue'
 
-// Lazy load para políticas de cancelación
-const AdminPoliticasCancelacionView = () => import('../views/AdminPoliticasCancelacionView.vue');
-
 const routes = [
   {
     path: '/',
