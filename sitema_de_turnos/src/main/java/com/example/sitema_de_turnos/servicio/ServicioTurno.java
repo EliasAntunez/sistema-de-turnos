@@ -555,7 +555,7 @@ public class ServicioTurno {
         }
 
         // Validar transiciones de estado permitidas
-        validarTransicionEstado(turno.getEstado(), request.getNuevoEstado());
+        validarTransicionEstado(turno, request.getNuevoEstado());
 
         // Actualizar estado
         turno.setEstado(request.getNuevoEstado());
@@ -609,7 +609,9 @@ public class ServicioTurno {
     /**
      * Validar transiciones de estado permitidas
      */
-    private void validarTransicionEstado(EstadoTurno estadoActual, EstadoTurno nuevoEstado) {
+    private void validarTransicionEstado(Turno turno, EstadoTurno nuevoEstado) {
+        EstadoTurno estadoActual = turno.getEstado();
+        
         // No se puede cambiar de CANCELADO o ATENDIDO
         if (estadoActual == EstadoTurno.CANCELADO) {
             throw new ValidacionException("No se puede modificar un turno cancelado");
@@ -640,12 +642,16 @@ public class ServicioTurno {
                 if (estadoActual != EstadoTurno.CONFIRMADO) {
                     throw new ValidacionException("Solo se puede marcar como atendido turnos confirmados");
                 }
+                // Validar que el turno ya haya finalizado
+                validarTurnoYaPaso(turno, "atendido");
                 break;
             case NO_ASISTIO:
                 // Se puede marcar NO_ASISTIO desde CONFIRMADO
                 if (estadoActual != EstadoTurno.CONFIRMADO) {
                     throw new ValidacionException("Solo se puede marcar como no asistió turnos confirmados");
                 }
+                // Validar que el turno ya haya finalizado
+                validarTurnoYaPaso(turno, "no asistió");
                 break;
             case CANCELADO:
                 // Se puede cancelar desde cualquier estado excepto ATENDIDO
@@ -653,6 +659,26 @@ public class ServicioTurno {
                     throw new ValidacionException("No se puede cancelar un turno ya atendido");
                 }
                 break;
+        }
+    }
+
+    /**
+     * Validar que un turno ya haya finalizado (fecha + horaFin < ahora).
+     * Usa el timezone de la empresa para determinar la hora actual.
+     */
+    private void validarTurnoYaPaso(Turno turno, String accion) {
+        ZonedDateTime ahoraEmpresa = obtenerAhoraEmpresa(turno.getEmpresa());
+        LocalDateTime finTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraFin());
+        LocalDateTime ahoraLocal = ahoraEmpresa.toLocalDateTime();
+
+        if (finTurno.isAfter(ahoraLocal)) {
+            String fechaFormateada = turno.getFecha().format(FORMATTER_FECHA);
+            String horaFormateada = turno.getHoraFin().format(FORMATTER_HORA);
+            throw new ValidacionException(
+                String.format("No se puede marcar como %s un turno que aún no ha finalizado. " +
+                             "El turno finaliza el %s a las %s", 
+                             accion, fechaFormateada, horaFormateada)
+            );
         }
     }
 

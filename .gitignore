@@ -83,6 +83,7 @@ nbdist/
 node_modules/
 **/node_modules/
 frontend/node_modules/
+sitema_de_turnos/node_modules/
 frontend/.pnp
 frontend/.pnp.js
 .pnp
