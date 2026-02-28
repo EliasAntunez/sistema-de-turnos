@@ -13,9 +13,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegistroClienteRequest {
     
-    @NotBlank(message = "El teléfono es obligatorio")
-    @Pattern(regexp = "^[+]?[0-9\\s\\-()]{8,20}$", message = "Formato de teléfono inválido")
-    private String telefono;
+    @NotBlank(message = "El nombre de usuario es obligatorio")
+    @Pattern(regexp = "^[a-zA-Z0-9._-]{3,50}$", message = "El nombre de usuario debe tener entre 3 y 50 caracteres y solo puede contener letras, números, puntos, guiones y guiones bajos")
+    private String nombreUsuario;
+    
+    @Size(max = 20, message = "El teléfono no puede exceder 20 caracteres")
+    private String telefono; // Opcional - validación de formato en servicio
     
     @NotBlank(message = "El email es obligatorio")
     @Email(message = "Formato de email inválido")

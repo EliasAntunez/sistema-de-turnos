@@ -86,28 +86,67 @@
     </div>
 
     <div v-if="showReprogramModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold mb-4">Reprogramar reserva</h3>
-        <div class="space-y-3">
+        <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700">Fecha</label>
-            <input type="date" v-model="reprogramDate" class="mt-1 block w-full border rounded p-2" />
+            <label class="block text-sm font-medium text-gray-700 mb-1">Selecciona una nueva fecha</label>
+            <input type="date" v-model="reprogramDate" :min="fechaMinima" class="mt-1 block w-full border rounded p-2" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Hora inicio</label>
-            <input type="time" v-model="reprogramTime" class="mt-1 block w-full border rounded p-2" />
+          
+          <div v-if="reprogramDate">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Horarios disponibles</label>
+            
+            <div v-if="cargandoSlots" class="text-center py-4">
+              <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              <p class="mt-2 text-sm text-gray-600">Cargando horarios...</p>
+            </div>
+            
+            <div v-else-if="slotsDisponibles.length === 0" class="text-center py-4 bg-gray-50 rounded-md">
+              <p class="text-sm text-gray-600">No hay horarios disponibles para esta fecha.</p>
+              <p class="text-xs text-gray-500 mt-1">Intenta con otra fecha.</p>
+            </div>
+            
+            <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+              <button
+                v-for="(slot, index) in slotsDisponibles"
+                :key="index"
+                @click="seleccionarSlotReprogram(slot)"
+                :class="[
+                  'px-3 py-2 rounded-md text-sm border transition-colors',
+                  slotSeleccionado === slot
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
+                ]"
+              >
+                {{ formatearHoraSlot(slot.horaInicio) }}
+              </button>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Profesional (opcional)</label>
-            <select v-model="selectedProfessionalId" class="mt-1 block w-full border rounded p-2">
-              <option :value="null">Mantener profesional actual</option>
-              <option v-for="p in professionals" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-            </select>
+          
+          <div v-if="slotSeleccionado" class="p-3 bg-indigo-50 rounded-md">
+            <p class="text-sm text-indigo-800">
+              <strong>Nuevo horario seleccionado:</strong> {{ formatearHoraSlot(slotSeleccionado.horaInicio) }} - {{ formatearHoraSlot(slotSeleccionado.horaFin) }}
+            </p>
           </div>
         </div>
-        <div class="mt-4 flex justify-end gap-2">
-          <button @click="closeReprogramModal" class="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-          <button :disabled="actionLoading" @click="submitReprogram" class="px-4 py-2 bg-indigo-600 text-white rounded">Reprogramar</button>
+        
+        <div class="mt-6 flex justify-end gap-2">
+          <button @click="closeReprogramModal" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+            Cancelar
+          </button>
+          <button 
+            :disabled="!slotSeleccionado || actionLoading" 
+            @click="submitReprogram" 
+            :class="[
+              'px-4 py-2 rounded',
+              !slotSeleccionado || actionLoading
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            ]"
+          >
+            {{ actionLoading ? 'Reprogramando...' : 'Reprogramar' }}
+          </button>
         </div>
       </div>
     </div>
@@ -124,10 +163,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
-import publicoService, { type EmpresaPublica } from '@/services/publico'
+import publicoService, { type EmpresaPublica, type SlotDisponible } from '@/services/publico'
 import { useClienteStore } from '@/stores/cliente'
 import { useToastStore } from '@/composables/useToast'
 import Toast from '@/components/Toast.vue'
@@ -159,13 +198,16 @@ const actionLoading = ref(false)
 const showCancelarModal = ref(false)
 const showReprogramModal = ref(false)
 const reprogramDate = ref('')
-const reprogramTime = ref('')
-const professionals = ref<{ id: number; nombre: string }[]>([])
-const selectedProfessionalId = ref<number | null>(null)
+const slotsDisponibles = ref<SlotDisponible[]>([])
+const slotSeleccionado = ref<SlotDisponible | null>(null)
+const cargandoSlots = ref(false)
 const toast = useToastStore()
 const selectedTurno = ref<Turno | null>(null)
 // removed nombreClienteForm and observacionesForm: editing of nombre no longer allowed
 const motivoCancelForm = ref('')
+
+// Obtener fecha mínima para reprogramación (hoy)
+const fechaMinima = new Date().toISOString().split('T')[0]
 
 onMounted(async () => {
   // Verificar si el cliente está autenticado
@@ -269,35 +311,87 @@ function openReprogramarModal(turno: Turno) {
 
   selectedTurno.value = turno
   reprogramDate.value = turno.fecha
-  reprogramTime.value = turno.horaInicio
-  selectedProfessionalId.value = turno.profesionalId ?? null
-  // Cargar profesionales del servicio si es posible
-  professionals.value = []
-  if (turno.servicioId) {
-    publicoService.obtenerProfesionales(empresaSlug.value, turno.servicioId)
-      .then(list => {
-        professionals.value = list.map(p => ({ id: p.id, nombre: p.nombre + ' ' + p.apellido }))
-      })
-      .catch(() => { /* ignorar errores de carga de profesionales */ })
-  }
-
+  slotsDisponibles.value = []
+  slotSeleccionado.value = null
+  
   showReprogramModal.value = true
+  
+  // Cargar slots para la fecha actual del turno
+  cargarSlotsParaReprogramar()
 }
 
 function closeReprogramModal() {
   showReprogramModal.value = false
   selectedTurno.value = null
+  slotsDisponibles.value = []
+  slotSeleccionado.value = null
 }
 
+async function cargarSlotsParaReprogramar() {
+  if (!selectedTurno.value || !reprogramDate.value) return
+  
+  const turno = selectedTurno.value
+  if (!turno.servicioId || !turno.profesionalId) {
+    toast.show('Información del turno incompleta')
+    return
+  }
+  
+  try {
+    cargandoSlots.value = true
+    slotsDisponibles.value = await publicoService.obtenerDisponibilidad(
+      empresaSlug.value,
+      turno.servicioId,
+      turno.profesionalId,
+      reprogramDate.value
+    )
+    slotSeleccionado.value = null
+  } catch (error: any) {
+    console.error('Error al cargar slots:', error)
+    toast.show('Error al cargar horarios disponibles')
+    slotsDisponibles.value = []
+  } finally {
+    cargandoSlots.value = false
+  }
+}
+
+function seleccionarSlotReprogram(slot: SlotDisponible) {
+  slotSeleccionado.value = slot
+}
+
+function formatearHoraSlot(isoDateTime: string): string {
+  // Extraer la hora del formato ISO DateTime (YYYY-MM-DDTHH:mm:ss o similar)
+  // El backend devuelve: "2024-02-27T21:30:00"
+  const fecha = new Date(isoDateTime)
+  const horas = fecha.getHours().toString().padStart(2, '0')
+  const minutos = fecha.getMinutes().toString().padStart(2, '0')
+  return `${horas}:${minutos}`
+}
+
+// Watch para recargar slots cuando cambia la fecha
+watch(reprogramDate, () => {
+  if (showReprogramModal.value && selectedTurno.value) {
+    cargarSlotsParaReprogramar()
+  }
+})
+
 async function submitReprogram() {
-  if (!selectedTurno.value) return
+  if (!selectedTurno.value || !slotSeleccionado.value) {
+    toast.show('Por favor selecciona un horario disponible')
+    return
+  }
   if (actionLoading.value) return
   actionLoading.value = true
   try {
     try { await api.getCsrfToken() } catch (e) { /* ignorar */ }
 
-    const payload: any = { fecha: reprogramDate.value, horaInicio: reprogramTime.value }
-    if (selectedProfessionalId.value) payload.profesionalId = selectedProfessionalId.value
+    const slot = slotSeleccionado.value
+    const horaInicio = formatearHoraSlot(slot.horaInicio)
+    
+    const payload: any = { 
+      fecha: reprogramDate.value, 
+      horaInicio: horaInicio,
+      profesionalId: slot.profesionalId
+    }
 
     const resp = await api.reprogramReservation(selectedTurno.value.id, payload)
     if (resp.status === 200) {

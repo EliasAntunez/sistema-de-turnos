@@ -23,24 +23,24 @@
         <!-- Formulario -->
         <div class="px-6 py-8 space-y-5">
           
-          <!-- Campo Teléfono -->
+          <!-- Campo Email o Nombre de Usuario -->
           <div>
-            <label for="telefono" class="block text-sm font-semibold text-gray-700 mb-2">
-              Teléfono
+            <label for="identificador" class="block text-sm font-semibold text-gray-700 mb-2">
+              Email o Nombre de Usuario
             </label>
             <div class="relative group">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg class="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
               </div>
               <input 
-                id="telefono" 
-                v-model="formData.telefono" 
-                type="tel" 
+                id="identificador" 
+                v-model="formData.identificador" 
+                type="text" 
                 required
                 class="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder-gray-400 transition-all hover:border-gray-300"
-                placeholder="+54 9 11 1234-5678"
+                placeholder="tu@email.com o tu_usuario"
                 @keyup.enter="login"
               />
             </div>
@@ -195,12 +195,12 @@ const empresaSlug = ref(route.params.empresaSlug as string)
 const empresa = ref<EmpresaPublica | null>(null)
 
 interface FormData {
-  telefono: string
+  identificador: string
   contrasena: string
 }
 
 const formData = ref<FormData>({
-  telefono: '',
+  identificador: '',
   contrasena: ''
 })
 
@@ -209,7 +209,7 @@ const errorMessage = ref('')
 const showPassword = ref(false)
 
 const formularioValido = computed(() => {
-  return formData.value.telefono && formData.value.contrasena
+  return formData.value.identificador && formData.value.contrasena
 })
 
 function togglePasswordVisibility() {
@@ -250,11 +250,11 @@ async function login() {
     if (error.response?.data?.mensaje) {
       errorMessage.value = error.response.data.mensaje
     } else if (error.response?.status === 401) {
-      errorMessage.value = 'Teléfono o contraseña incorrectos'
+      errorMessage.value = 'Email/usuario o contraseña incorrectos'
     } else if (error.response?.status === 404) {
-      errorMessage.value = 'No existe una cuenta con este teléfono. Regístrate primero.'
+      errorMessage.value = 'No existe una cuenta con este email/usuario. Regístrate primero.'
     } else if (error.response?.status === 400) {
-      errorMessage.value = 'Datos inválidos. Verifica el formato del teléfono.'
+      errorMessage.value = 'Datos inválidos. Verifica la información ingresada.'
     } else if (error.response?.status === 500) {
       errorMessage.value = 'Error en el servidor. Intenta nuevamente más tarde.'
     } else {

@@ -8,6 +8,8 @@ interface Usuario {
   apellido: string
   email: string
   rol: string
+  empresaId?: number
+  empresaNombre?: string
 }
 
 interface AuthCredentials {
@@ -42,11 +44,12 @@ export const useAuthStore = defineStore('auth', () => {
         return false
       }
 
-      // Detectar si es cliente (tendrá campo empresaId o rol CLIENTE)
-      // Nota: no seteamos el `cliente` globalmente desde aqui porque el cliente
+      // Detectar si es cliente (solo verificamos el rol, no empresaId)
+      // Nota: Los profesionales también tienen empresaId, pero su rol es PROFESIONAL
+      // No seteamos el `cliente` globalmente desde aqui porque el cliente
       // es específico por empresa. Las vistas públicas deben consultar el perfil
       // y decidir si asociar la sesión al `cliente` según el `empresaSlug`/empresaId.
-      if (payload && (payload.empresaId !== undefined || payload.rol === 'CLIENTE')) {
+      if (payload && payload.rol === 'CLIENTE') {
         return false
       }
 

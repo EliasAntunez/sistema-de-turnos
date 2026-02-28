@@ -195,7 +195,7 @@ public class ServicioPublico {
         Integer bufferMinutos = calcularBufferEfectivo(servicio, profesional, empresa);
 
         // Generar slots
-        return generarSlots(rangosHorarios, fecha, servicio.getDuracionMinutos(), bufferMinutos, profesional);
+        return generarSlots(rangosHorarios, fecha, servicio.getDuracionMinutos(), bufferMinutos, profesional, empresa);
     }
 
     /**
@@ -252,13 +252,17 @@ public class ServicioPublico {
      * 2. Fin exacto de cada turno existente (si el servicio cabe después)
      * 
      * Esto maximiza ocupación sin granularidad artificial.
+     * 
+     * Si la fecha es el día actual, filtra slots que ya pasaron considerando
+     * el tiempo mínimo de anticipación de la empresa.
      */
     private List<SlotDisponibleResponse> generarSlots(
             List<RangoHorario> rangos,
             LocalDate fecha,
             Integer duracionServicio,
             Integer buffer,
-            Profesional profesional
+            Profesional profesional,
+            Empresa empresa
     ) {
         List<SlotDisponibleResponse> slots = new ArrayList<>();
         Integer duracionTotal = duracionServicio + buffer;
@@ -280,7 +284,7 @@ public class ServicioPublico {
                 // Sin turnos: todo el rango es un hueco libre
                 // Generar múltiples slots dentro del hueco
                 generarSlotsEnHueco(slots, fecha, rango.horaInicio, rango.horaFin, 
-                                   duracionServicio, duracionTotal, profesional);
+                                   duracionServicio, duracionTotal, profesional, empresa);
             } else {
                 // Con turnos: identificar huecos libres
                 LocalTime inicioBusqueda = rango.horaInicio;
@@ -290,7 +294,7 @@ public class ServicioPublico {
                     if (inicioBusqueda.isBefore(turno.getHoraInicio())) {
                         // Generar múltiples slots en este hueco
                         generarSlotsEnHueco(slots, fecha, inicioBusqueda, turno.getHoraInicio(), 
-                                           duracionServicio, duracionTotal, profesional);
+                                           duracionServicio, duracionTotal, profesional, empresa);
                     }
 
                     // Preparar para buscar después de este turno
@@ -302,7 +306,7 @@ public class ServicioPublico {
                 if (inicioBusqueda.isBefore(rango.horaFin)) {
                     // Generar múltiples slots en este último hueco
                     generarSlotsEnHueco(slots, fecha, inicioBusqueda, rango.horaFin, 
-                                       duracionServicio, duracionTotal, profesional);
+                                       duracionServicio, duracionTotal, profesional, empresa);
                 }
             }
         }
@@ -313,14 +317,34 @@ public class ServicioPublico {
     /**
      * Generar múltiples slots dentro de un hueco libre.
      * Avanza por (duración + buffer) para evitar solapamientos.
+     * 
+     * Si la fecha es el día actual, solo genera slots que estén después de
+     * la hora actual + tiempo mínimo de anticipación de la empresa.
      */
     private void generarSlotsEnHueco(List<SlotDisponibleResponse> slots, LocalDate fecha,
                                      LocalTime inicioHueco, LocalTime finHueco,
                                      Integer duracionServicio, Integer duracionTotal,
-                                     Profesional profesional) {
+                                     Profesional profesional, Empresa empresa) {
         LocalTime horaActual = inicioHueco;
         
+        // Verificar si es el día actual
+        boolean esHoy = fecha.isEqual(LocalDate.now());
+        LocalTime horaLimite = null;
+        
+        if (esHoy) {
+            // Obtener tiempo mínimo de anticipación de la empresa
+            int tiempoMinimoAnticipacion = empresa.getTiempoMinimoAnticipacionMinutos() != null ?
+                empresa.getTiempoMinimoAnticipacionMinutos() : 30;
+            horaLimite = LocalTime.now().plusMinutes(tiempoMinimoAnticipacion);
+        }
+        
         while (horaActual.plusMinutes(duracionTotal).compareTo(finHueco) <= 0) {
+            // Si es hoy, verificar que el slot esté después del tiempo mínimo de anticipación
+            if (esHoy && horaActual.isBefore(horaLimite)) {
+                horaActual = horaActual.plusMinutes(duracionTotal);
+                continue;
+            }
+            
             slots.add(crearSlot(fecha, horaActual, duracionServicio, profesional));
             horaActual = horaActual.plusMinutes(duracionTotal);
         }

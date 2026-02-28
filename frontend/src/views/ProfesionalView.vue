@@ -3,8 +3,14 @@
     <!-- Header -->
     <header class="header">
       <div class="header-content">
-        <h1>Panel de Profesional</h1>
-        <button @click="cerrarSesion" class="btn-logout">Cerrar Sesión</button>
+        <div class="header-left">
+          <h1>{{ authStore.usuario?.empresaNombre || 'Empresa' }} - Panel de Profesional</h1>
+        </div>
+        <div class="header-right">
+          <span class="user-name">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+          <NotificationBell />
+          <button @click="cerrarSesion" class="btn-logout">Cerrar Sesión</button>
+        </div>
       </div>
     </header>
 
@@ -527,19 +533,28 @@
         </div>
       </div>
     </div>
+
+    <!-- Toast para notificaciones -->
+    <Toast />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useNotificacionesStore } from '../stores/notificaciones'
+import NotificationBell from '../components/NotificationBell.vue'
+import Toast from '../components/Toast.vue'
 import { disponibilidadService, type DisponibilidadRequest, type DisponibilidadResponse, diasSemana } from '../services/disponibilidad'
 import { bloqueosService, type BloqueoRequest, type BloqueoResponse } from '../services/bloqueos'
 import api from '../services/api'
+import { useToastStore } from '../composables/useToast'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const notificacionesStore = useNotificacionesStore()
+const toastStore = useToastStore()
 
 // Hacer api disponible globalmente para las funciones
 ;(window as any).apiClient = api
@@ -664,13 +679,41 @@ const turnosOrdenados = computed(() => {
 })
 
 onMounted(async () => {
+  // Cargar datos iniciales
   await Promise.all([
     cargarDisponibilidad(),
     cargarHorariosEmpresa(),
     cargarBloqueos(),
     cargarTurnos()
   ])
+  
+  // Inicializar sistema de notificaciones
+  await notificacionesStore.inicializar()
+  
+  // Listener para mostrar toast cuando llega una nueva notificación
+  window.addEventListener('nueva-notificacion', onNuevaNotificacion as EventListener)
 })
+
+onUnmounted(() => {
+  // Desconectar WebSocket al salir de la vista
+  notificacionesStore.desconectar()
+  
+  // Remover listener
+  window.removeEventListener('nueva-notificacion', onNuevaNotificacion as EventListener)
+})
+
+/**
+ * Handler para nuevas notificaciones - muestra toast
+ */
+function onNuevaNotificacion(event: Event) {
+  const customEvent = event as CustomEvent
+  const notificacion = customEvent.detail
+  
+  toastStore.show(
+    `${notificacion.titulo}: ${notificacion.mensaje}`,
+    4000
+  )
+}
 
 // ==================== FUNCIONES DISPONIBILIDAD ====================
 
@@ -1294,6 +1337,22 @@ function cerrarSesion() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-name {
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.95;
 }
 
 .header h1 {

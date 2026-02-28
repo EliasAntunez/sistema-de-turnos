@@ -1,4 +1,3 @@
-
 package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.dto.*;
@@ -14,6 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ServicioEmpresa {
+    
+    private final RepositorioEmpresa repositorioEmpresa;
+    private final RepositorioDueno repositorioDueno;
+    private final PasswordEncoder passwordEncoder;
+    private final ServicioDueno servicioDueno;
+
     /**
      * Obtener empresa por slug (retorna entidad Empresa, no DTO)
      */
@@ -21,10 +26,6 @@ public class ServicioEmpresa {
     public Empresa obtenerPorSlug(String slug) {
         return repositorioEmpresa.findBySlugAndActivaTrue(slug).orElse(null);
     }
-
-    private final RepositorioEmpresa repositorioEmpresa;
-    private final RepositorioDueno repositorioDueno;
-    private final PasswordEncoder passwordEncoder;
 
     /**
      * Crea una empresa con su dueño en una sola transacción
@@ -185,6 +186,67 @@ public class ServicioEmpresa {
         response.setTelefono(dueno.getTelefono());
         response.setDocumento(dueno.getDocumento());
         response.setTipoDocumento(dueno.getTipoDocumento());
+        return response;
+    }
+
+    // ===================== GESTIÓN DE CONFIGURACIÓN =====================
+
+    /**
+     * Obtener configuración de la empresa del dueño autenticado
+     */
+    @Transactional(readOnly = true)
+    public ConfiguracionEmpresaResponse obtenerConfiguracion(String emailDueno) {
+        Dueno dueno = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = dueno.getEmpresa();
+        
+        if (empresa == null) {
+            throw new RuntimeException("El dueño no tiene empresa asociada");
+        }
+        
+        return mapearAConfiguracionResponse(empresa);
+    }
+
+    /**
+     * Actualizar configuración de la empresa del dueño autenticado
+     */
+    @Transactional
+    public ConfiguracionEmpresaResponse actualizarConfiguracion(
+            String emailDueno,
+            ActualizarConfiguracionEmpresaRequest request) {
+        
+        // Validar ownership
+        Dueno dueno = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = dueno.getEmpresa();
+        
+        if (empresa == null) {
+            throw new RuntimeException("El dueño no tiene empresa asociada");
+        }
+        
+        // Actualizar configuración operativa
+        empresa.setBufferPorDefecto(request.getBufferPorDefecto());
+        empresa.setTiempoMinimoAnticipacionMinutos(request.getTiempoMinimoAnticipacionMinutos());
+        empresa.setDiasMaximosReserva(request.getDiasMaximosReserva());
+        
+        // Actualizar configuración de recordatorios
+        empresa.setHorasAntesRecordatorio(request.getHorasAntesRecordatorio());
+        empresa.setEnviarRecordatorios(request.getEnviarRecordatorios());
+        
+        empresa = repositorioEmpresa.save(empresa);
+        
+        return mapearAConfiguracionResponse(empresa);
+    }
+
+    /**
+     * Mapear entidad Empresa a ConfiguracionEmpresaResponse
+     */
+    private ConfiguracionEmpresaResponse mapearAConfiguracionResponse(Empresa empresa) {
+        ConfiguracionEmpresaResponse response = new ConfiguracionEmpresaResponse();
+        response.setBufferPorDefecto(empresa.getBufferPorDefecto());
+        response.setTiempoMinimoAnticipacionMinutos(empresa.getTiempoMinimoAnticipacionMinutos());
+        response.setDiasMaximosReserva(empresa.getDiasMaximosReserva());
+        response.setTimezone(empresa.getTimezone());
+        response.setHorasAntesRecordatorio(empresa.getHorasAntesRecordatorio());
+        response.setEnviarRecordatorios(empresa.getEnviarRecordatorios());
         return response;
     }
 }

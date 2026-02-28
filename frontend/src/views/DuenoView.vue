@@ -37,6 +37,12 @@
       >
         Políticas de Cancelación
       </button>
+      <button 
+        :class="['tab', { active: activeTab === 'configuracion' }]" 
+        @click="activeTab = 'configuracion'"
+      >
+        Configuración
+      </button>
     </div>
 
     <!-- Tab: Profesionales -->
@@ -270,6 +276,129 @@
     <p class="empty-hint">Haz clic en "Nueva Política" para comenzar</p>
   </div>
 </main>
+
+    <!-- Tab: Configuración -->
+    <main v-if="activeTab === 'configuracion'" class="dueno-content">
+      <div class="section-header">
+        <h2>Configuración de la Empresa</h2>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loadingConfiguracion" class="loading">Cargando configuración...</div>
+
+      <!-- Formulario de Configuración -->
+      <div v-else class="configuracion-container">
+        <form @submit.prevent="submitConfiguracion" class="configuracion-form">
+          
+          <!-- Sección: Configuración Operativa -->
+          <div class="config-section">
+            <h3 class="section-title">⚙️ Configuración Operativa</h3>
+            
+            <div class="form-row">
+              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.bufferPorDefecto }">
+                <label>Buffer por defecto (minutos)</label>
+                <input 
+                  v-model.number="formDataConfiguracion.bufferPorDefecto" 
+                  type="number" 
+                  min="0"
+                  max="120"
+                  required
+                  placeholder="5"
+                />
+                <small>Tiempo de descanso entre turnos consecutivos</small>
+                <span v-if="fieldErrorsConfiguracion.bufferPorDefecto" class="field-error">
+                  {{ fieldErrorsConfiguracion.bufferPorDefecto }}
+                </span>
+              </div>
+
+              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos }">
+                <label>Anticipación mínima (minutos)</label>
+                <input 
+                  v-model.number="formDataConfiguracion.tiempoMinimoAnticipacionMinutos" 
+                  type="number" 
+                  min="0"
+                  max="1440"
+                  required
+                  placeholder="30"
+                />
+                <small>Tiempo mínimo para reservar antes del turno</small>
+                <span v-if="fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos" class="field-error">
+                  {{ fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos }}
+                </span>
+              </div>
+
+              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.diasMaximosReserva }">
+                <label>Días máximos de reserva</label>
+                <input 
+                  v-model.number="formDataConfiguracion.diasMaximosReserva" 
+                  type="number" 
+                  min="1"
+                  max="365"
+                  required
+                  placeholder="30"
+                />
+                <small>Hasta cuántos días adelante pueden reservar</small>
+                <span v-if="fieldErrorsConfiguracion.diasMaximosReserva" class="field-error">
+                  {{ fieldErrorsConfiguracion.diasMaximosReserva }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sección: Recordatorios -->
+          <div class="config-section">
+            <h3 class="section-title">📧 Recordatorios por Email</h3>
+            
+            <div class="form-row">
+              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.horasAntesRecordatorio }">
+                <label>Enviar recordatorio con (horas de anticipación)</label>
+                <input 
+                  v-model.number="formDataConfiguracion.horasAntesRecordatorio" 
+                  type="number" 
+                  min="1"
+                  max="168"
+                  required
+                  placeholder="24"
+                />
+                <small>1 hora mínimo, 168 horas (7 días) máximo</small>
+                <span v-if="fieldErrorsConfiguracion.horasAntesRecordatorio" class="field-error">
+                  {{ fieldErrorsConfiguracion.horasAntesRecordatorio }}
+                </span>
+              </div>
+
+              <div class="form-group form-group-switch">
+                <label class="switch-label">
+                  <input 
+                    v-model="formDataConfiguracion.enviarRecordatorios" 
+                    type="checkbox"
+                    class="switch-input"
+                  />
+                  <span class="switch-slider"></span>
+                  <span class="switch-text">
+                    {{ formDataConfiguracion.enviarRecordatorios ? 'Recordatorios Activos' : 'Recordatorios Desactivados' }}
+                  </span>
+                </label>
+                <small>Habilita o deshabilita el envío de recordatorios automáticos</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="errorConfiguracion" class="error-message">{{ errorConfiguracion }}</div>
+
+          <!-- Botones de Acción -->
+          <div class="form-actions">
+            <button 
+              type="submit" 
+              class="btn-submit-config" 
+              :disabled="submittingConfiguracion"
+            >
+              {{ submittingConfiguracion ? 'Guardando...' : '💾 Guardar Configuración' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
 
 <!-- Modal Form Políticas -->
 <div v-if="showModalPolitica" class="modal-overlay" @click="closeModalPolitica">
@@ -683,6 +812,9 @@
       </div>
     </div>
   </div>
+  
+  <!-- Toast para notificaciones -->
+  <Toast />
 </template>
 
 <script setup lang="ts">
@@ -694,15 +826,18 @@ import { servicioService, type ServicioRequest, type ServicioResponse } from '..
 import { especialidadService, type EspecialidadResponse } from '../services/especialidades'
 import PoliticasService from '../services/politicasCancelacion'
 import type { PoliticaCancelacionRequest, PoliticaCancelacionResponse } from '../types/politicasCancelacion'
+import { useToastStore } from '../composables/useToast'
+import Toast from '../components/Toast.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const toast = useToastStore()
 
 const nombreEmpresa = ref('')
 const empresaId = ref<number | null>(null)
 
 // Tab activo
-const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas'>('profesionales')
+const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas' | 'configuracion'>('profesionales')
 
 // Estado para el formulario de política de cancelación
 const mostrarFormularioPolitica = ref(false)
@@ -807,6 +942,21 @@ const diasConConflicto = computed(() => {
   })
 })
 
+// Estado para Configuración
+const loadingConfiguracion = ref(false)
+const submittingConfiguracion = ref(false)
+const errorConfiguracion = ref('')
+const fieldErrorsConfiguracion = ref<Record<string, string>>({})
+
+const formDataConfiguracion = ref({
+  bufferPorDefecto: 5,
+  tiempoMinimoAnticipacionMinutos: 30,
+  diasMaximosReserva: 30,
+  horasAntesRecordatorio: 24,
+  enviarRecordatorios: true,
+  timezone: 'America/Argentina/Buenos_Aires'
+})
+
 function agruparHorariosPorDia() {
   const agrupados: Record<string, any[]> = {}
   diasSemana.forEach(dia => {
@@ -822,6 +972,7 @@ onMounted(async () => {
   cargarHorarios()
   cargarEspecialidadesDisponibles()
   await cargarPoliticasCancelacion()
+  cargarConfiguracion()
 })
 
 // ====Funcion para cargar Nombre de la empresa====
@@ -832,7 +983,7 @@ async function cargarNombreEmpresa() {
     if (typeof data === 'string') {
       try {
         data = JSON.parse(data)
-        console.warn('[FRONTEND] Se forzó parseo de string a objeto:', data)
+        if (import.meta.env.DEV) console.warn('[FRONTEND] Se forzó parseo de string a objeto:', data)
       } catch (e) {
         console.error('[FRONTEND] Error al parsear data:', e, data)
         data = {}
@@ -841,7 +992,7 @@ async function cargarNombreEmpresa() {
     nombreEmpresa.value = data?.nombre || 'Mi Empresa'
     empresaId.value = data?.id || null
     if (!empresaId.value) {
-      console.warn('[FRONTEND] No se obtuvo el id de la empresa en la respuesta:', data)
+      if (import.meta.env.DEV) console.warn('[FRONTEND] No se obtuvo el id de la empresa en la respuesta:', data)
     }
   } catch (err) {
     console.error('[FRONTEND] Error al obtener empresa:', err)
@@ -856,9 +1007,9 @@ async function cargarPoliticasCancelacion() {
   loadingPoliticas.value = true
   errorPolitica.value = ''
   try {
-    console.log('[FRONTEND] empresaId antes de cargar políticas:', empresaId.value)
+    if (import.meta.env.DEV) console.log('[FRONTEND] empresaId antes de cargar políticas:', empresaId.value)
     if (!empresaId.value) {
-      console.warn('[FRONTEND] No se pudo obtener el id de la empresa para cargar políticas')
+      if (import.meta.env.DEV) console.warn('[FRONTEND] No se pudo obtener el id de la empresa para cargar políticas')
       politicas.value = []
       errorPolitica.value = 'No se pudo obtener el id de la empresa.'
       return
@@ -869,13 +1020,13 @@ async function cargarPoliticasCancelacion() {
     if (typeof politicasData === 'string') {
       try {
         politicasData = JSON.parse(politicasData)
-        console.warn('[FRONTEND] Se forzó parseo de string a array de políticas:', politicasData)
+        if (import.meta.env.DEV) console.warn('[FRONTEND] Se forzó parseo de string a array de políticas:', politicasData)
       } catch (e) {
         console.error('[FRONTEND] Error al parsear políticas:', e, politicasData)
         politicasData = []
       }
     }
-    console.log('[FRONTEND] Respuesta de getTodasPorEmpresa:', politicasData)
+    if (import.meta.env.DEV) console.log('[FRONTEND] Respuesta de getTodasPorEmpresa:', politicasData)
     politicas.value = Array.isArray(politicasData) ? politicasData : []
   } catch (err: any) {
     console.error('[FRONTEND] Error al cargar políticas:', err)
@@ -1205,15 +1356,22 @@ async function toggleEstadoProfesional(profesional: any) {
     try {
       if (profesional.activo) {
         await api.patch(`/dueno/profesionales/${profesional.id}/desactivar`)
-        alert('Profesional desactivado correctamente')
+        toast.show(`Profesional ${profesional.nombre} ${profesional.apellido} desactivado correctamente`, 5000)
       } else {
         await api.patch(`/dueno/profesionales/${profesional.id}/activar`)
-        alert('Profesional activado correctamente')
+        toast.show(`Profesional ${profesional.nombre} ${profesional.apellido} activado correctamente`, 5000)
       }
       await cargarProfesionales()
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Error al ${accion} profesional:`, err)
-      alert(`Error al ${accion} el profesional`)
+      // Extraer el mensaje específico del backend
+      const mensajeError = err.response?.data?.mensaje 
+        || err.response?.data?.error 
+        || err.response?.data 
+        || err.message 
+        || `Error al ${accion} el profesional`
+      
+      toast.show(mensajeError, 8000)
     }
   }
 }
@@ -1496,6 +1654,63 @@ async function confirmarCopiarHorarios() {
     }
   } finally {
     submittingCopiar.value = false
+  }
+}
+
+// ==================== FUNCIONES PARA CONFIGURACIÓN ====================
+
+async function cargarConfiguracion() {
+  loadingConfiguracion.value = true
+  errorConfiguracion.value = ''
+  
+  try {
+    const response = await api.obtenerConfiguracion()
+    const data = response.data
+    
+    // Mapear respuesta a formData
+    formDataConfiguracion.value = {
+      bufferPorDefecto: data.bufferPorDefecto ?? 5,
+      tiempoMinimoAnticipacionMinutos: data.tiempoMinimoAnticipacionMinutos ?? 30,
+      diasMaximosReserva: data.diasMaximosReserva ?? 30,
+      horasAntesRecordatorio: data.horasAntesRecordatorio ?? 24,
+      enviarRecordatorios: data.enviarRecordatorios ?? true,
+      timezone: data.timezone ?? 'America/Argentina/Buenos_Aires'
+    }
+  } catch (err: any) {
+    console.error('Error al cargar configuración:', err)
+    errorConfiguracion.value = 'Error al cargar la configuración de la empresa'
+  } finally {
+    loadingConfiguracion.value = false
+  }
+}
+
+async function submitConfiguracion() {
+  submittingConfiguracion.value = true
+  errorConfiguracion.value = ''
+  fieldErrorsConfiguracion.value = {}
+  
+  try {
+    const response = await api.actualizarConfiguracion(formDataConfiguracion.value)
+    
+    // Mostrar mensaje de éxito
+    alert('✅ Configuración guardada exitosamente')
+    
+    // Recargar configuración para reflejar cambios
+    await cargarConfiguracion()
+  } catch (err: any) {
+    console.error('Error al guardar configuración:', err)
+    
+    // Manejar errores de validación por campo
+    if (err.response?.data?.errores) {
+      fieldErrorsConfiguracion.value = err.response.data.errores
+      errorConfiguracion.value = 'Por favor corrija los errores en el formulario'
+    } else if (err.response?.data?.mensaje) {
+      errorConfiguracion.value = err.response.data.mensaje
+    } else {
+      errorConfiguracion.value = 'Error al guardar la configuración. Por favor intente nuevamente.'
+    }
+  } finally {
+    submittingConfiguracion.value = false
   }
 }
 
@@ -2459,6 +2674,196 @@ async function confirmarCopiarHorarios() {
 
 .warning-message strong {
   font-weight: 600;
+}
+
+/* ==================== ESTILOS PARA CONFIGURACIÓN ==================== */
+
+.configuracion-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.configuracion-form {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.config-section {
+  padding: 2rem;
+  border-bottom: 2px solid #f7fafc;
+}
+
+.config-section:last-of-type {
+  border-bottom: none;
+}
+
+.section-title {
+  color: #2d3748;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.switch-label {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  background-color: #cbd5e0;
+  border-radius: 28px;
+  transition: background-color 0.3s ease;
+}
+
+.switch-slider::before {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  left: 3px;
+  top: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.switch-input:checked + .switch-slider {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.switch-input:checked + .switch-slider::before {
+  transform: translateX(24px);
+}
+
+.switch-text {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 1rem;
+}
+
+.info-box {
+  background: #e6fffa;
+  border-left: 4px solid #38b2ac;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+}
+
+.info-box strong {
+  color: #234e52;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.info-box ul {
+  margin: 0.5rem 0 0 1.5rem;
+  color: #2c7a7b;
+}
+
+.info-box li {
+  margin-bottom: 0.25rem;
+  line-height: 1.5;
+}
+
+.config-info-section {
+  background: #f7fafc;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.info-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-label {
+  color: #718096;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.form-actions {
+  padding: 2rem;
+  background: #f7fafc;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-submit-config {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-submit-config:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-submit-config:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Ajustes para campo hint */
+.field-hint {
+  color: #718096;
+  font-size: 0.8rem;
+  font-style: italic;
 }
 </style>
 

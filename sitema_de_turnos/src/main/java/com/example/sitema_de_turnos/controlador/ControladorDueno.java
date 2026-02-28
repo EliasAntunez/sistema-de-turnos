@@ -28,6 +28,7 @@ public class ControladorDueno {
     private final ServicioServicio servicioServicio;
     private final ServicioHorarioEmpresa servicioHorarioEmpresa;
     private final com.example.sitema_de_turnos.servicio.ServicioDueno servicioDueno;
+    private final com.example.sitema_de_turnos.servicio.ServicioEmpresa servicioEmpresa;
 
     @GetMapping("/profesionales")
     public ResponseEntity<List<ProfesionalResponse>> obtenerProfesionales(Authentication authentication) {
@@ -260,6 +261,34 @@ public class ControladorDueno {
                     String.format("Se copiaron %d horarios exitosamente", horariosCreados),
                     String.valueOf(horariosCreados)
                 )
+        );
+    }
+
+    // ==================== ENDPOINTS PARA CONFIGURACIÓN DE EMPRESA ====================
+
+    /**
+     * Obtener configuración actual de la empresa
+     */
+    @GetMapping("/configuracion")
+    public ResponseEntity<ConfiguracionEmpresaResponse> obtenerConfiguracion(
+            Authentication authentication) {
+        String emailDueno = authentication.getName();
+        ConfiguracionEmpresaResponse configuracion = servicioEmpresa.obtenerConfiguracion(emailDueno);
+        return ResponseEntity.ok(configuracion);
+    }
+
+    /**
+     * Actualizar configuración de la empresa
+     */
+    @PutMapping("/configuracion")
+    public ResponseEntity<RespuestaApi<ConfiguracionEmpresaResponse>> actualizarConfiguracion(
+            @Valid @RequestBody ActualizarConfiguracionEmpresaRequest request,
+            Authentication authentication) {
+        String emailDueno = authentication.getName();
+        ConfiguracionEmpresaResponse configuracion = 
+                servicioEmpresa.actualizarConfiguracion(emailDueno, request);
+        return ResponseEntity.ok(
+                RespuestaApi.exitosa("Configuración actualizada exitosamente", configuracion)
         );
     }
 }

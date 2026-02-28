@@ -73,7 +73,16 @@ async function handleLogin() {
       try {
         await api.getCsrfToken()
       } catch (csrfError) {
-        console.warn('No se pudo obtener CSRF token, pero continuando...', csrfError)
+        if (import.meta.env.DEV) console.warn('No se pudo obtener CSRF token, pero continuando...', csrfError)
+      }
+
+      // Cargar perfil completo desde el backend (incluye empresaNombre para profesionales)
+      // Esto asegura que toda la información del usuario esté disponible
+      // antes de redirigir a su panel
+      try {
+        await authStore.cargarDesdeBackend()
+      } catch (perfilError) {
+        if (import.meta.env.DEV) console.warn('No se pudo cargar el perfil completo, pero continuando...', perfilError)
       }
 
       // Redirigir según rol

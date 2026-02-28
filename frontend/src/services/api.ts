@@ -161,6 +161,15 @@ export default {
     })
   },
 
+  // Configuración de la Empresa (Dueño)
+  obtenerConfiguracion() {
+    return apiClient.get('/dueno/configuracion')
+  },
+
+  actualizarConfiguracion(datos: any) {
+    return apiClient.put('/dueno/configuracion', datos)
+  },
+
   // Métodos genéricos para usar con cualquier endpoint
   get(url: string) {
     return apiClient.get(url)
@@ -200,7 +209,7 @@ export default {
     return apiClient.post(`/publico/empresa/${empresaSlug}/registro-cliente`, datos)
   },
 
-  loginCliente(empresaSlug: string, credenciales: { telefono: string; contrasena: string }) {
+  loginCliente(empresaSlug: string, credenciales: { identificador: string; contrasena: string }) {
     return apiClient.post(`/publico/empresa/${empresaSlug}/login-cliente`, credenciales)
   },
 

@@ -15,4 +15,6 @@ public class PerfilUsuarioResponse {
     private String telefono;
     private String rol;
     private Boolean activo;
+    private Long empresaId;
+    private String empresaNombre;
 }

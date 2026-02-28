@@ -6,9 +6,9 @@ import lombok.Data;
 @Data
 public class LoginClienteRequest {
 
-    @NotBlank(message = "El teléfono es obligatorio")
-    @Pattern(regexp = "^[+]?[0-9\\s\\-()]{8,20}$", message = "Formato de teléfono inválido")
-    private String telefono;
+    @NotBlank(message = "El email o nombre de usuario es obligatorio")
+    @Size(max = 150, message = "El identificador no puede exceder 150 caracteres")
+    private String identificador; // Puede ser email o nombreUsuario
 
     @NotBlank(message = "La contraseña es obligatoria")
     private String contrasena;

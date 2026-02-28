@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * Servicio auxiliar para cargar detalles de clientes.
  * 
  * IMPORTANTE: Este servicio se usa SOLO cuando el username sigue el formato:
- * "cliente:{empresaSlug}:{telefono}"
+ * "cliente:{empresaSlug}:{emailOrNombreUsuario}"
  * 
  * Esto permite diferenciar entre:
  * - Usuarios del sistema (Usuario entity): email directo
@@ -25,7 +25,7 @@ public class ServicioDetallesCliente {
     private final ServicioAutenticacionCliente servicioAutenticacionCliente;
 
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Parsear username en formato: "cliente:{empresaSlug}:{telefono}"
+        // Parsear username en formato: "cliente:{empresaSlug}:{emailOrNombreUsuario}"
         if (!username.startsWith("cliente:")) {
             throw new UsernameNotFoundException("Formato de usuario inválido para cliente");
         }
@@ -36,10 +36,10 @@ public class ServicioDetallesCliente {
         }
 
         String empresaSlug = parts[1];
-        String telefono = parts[2];
+        String identificador = parts[2]; // Email o nombre de usuario
 
         // Buscar cliente
-        Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, telefono);
+        Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, identificador);
 
         if (!cliente.getActivo()) {
             throw new UsernameNotFoundException("Cliente desactivado");

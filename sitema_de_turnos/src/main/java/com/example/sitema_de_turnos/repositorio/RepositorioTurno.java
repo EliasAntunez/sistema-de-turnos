@@ -188,4 +188,79 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
         @Param("fecha") LocalDate fecha,
         @Param("estados") List<EstadoTurno> estados
     );
+
+    /**
+     * Buscar turnos pendientes de recordatorio (JPQL portable)
+     * 
+     * REFACTORIZADO (A2 - Portabilidad):
+     * Convertido a JPQL para soportar múltiples bases de datos (PostgreSQL, H2, MySQL).
+     * La comparación de fecha/hora se hace por partes en lugar de usar operador específico de PostgreSQL.
+     * 
+     * REFACTORIZADO (A4 - Prevención de duplicados):
+     * Busca turnos que cumplan:
+     * - Fecha/hora del turno está dentro de las próximas X horas (desde ahora hasta fechaHoraMax)
+     * - Estado CONFIRMADO
+     * - NO hayan recibido recordatorio (recordatorioEnviado = false)
+     * - NO estén siendo procesados actualmente (recordatorioPrimerIntento IS NULL) ✅ A4
+     * 
+     * Esta última condición previene que el mismo turno sea seleccionado múltiples veces
+     * cuando el cron se ejecuta frecuentemente (ej: cada minuto en dev).
+     * 
+     * Lógica de comparación: turno califica si su (fecha + horaInicio) cae en el rango [min, max]
+     * - Si turno.fecha > fechaMax → excluir
+     * - Si turno.fecha < fechaMin → excluir  
+     * - Si turno.fecha = fechaMin → incluir solo si horaInicio >= horaMin
+     * - Si turno.fecha = fechaMax → incluir solo si horaInicio <= horaMax
+     * - Si fechaMin < turno.fecha < fechaMax → incluir
+     * 
+     * @param empresaId ID de la empresa a filtrar (multi-tenant)
+     * @param fechaMin Fecha mínima (extraída de fechaHoraMin)
+     * @param horaMin Hora mínima (extraída de fechaHoraMin)
+     * @param fechaMax Fecha máxima (extraída de fechaHoraMax)
+     * @param horaMax Hora máxima (extraída de fechaHoraMax)
+     * @param estado Estado válido (CONFIRMADO)
+     * @return Lista de turnos ordenados por fecha y hora
+     */
+    @Query("SELECT DISTINCT t FROM Turno t " +
+           "WHERE t.empresa.id = :empresaId " +
+           "AND t.estado = :estado " +
+           "AND (t.recordatorioEnviado = false OR t.recordatorioEnviado IS NULL) " +
+           "AND t.recordatorioPrimerIntento IS NULL " +  // ✅ A4: Previene duplicados
+           // Lógica de rango fecha/hora por partes (portable)
+           "AND (" +
+               // Caso 1: Fecha mayor que mínima
+               "t.fecha > :fechaMin " +
+               // Caso 2: Fecha igual a mínima pero hora >= hora mínima
+               "OR (t.fecha = :fechaMin AND t.horaInicio >= :horaMin)" +
+           ") " +
+           "AND (" +
+               // Caso 3: Fecha menor que máxima
+               "t.fecha < :fechaMax " +
+               // Caso 4: Fecha igual a máxima pero hora <= hora máxima
+               "OR (t.fecha = :fechaMax AND t.horaInicio <= :horaMax)" +
+           ") " +
+           "ORDER BY t.fecha ASC, t.horaInicio ASC")
+    List<Turno> findTurnosPendientesRecordatorio(
+        @Param("empresaId") Long empresaId,
+        @Param("fechaMin") LocalDate fechaMin,
+        @Param("horaMin") LocalTime horaMin,
+        @Param("fechaMax") LocalDate fechaMax,
+        @Param("horaMax") LocalTime horaMax,
+        @Param("estado") EstadoTurno estado  // ✅ Enum, no String (JPQL requiere tipo exacto)
+    );
+
+    /**
+     * Contar turnos activos de un profesional en estados específicos.
+     * 
+     * Usado para validar si un profesional puede ser dado de baja.
+     * Se consideran estados que representan turnos pendientes o comprometidos:
+     * - CREADO: Turno creado, esperando confirmación
+     * - PENDIENTE_CONFIRMACION: Esperando confirmación del profesional/empresa
+     * - CONFIRMADO: Turno confirmado y comprometido
+     * 
+     * @param profesional Profesional a validar
+     * @param estados Lista de estados a considerar como "activos"
+     * @return Cantidad de turnos que el profesional tiene en los estados indicados
+     */
+    long countByProfesionalAndEstadoIn(Profesional profesional, List<EstadoTurno> estados);
 }
