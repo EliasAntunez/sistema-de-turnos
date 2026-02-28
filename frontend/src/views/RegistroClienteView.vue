@@ -23,16 +23,40 @@
         <!-- Formulario -->
         <form @submit.prevent="registrar" class="px-6 py-8 space-y-5">
           
-          <!-- Campo Teléfono -->
+          <!-- Campo Nombre de Usuario -->
           <div>
-            <div class="flex items-center justify-between mb-2">
-              <label for="telefono" class="block text-sm font-semibold text-gray-700">
-                Teléfono
-              </label>
-              <span v-if="telefonoPrecargado" class="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-                Precargado
-              </span>
+            <label for="nombreUsuario" class="block text-sm font-semibold text-gray-700 mb-2">
+              Nombre de Usuario *
+            </label>
+            <div class="relative group">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+              </div>
+              <input 
+                id="nombreUsuario" 
+                v-model="formData.nombreUsuario" 
+                type="text" 
+                required
+                class="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder-gray-400 transition-all hover:border-gray-300"
+                placeholder="tu_usuario123"
+                @input="validarNombreUsuario"
+              />
             </div>
+            <p class="mt-2 text-xs text-gray-500">
+              3-50 caracteres. Solo letras, números, puntos, guiones y guiones bajos
+            </p>
+            <p v-if="nombreUsuarioError" class="mt-1 text-xs text-red-600">
+              {{ nombreUsuarioError }}
+            </p>
+          </div>
+
+          <!-- Campo Teléfono (opcional) -->
+          <div>
+            <label for="telefono" class="block text-sm font-semibold text-gray-700 mb-2">
+              Teléfono (opcional)
+            </label>
             <div class="relative group">
               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg class="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,23 +67,10 @@
                 id="telefono" 
                 v-model="formData.telefono" 
                 type="tel" 
-                required
-                :readonly="telefonoPrecargado"
-                :class="[
-                  'block w-full pl-12 pr-4 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all',
-                  telefonoPrecargado 
-                    ? 'border-blue-200 bg-blue-50 text-gray-600' 
-                    : 'border-gray-200 hover:border-gray-300 text-gray-900 placeholder-gray-400'
-                ]"
-                :placeholder="telefonoPrecargado ? 'Teléfono precargado' : '+54 9 11 1234-5678'"
+                class="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder-gray-400 transition-all hover:border-gray-300"
+                placeholder="+54 9 11 1234-5678"
               />
             </div>
-            <p v-if="telefonoPrecargado" class="mt-2 text-xs text-gray-600">
-              Este teléfono está vinculado a reservas anteriores
-            </p>
-            <p v-else class="mt-2 text-xs text-gray-500">
-              Usa el mismo teléfono que usaste anteriormente (si aplica)
-            </p>
           </div>
 
           <!-- Campo Email -->
@@ -272,10 +283,9 @@ const clienteStore = useClienteStore()
 
 const empresaSlug = ref(route.params.empresaSlug as string)
 const empresa = ref<EmpresaPublica | null>(null)
-const telefono = ref(route.query.telefono as string || '')
-const telefonoPrecargado = ref(!!route.query.telefono)
 
 interface FormData {
+  nombreUsuario: string
   telefono: string
   email: string
   contrasena: string
@@ -295,7 +305,8 @@ interface PasswordRule {
 }
 
 const formData = ref<FormData>({
-  telefono: telefono.value,
+  nombreUsuario: '',
+  telefono: '',
   email: '',
   contrasena: '',
   confirmarContrasena: ''
@@ -304,6 +315,7 @@ const formData = ref<FormData>({
 const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const nombreUsuarioError = ref('')
 
 const contrasenaValidada = ref<PasswordValidation>({
   longitud: false,
@@ -321,7 +333,8 @@ const passwordRules: PasswordRule[] = [
 
 const formularioValido = computed(() => {
   return (
-    formData.value.telefono &&
+    formData.value.nombreUsuario &&
+    !nombreUsuarioError.value &&
     formData.value.email &&
     formData.value.contrasena &&
     formData.value.confirmarContrasena &&
@@ -329,6 +342,22 @@ const formularioValido = computed(() => {
     Object.values(contrasenaValidada.value).every(v => v)
   )
 })
+
+function validarNombreUsuario() {
+  const username = formData.value.nombreUsuario
+  if (!username) {
+    nombreUsuarioError.value = ''
+    return
+  }
+  
+  if (username.length < 3 || username.length > 50) {
+    nombreUsuarioError.value = 'Debe tener entre 3 y 50 caracteres'
+  } else if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+    nombreUsuarioError.value = 'Solo letras, números, puntos, guiones y guiones bajos'
+  } else {
+    nombreUsuarioError.value = ''
+  }
+}
 
 function validarContrasena() {
   const pass = formData.value.contrasena
@@ -356,14 +385,20 @@ async function registrar() {
   loading.value = true
 
   try {
-    const response = await api.registrarCliente(empresaSlug.value, formData.value)
+    // Preparar datos: convertir teléfono vacío a null
+    const datosRegistro = {
+      ...formData.value,
+      telefono: formData.value.telefono?.trim() || null
+    }
+    
+    const response = await api.registrarCliente(empresaSlug.value, datosRegistro)
     
     if (response.data.exito) {
       successMessage.value = '¡Cuenta creada exitosamente! Redirigiendo...'
       
       // Guardar datos del cliente en el store
       clienteStore.setCliente(response.data.datos)
-      console.debug('[RegistroClienteView] cliente seteado en store:', clienteStore.cliente)
+      if (import.meta.env.DEV) console.debug('[RegistroClienteView] cliente seteado en store:', clienteStore.cliente)
       
       // Redirigir a mis turnos después de 1.5 segundos
       setTimeout(() => {

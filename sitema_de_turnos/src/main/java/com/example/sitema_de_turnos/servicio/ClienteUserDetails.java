@@ -31,7 +31,9 @@ public class ClienteUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return "cliente:" + cliente.getEmpresa().getSlug() + ":" + cliente.getTelefono();
+        // Usar email como identificador principal, o nombreUsuario si no hay email
+        return "cliente:" + cliente.getEmpresa().getSlug() + ":" + 
+               (cliente.getEmail() != null ? cliente.getEmail() : cliente.getNombreUsuario());
     }
 
     @Override

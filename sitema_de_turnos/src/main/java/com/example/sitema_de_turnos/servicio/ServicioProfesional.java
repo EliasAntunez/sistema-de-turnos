@@ -4,10 +4,12 @@ import com.example.sitema_de_turnos.dto.ProfesionalResponse;
 import com.example.sitema_de_turnos.dto.ProfesionalServicioResponse;
 import com.example.sitema_de_turnos.dto.RegistroProfesionalRequest;
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
+import com.example.sitema_de_turnos.excepcion.ConflictoException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.mapper.ProfesionalMapper;
 import com.example.sitema_de_turnos.modelo.Dueno;
 import com.example.sitema_de_turnos.modelo.Especialidad;
+import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.Profesional;
 import com.example.sitema_de_turnos.modelo.ProfesionalServicio;
 import com.example.sitema_de_turnos.modelo.RolUsuario;
@@ -16,6 +18,7 @@ import com.example.sitema_de_turnos.repositorio.RepositorioEspecialidad;
 import com.example.sitema_de_turnos.repositorio.RepositorioProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioProfesionalServicio;
 import com.example.sitema_de_turnos.repositorio.RepositorioServicio;
+import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +42,7 @@ public class ServicioProfesional {
     private final RepositorioEspecialidad repositorioEspecialidad;
     private final RepositorioProfesionalServicio repositorioProfesionalServicio;
     private final RepositorioServicio repositorioServicio;
+    private final RepositorioTurno repositorioTurno;
     private final PasswordEncoder passwordEncoder;
     private final ServicioValidacionDueno servicioValidacionDueno;
 
@@ -181,10 +186,45 @@ public class ServicioProfesional {
             throw new AccesoDenegadoException("No tiene permiso para modificar este profesional");
         }
 
+        // Si se está desactivando, validar que no tenga turnos activos
+        if (!activo) {
+            validarSinTurnosActivos(profesional);
+        }
+
         // Cambiar estado
         profesional.setActivo(activo);
         profesional.setFechaActualizacion(LocalDateTime.now());
         repositorioProfesional.save(profesional);
+    }
+
+    /**
+     * Valida que el profesional no tenga turnos activos antes de desactivarlo.
+     * 
+     * Se consideran turnos activos aquellos en los estados:
+     * - CREADO: Turno creado, esperando confirmación inicial
+     * - PENDIENTE_CONFIRMACION: Esperando confirmación del profesional/empresa
+     * - CONFIRMADO: Turno confirmado y comprometido
+     * 
+     * @param profesional Profesional a validar
+     * @throws ConflictoException si el profesional tiene turnos activos
+     */
+    private void validarSinTurnosActivos(Profesional profesional) {
+        List<EstadoTurno> estadosActivos = Arrays.asList(
+            EstadoTurno.CREADO,
+            EstadoTurno.PENDIENTE_CONFIRMACION,
+            EstadoTurno.CONFIRMADO
+        );
+        
+        long cantidadTurnosActivos = repositorioTurno.countByProfesionalAndEstadoIn(profesional, estadosActivos);
+        
+        if (cantidadTurnosActivos > 0) {
+            throw new ConflictoException(
+                String.format("No se puede desactivar el profesional %s %s porque tiene %d turno(s) activo(s) " +
+                             "(en estado CREADO, PENDIENTE_CONFIRMACION o CONFIRMADO). " +
+                             "Debe cancelar o completar estos turnos antes de desactivar al profesional.",
+                             profesional.getNombre(), profesional.getApellido(), cantidadTurnosActivos)
+            );
+        }
     }
 
     /**

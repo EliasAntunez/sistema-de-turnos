@@ -263,12 +263,12 @@
             <input v-model="datosCliente.nombre" type="text" required placeholder="Ingresa tu nombre completo" />
           </div>
           <div class="form-group">
-            <label>Teléfono *</label>
-            <input v-model="datosCliente.telefono" type="tel" required placeholder="Ej: +54 9 11 1234-5678" />
+            <label>Email *</label>
+            <input v-model="datosCliente.email" type="email" required placeholder="tu@email.com" />
           </div>
           <div class="form-group">
-            <label>Email (opcional)</label>
-            <input v-model="datosCliente.email" type="email" placeholder="tu@email.com" />
+            <label>Teléfono (opcional)</label>
+            <input v-model="datosCliente.telefono" type="tel" placeholder="Ej: +54 9 11 1234-5678" />
           </div>
           
           <div class="form-group checkbox-group">
@@ -489,7 +489,7 @@ async function abrirModalPoliticas() {
   }
   try {
     const politicas = await publicoService.obtenerPoliticasCancelacionActivas(empresaSlug.value)
-    console.log('[Politicas] Respuesta backend:', politicas)
+    if (import.meta.env.DEV) console.log('[Politicas] Respuesta backend:', politicas)
     if (!Array.isArray(politicas)) {
       console.error('[Politicas] El formato de la respuesta no es un array:', politicas)
       politicasActivas.value = []
@@ -497,7 +497,7 @@ async function abrirModalPoliticas() {
       return
     }
     if (politicas.length === 0) {
-      console.warn('[Politicas] El backend devolvió un array vacío de políticas activas')
+      if (import.meta.env.DEV) console.warn('[Politicas] El backend devolvió un array vacío de políticas activas')
     }
     politicasActivas.value = politicas
     mostrarModalPoliticas.value = true
@@ -635,7 +635,7 @@ onMounted(async () => {
     // Intentar recuperar sesión activa de CLIENTE
     try {
       const response = await api.obtenerPerfilCliente()
-      console.debug('[ReservarView] obtenerPerfilCliente response:', response)
+      if (import.meta.env.DEV) console.debug('[ReservarView] obtenerPerfilCliente response:', response)
       // Solo setear cliente si la respuesta es 200, payload válido y pertenece a esta empresa
       if (response && response.status === 200) {
         const data = response.data?.datos ?? response.data
@@ -644,7 +644,7 @@ onMounted(async () => {
             // Verificar que el perfil recuperado corresponde a la empresa actual
             if (data.empresaId === empresa.value.id || data.empresaSlug === empresa.value.slug) {
               clienteStore.setCliente(data)
-              console.debug('[ReservarView] cliente seteado en store:', clienteStore.cliente)
+              if (import.meta.env.DEV) console.debug('[ReservarView] cliente seteado en store:', clienteStore.cliente)
               // Precargar datos del cliente en el formulario
               datosCliente.value.nombre = data.nombre || ''
               datosCliente.value.telefono = data.telefono || ''
@@ -667,7 +667,7 @@ onMounted(async () => {
       }
     } catch (error) {
       // Error al obtener perfil, logout
-      console.debug('[ReservarView] Error al obtener perfil, logout:', error)
+      if (import.meta.env.DEV) console.debug('[ReservarView] Error al obtener perfil, logout:', error)
       clienteStore.logout()
     }
     
@@ -802,35 +802,17 @@ async function confirmarReserva() {
   // Resetear el mensaje de error
   mensajeError.value = null
 
-  // Si el cliente no está autenticado, realizamos la validación de datos y la detección pasiva de teléfono
+  // Si el cliente no está autenticado, realizamos la validación de datos
   if (!clienteAutenticado.value) {
-    // Validar datos del cliente
-    if (!datosCliente.value.nombre || !datosCliente.value.telefono || 
+    // Validar datos del cliente (email es obligatorio, teléfono es opcional)
+    if (!datosCliente.value.nombre || !datosCliente.value.email || 
         !datosCliente.value.aceptaCondiciones) {
       alert('Por favor completa todos los campos obligatorios para continuar.')
       return
     }
-
-    // Detección pasiva: obtener info amplia del teléfono
-    try {
-      const info = await publicoService.telefonoInfo(
-        empresaSlug.value,
-        datosCliente.value.telefono
-      )
-
-      if (info && info.existe) {
-        telefonoConflicto.value = datosCliente.value.telefono
-        telefonoInfoData.value = info
-        mostrarModalTelefonoRegistrado.value = true
-        return // Esperar decisión del usuario en el modal
-      }
-    } catch (error) {
-      // Si falla la verificación de teléfono (ej. error de red), continuamos asumiendo que no hay conflicto
-      console.warn('No se pudo verificar el teléfono, continuando con el proceso de reserva...', error)
-    }
   }
 
-  // Si el cliente está autenticado o si la detección de teléfono no arrojó conflicto, procesamos la reserva
+  // Procesar la reserva directamente
   await procesarReserva()
 }
 
@@ -865,12 +847,12 @@ async function procesarReserva() {
       nombreCliente: clienteAutenticado.value 
         ? clienteStore.cliente!.nombre 
         : datosCliente.value.nombre,
-      telefonoCliente: clienteAutenticado.value 
-        ? clienteStore.cliente!.telefono 
-        : datosCliente.value.telefono,
       emailCliente: clienteAutenticado.value 
         ? clienteStore.cliente!.email 
-        : (datosCliente.value.email?.trim() || undefined) // Email opcional
+        : datosCliente.value.email,
+      telefonoCliente: clienteAutenticado.value 
+        ? clienteStore.cliente!.telefono 
+        : (datosCliente.value.telefono?.trim() || null) // Teléfono opcional, null si vacío
     }
 
     const respuesta = await publicoService.crearTurno(empresaSlug.value, request)
@@ -881,13 +863,19 @@ async function procesarReserva() {
   } catch (err: any) {
     console.error('Error al crear turno:', err)
 
-    // Manejar el error específico de teléfono conflictivo con cuenta registrada
+    // Manejar el error específico de email conflictivo con cuenta registrada
     if (err.response?.status === 409) {
-      telefonoConflicto.value = clienteAutenticado.value ? clienteStore.cliente!.telefono : datosCliente.value.telefono
-      // Asumimos que tieneUsuario es true porque es un conflicto 409
-      telefonoInfoData.value = { existe: true, tieneUsuario: true, nombreEnmascarado: err.response.data?.nombreEnmascarado }
-      mostrarModalTelefonoRegistrado.value = true
-      return // Detener el flujo hasta que el usuario decida en el modal
+      const mensaje = err.response?.data?.mensaje || 'El email proporcionado pertenece a una cuenta registrada. Por favor, inicia sesión para continuar.'
+      if (confirm(`${mensaje}\n\n¿Deseas ir a la página de login?`)) {
+        router.push({
+          name: 'LoginCliente',
+          params: { empresaSlug: empresaSlug.value },
+          query: { 
+            redirect: `/reservar/${empresaSlug.value}`
+          }
+        })
+      }
+      return
     }
 
     // Para otros errores, mostrar mensaje genérico o específico del backend

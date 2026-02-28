@@ -80,15 +80,20 @@ nbdist/
 # ========================================
 
 # Dependencies
+node_modules/
+**/node_modules/
 frontend/node_modules/
 sitema_de_turnos/node_modules/
 frontend/.pnp
 frontend/.pnp.js
+.pnp
+.pnp.js
 
 # Testing
 frontend/coverage/
 
 # Production
+dist/
 frontend/dist/
 frontend/build/
 
@@ -100,6 +105,12 @@ frontend/.env.test.local
 frontend/.env.production.local
 
 # Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
