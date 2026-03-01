@@ -166,11 +166,25 @@ public class ServicioAutenticacionCliente {
      * @throws RecursoNoEncontradoException si no existe
      */
     public Cliente obtenerClienteParaAutenticacion(String empresaSlug, String identificador) {
+        log.info("🔎 [AUTH-CLIENTE] Buscando cliente - EmpresaSlug: {} | Identificador: {}", empresaSlug, identificador);
         Empresa empresa = repositorioEmpresa.findBySlugAndActivaTrue(empresaSlug)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada"));
+                .orElseThrow(() -> {
+                    log.error("❌ [AUTH-CLIENTE] Empresa no encontrada o inactiva - Slug: {}", empresaSlug);
+                    return new RecursoNoEncontradoException("Empresa no encontrada");
+                });
+        log.info("📍 [AUTH-CLIENTE] Empresa encontrada - ID: {} | Nombre: {}", empresa.getId(), empresa.getNombre());
 
-        return repositorioCliente.findByEmpresaAndEmailOrNombreUsuarioAndTieneUsuarioTrueAndActivoTrue(empresa, identificador)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
+        Optional<Cliente> clienteOpt = repositorioCliente.findByEmpresaAndEmailOrNombreUsuarioAndTieneUsuarioTrueAndActivoTrue(empresa, identificador);
+        if (clienteOpt.isEmpty()) {
+            log.error("❌ [AUTH-CLIENTE] Cliente no encontrado - EmpresaID: {} | Identificador: {} | Criterio: activo=true AND tieneUsuario=true AND (email='{}' OR nombreUsuario='{}')", 
+                    empresa.getId(), identificador, identificador, identificador);
+            throw new RecursoNoEncontradoException("Cliente no encontrado");
+        }
+        Cliente cliente = clienteOpt.get();
+        log.info("✅ [AUTH-CLIENTE] Cliente encontrado - ID: {} | Nombre: {} | Email: {} | NombreUsuario: {} | TieneUsuario: {} | Activo: {}", 
+                cliente.getId(), cliente.getNombre(), cliente.getEmail(), cliente.getNombreUsuario(), 
+                cliente.getTieneUsuario(), cliente.getActivo());
+        return cliente;
     }
 
     /**
