@@ -205,7 +205,7 @@ export default {
   },
 
   // Cliente - Autenticación
-  registrarCliente(empresaSlug: string, datos: { telefono: string; email: string; contrasena: string; confirmarContrasena: string }) {
+  registrarCliente(empresaSlug: string, datos: { telefono: string | null; nombreUsuario: string; email: string; contrasena: string; confirmarContrasena: string }) {
     return apiClient.post(`/publico/empresa/${empresaSlug}/registro-cliente`, datos)
   },
 

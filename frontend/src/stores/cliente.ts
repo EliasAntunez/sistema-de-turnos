@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 interface ClienteInfo {
   id: number
   nombre: string
-  telefono: string
+  telefono: string | null
   email: string
   empresaId: number
   empresaNombre: string

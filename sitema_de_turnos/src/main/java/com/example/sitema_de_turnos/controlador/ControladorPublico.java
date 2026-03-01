@@ -174,11 +174,13 @@ public class ControladorPublico {
         try {
             // Construir username con formato: "cliente:{empresaSlug}:{emailOrNombreUsuario}"
             String username = String.format("cliente:%s:%s", empresaSlug, request.getIdentificador());
+            log.info("🔐 [LOGIN-CLIENTE] Intentando autenticar - Username construido: {} | Empresa: {}", username, empresaSlug);
             
             // Autenticar con Spring Security
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, request.getContrasena())
             );
+            log.info("✅ [LOGIN-CLIENTE] Autenticación exitosa - Username: {}", username);
 
             // Crear contexto de seguridad y guardar en sesión
             SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
@@ -205,7 +207,8 @@ public class ControladorPublico {
             return ResponseEntity.ok(ApiResponse.exito(clienteResponse, "Login exitoso"));
 
         } catch (Exception e) {
-            log.warn("Error en login de cliente: {}", e.getMessage());
+            log.error("❌ [LOGIN-CLIENTE] Error en autenticación - Empresa: {} | Identificador: {} | Error: {} | Tipo: {}", 
+                    empresaSlug, request.getIdentificador(), e.getMessage(), e.getClass().getSimpleName(), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Email/usuario o contraseña incorrectos"));
         }

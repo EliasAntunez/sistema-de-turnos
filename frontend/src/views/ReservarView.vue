@@ -455,7 +455,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 import { useClienteStore } from '@/stores/cliente'
 import api from '@/services/api'
@@ -641,8 +640,14 @@ onMounted(async () => {
         const data = response.data?.datos ?? response.data
         if (data && (data.id !== undefined || data.empresaId !== undefined || data.telefono !== undefined)) {
           try {
-            // Verificar que el perfil recuperado corresponde a la empresa actual
-            if (data.empresaId === empresa.value.id || data.empresaSlug === empresa.value.slug) {
+            // Verificar que NO es un usuario del sistema (profesional, dueño, admin)
+            // Los usuarios del sistema tienen campo 'rol', los clientes no
+            if (data.rol && data.rol !== 'CLIENTE') {
+              // Es un usuario del sistema (PROFESIONAL, DUENO, ADMIN), no setear como cliente
+              if (import.meta.env.DEV) console.debug('[ReservarView] Sesión de usuario del sistema detectada, no setear como cliente:', data.rol)
+              clienteStore.logout()
+            } else if (data.empresaId === empresa.value.id || data.empresaSlug === empresa.value.slug) {
+              // Verificar que el perfil recuperado corresponde a la empresa actual
               clienteStore.setCliente(data)
               if (import.meta.env.DEV) console.debug('[ReservarView] cliente seteado en store:', clienteStore.cliente)
               // Precargar datos del cliente en el formulario
@@ -851,8 +856,8 @@ async function procesarReserva() {
         ? clienteStore.cliente!.email 
         : datosCliente.value.email,
       telefonoCliente: clienteAutenticado.value 
-        ? clienteStore.cliente!.telefono 
-        : (datosCliente.value.telefono?.trim() || null) // Teléfono opcional, null si vacío
+        ? (clienteStore.cliente!.telefono || datosCliente.value.telefono?.trim() || '') 
+        : (datosCliente.value.telefono?.trim() || '')
     }
 
     const respuesta = await publicoService.crearTurno(empresaSlug.value, request)
