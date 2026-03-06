@@ -12,18 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("removal")
 public class ServicioServicio {
 
     private final RepositorioServicio repositorioServicio;
-    private final RepositorioEspecialidad repositorioEspecialidad;
     private final RepositorioProfesionalServicio repositorioProfesionalServicio;
     private final ServicioValidacionDueno servicioValidacionDueno;
 
@@ -40,19 +36,6 @@ public class ServicioServicio {
         // RIESGO-003: Validar dueño y empresa activa
         Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
-        // Validar especialidades
-        Set<Especialidad> especialidades = request.getEspecialidades().stream()
-                .map(nombre -> repositorioEspecialidad.findByNombreIgnoreCase(nombre)
-                        .orElseThrow(() -> new RecursoNoEncontradoException("Especialidad no encontrada: " + nombre)))
-                .collect(Collectors.toSet());
-
-        if (especialidades.isEmpty()) {
-            throw new IllegalArgumentException("Debe seleccionar al menos una especialidad");
-        }
-        
-        // MEJORA-003: Validar que todas las especialidades estén activas
-        validarEspecialidadesActivas(especialidades);
-
         // Crear servicio
         com.example.sitema_de_turnos.modelo.Servicio servicio = new com.example.sitema_de_turnos.modelo.Servicio();
         servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
@@ -61,11 +44,23 @@ public class ServicioServicio {
         servicio.setBufferMinutos(request.getBufferMinutos());
         servicio.setPrecio(request.getPrecio());
         servicio.setEmpresa(dueno.getEmpresa());
-        servicio.setEspecialidades(especialidades);
         servicio.setActivo(true);
         servicio.setFechaCreacion(LocalDateTime.now());
 
         servicio = repositorioServicio.save(servicio);
+
+        // Auto-onboarding para empresas unipersonales (solo cuenta profesionales activos)
+        List<Profesional> profesionalesActivos = dueno.getEmpresa().getProfesionales()
+                .stream()
+                .filter(Profesional::getActivo)
+                .collect(java.util.stream.Collectors.toList());
+        if (profesionalesActivos.size() == 1) {
+            ProfesionalServicio ps = new ProfesionalServicio();
+            ps.setProfesional(profesionalesActivos.get(0));
+            ps.setServicio(servicio);
+            ps.setActivo(true);
+            repositorioProfesionalServicio.save(ps);
+        }
 
         return ServicioMapper.toResponse(servicio);
     }
@@ -91,36 +86,14 @@ public class ServicioServicio {
             throw new AccesoDenegadoException("No puede modificar servicios de otra empresa");
         }
 
-        // Validar especialidades
-        Set<Especialidad> especialidades = request.getEspecialidades().stream()
-                .map(nombre -> repositorioEspecialidad.findByNombreIgnoreCase(nombre)
-                        .orElseThrow(() -> new RecursoNoEncontradoException("Especialidad no encontrada: " + nombre)))
-                .collect(Collectors.toSet());
-
-        if (especialidades.isEmpty()) {
-            throw new IllegalArgumentException("Debe seleccionar al menos una especialidad");
-        }
-        
-        // MEJORA-003: Validar que todas las especialidades estén activas
-        validarEspecialidadesActivas(especialidades);
-
-        // Guardar especialidades anteriores para detectar cambios
-        Set<Especialidad> especialidadesAnteriores = new HashSet<>(servicio.getEspecialidades());
-
         // Actualizar servicio
         servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
         servicio.setDescripcion(request.getDescripcion());
         servicio.setDuracionMinutos(request.getDuracionMinutos());
         servicio.setBufferMinutos(request.getBufferMinutos());
         servicio.setPrecio(request.getPrecio());
-        servicio.setEspecialidades(especialidades);
 
         servicio = repositorioServicio.save(servicio);
-
-        // HERENCIA-003: Si cambiaron las especialidades, limpiar overrides huérfanos
-        if (!especialidadesAnteriores.equals(especialidades)) {
-            limpiarOverridesHuerfanosDeServicio(servicio);
-        }
 
         return ServicioMapper.toResponse(servicio);
     }
@@ -162,58 +135,5 @@ public class ServicioServicio {
 
         servicio.setActivo(activo);
         repositorioServicio.save(servicio);
-    }
-
-    /**
-     * MEJORA-003: Valida que todas las especialidades estén activas.
-     * 
-     * @param especialidades Especialidades a validar
-     * @throws IllegalArgumentException si alguna especialidad está desactivada
-     */
-    private void validarEspecialidadesActivas(Set<Especialidad> especialidades) {
-        List<String> especialidadesInactivas = especialidades.stream()
-                .filter(e -> !e.getActiva())
-                .map(Especialidad::getNombre)
-                .collect(Collectors.toList());
-        
-        if (!especialidadesInactivas.isEmpty()) {
-            throw new IllegalArgumentException(
-                "Las siguientes especialidades están desactivadas: " + 
-                String.join(", ", especialidadesInactivas)
-            );
-        }
-    }
-
-    /**
-     * HERENCIA-003: Limpia los overrides (ProfesionalServicio) que se volvieron huérfanos
-     * al cambiar las especialidades de un servicio.
-     * 
-     * Un override es huérfano cuando el profesional ya no tiene ninguna especialidad
-     * en común con el servicio.
-     */
-    private void limpiarOverridesHuerfanosDeServicio(com.example.sitema_de_turnos.modelo.Servicio servicio) {
-        // Obtener todos los overrides para este servicio
-        List<ProfesionalServicio> overrides = repositorioProfesionalServicio.findByServicio(servicio);
-        
-        // Filtrar los que se volvieron incompatibles (sin especialidades en común)
-        List<ProfesionalServicio> huerfanos = overrides.stream()
-                .filter(override -> {
-                    Profesional profesional = override.getProfesional();
-                    Set<Especialidad> especialidadesProfesional = profesional.getEspecialidades();
-                    Set<Especialidad> especialidadesServicio = servicio.getEspecialidades();
-                    
-                    // Verificar si hay al menos una especialidad en común
-                    boolean tieneEspecialidadEnComun = especialidadesProfesional.stream()
-                            .anyMatch(especialidadesServicio::contains);
-                    
-                    // Es huérfano si NO tiene especialidades en común
-                    return !tieneEspecialidadEnComun;
-                })
-                .collect(Collectors.toList());
-        
-        // Eliminar overrides huérfanos
-        if (!huerfanos.isEmpty()) {
-            repositorioProfesionalServicio.deleteAll(huerfanos);
-        }
     }
 }

@@ -32,6 +32,7 @@ public class ServicioPublico {
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioServicio repositorioServicio;
     private final RepositorioProfesional repositorioProfesional;
+    private final RepositorioProfesionalServicio repositorioProfesionalServicio;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidad;
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
@@ -82,7 +83,7 @@ public class ServicioPublico {
 
     /**
      * Obtener profesionales que pueden dar un servicio específico.
-     * Considera: especialidades + servicios NO bloqueados
+     * Usa la tabla profesional_servicio con activo=true para determinar disponibilidad.
      */
     @Transactional(readOnly = true)
     public List<ProfesionalPublicoResponse> obtenerProfesionalesPorServicio(String slug, Long servicioId) {
@@ -96,15 +97,13 @@ public class ServicioPublico {
             throw new ValidacionException("El servicio no pertenece a esta empresa");
         }
 
-        // Obtener todos los profesionales de la empresa con especialidades
-        List<Profesional> profesionales = repositorioProfesional.findByEmpresaWithEspecialidades(empresa);
+        // Obtener todos los profesionales activos de la empresa
+        List<Profesional> profesionales = repositorioProfesional.findByEmpresa(empresa);
 
-        // Filtrar: deben tener al menos una especialidad en común con el servicio
-        // Y el servicio NO debe estar en serviciosBloqueados del profesional
+        // Filtrar: deben estar activos y tener habilitación explícita en profesional_servicio
         return profesionales.stream()
                 .filter(p -> p.getActivo()) // Solo profesionales activos
-                .filter(p -> tieneEspecialidadCompatible(p, servicio))
-                .filter(p -> !p.getServiciosBloqueados().contains(servicio))
+                .filter(p -> tieneServicioHabilitado(p, servicio))
                 .map(p -> new ProfesionalPublicoResponse(
                         p.getId(),
                         p.getNombre(),
@@ -115,11 +114,13 @@ public class ServicioPublico {
     }
 
     /**
-     * Verificar si el profesional tiene al menos una especialidad en común con el servicio
+     * Verificar si el profesional tiene el servicio habilitado en profesional_servicio
      */
-    private boolean tieneEspecialidadCompatible(Profesional profesional, Servicio servicio) {
-        return profesional.getEspecialidades().stream()
-                .anyMatch(e -> servicio.getEspecialidades().contains(e));
+    private boolean tieneServicioHabilitado(Profesional profesional, Servicio servicio) {
+        // Buscar en RepositorioProfesionalServicio si existe una entrada con activo=true
+        return repositorioProfesionalServicio.findByProfesionalAndActivoTrue(profesional)
+                .stream()
+                .anyMatch(ps -> ps.getServicio().getId().equals(servicio.getId()));
     }
 
     /**
@@ -156,7 +157,7 @@ public class ServicioPublico {
         }
 
         // Validar profesional
-        Profesional profesional = repositorioProfesional.findByIdWithEspecialidades(profesionalId)
+        Profesional profesional = repositorioProfesional.findById(profesionalId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         if (!profesional.getEmpresa().getId().equals(empresa.getId())) {
@@ -167,13 +168,9 @@ public class ServicioPublico {
             throw new ValidacionException("El profesional no está activo");
         }
 
-        // Validar que el profesional pueda dar este servicio
-        if (!tieneEspecialidadCompatible(profesional, servicio)) {
-            throw new ValidacionException("El profesional no tiene la especialidad requerida para este servicio");
-        }
-
-        if (profesional.getServiciosBloqueados().contains(servicio)) {
-            throw new ValidacionException("El profesional tiene bloqueado este servicio");
+        // Validar que el profesional tenga el servicio habilitado
+        if (!tieneServicioHabilitado(profesional, servicio)) {
+            throw new ValidacionException("El profesional no tiene habilitado este servicio");
         }
 
         // Verificar si el profesional tiene bloqueo en esta fecha

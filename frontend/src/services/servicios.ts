@@ -6,7 +6,6 @@ export interface ServicioRequest {
   duracionMinutos: number
   bufferMinutos?: number | null
   precio: number
-  especialidades: string[]
 }
 
 export interface ServicioResponse {
@@ -16,7 +15,6 @@ export interface ServicioResponse {
   duracionMinutos: number
   bufferMinutos: number | null
   precio: number
-  especialidades: string[]
   activo: boolean
   fechaCreacion: string
 }

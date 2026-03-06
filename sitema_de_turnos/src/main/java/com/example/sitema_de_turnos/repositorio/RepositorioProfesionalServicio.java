@@ -10,20 +10,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * @deprecated Funcionalidad redundante con Profesional.serviciosBloqueados.
- * Se mantiene por compatibilidad con datos existentes. Pendiente de eliminación.
+ * Repositorio para la tabla profesional_servicio que gestiona
+ * qué servicios puede ofrecer cada profesional.
  */
-@Deprecated(since = "1.0", forRemoval = true)
-@SuppressWarnings("removal")
 @Repository
 public interface RepositorioProfesionalServicio extends JpaRepository<ProfesionalServicio, Long> {
     
-    @Deprecated(since = "1.0", forRemoval = true)
     Optional<ProfesionalServicio> findByProfesionalAndServicio(Profesional profesional, Servicio servicio);
     
-    @Deprecated(since = "1.0", forRemoval = true)
-    List<ProfesionalServicio> findByProfesional(Profesional profesional);
-    
-    @Deprecated(since = "1.0", forRemoval = true)
-    List<ProfesionalServicio> findByServicio(Servicio servicio);
+    List<ProfesionalServicio> findByProfesionalAndActivoTrue(Profesional profesional);
 }

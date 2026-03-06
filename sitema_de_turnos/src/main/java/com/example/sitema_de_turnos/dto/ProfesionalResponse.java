@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -17,7 +16,6 @@ public class ProfesionalResponse {
     private String apellido;
     private String email;
     private String telefono;
-    private List<String> especialidades;
     private String descripcion;
     private Long empresaId;
     private String empresaNombre;

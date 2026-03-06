@@ -8,13 +8,11 @@ import com.example.sitema_de_turnos.excepcion.ConflictoException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.mapper.ProfesionalMapper;
 import com.example.sitema_de_turnos.modelo.Dueno;
-import com.example.sitema_de_turnos.modelo.Especialidad;
 import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.Profesional;
 import com.example.sitema_de_turnos.modelo.ProfesionalServicio;
 import com.example.sitema_de_turnos.modelo.RolUsuario;
 import com.example.sitema_de_turnos.modelo.Servicio;
-import com.example.sitema_de_turnos.repositorio.RepositorioEspecialidad;
 import com.example.sitema_de_turnos.repositorio.RepositorioProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioProfesionalServicio;
 import com.example.sitema_de_turnos.repositorio.RepositorioServicio;
@@ -27,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -35,11 +32,9 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("removal")
 public class ServicioProfesional {
 
     private final RepositorioProfesional repositorioProfesional;
-    private final RepositorioEspecialidad repositorioEspecialidad;
     private final RepositorioProfesionalServicio repositorioProfesionalServicio;
     private final RepositorioServicio repositorioServicio;
     private final RepositorioTurno repositorioTurno;
@@ -50,7 +45,7 @@ public class ServicioProfesional {
     public List<ProfesionalResponse> obtenerProfesionalesPorEmpresa(String emailDueno) {
         Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
         
-        List<Profesional> profesionales = repositorioProfesional.findByEmpresaWithEspecialidades(dueno.getEmpresa());
+        List<Profesional> profesionales = repositorioProfesional.findByEmpresa(dueno.getEmpresa());
         return profesionales.stream()
                 .map(ProfesionalMapper::toResponse)
                 .collect(Collectors.toList());
@@ -65,12 +60,6 @@ public class ServicioProfesional {
         if (repositorioProfesional.findByEmail(dto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("El email " + dto.getEmail() + " ya está registrado");
         }
-
-        // Obtener o crear especialidades
-        Set<Especialidad> especialidades = obtenerOCrearEspecialidades(dto.getEspecialidades());
-        
-        // MEJORA-003: Validar que todas las especialidades estén activas
-        validarEspecialidadesActivas(especialidades);
 
         // Validar contraseña
         if (dto.getContrasena() == null || dto.getContrasena().isEmpty()) {
@@ -87,7 +76,6 @@ public class ServicioProfesional {
         profesional.setEmail(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(dto.getEmail()));
         profesional.setContrasena(passwordEncoder.encode(dto.getContrasena()));
         profesional.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(dto.getTelefono()));
-        profesional.setEspecialidades(especialidades);
         profesional.setDescripcion(dto.getDescripcion());
         profesional.setRol(RolUsuario.PROFESIONAL);
         profesional.setActivo(true);
@@ -104,8 +92,8 @@ public class ServicioProfesional {
         // Validar dueño activo y empresa activa
         Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
-        // Buscar profesional con especialidades
-        Profesional profesional = repositorioProfesional.findByIdWithEspecialidades(idProfesional)
+        // Buscar profesional
+        Profesional profesional = repositorioProfesional.findById(idProfesional)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         // Validar que el profesional pertenece a la empresa del dueño
@@ -122,20 +110,10 @@ public class ServicioProfesional {
             profesional.setEmail(emailNormalizado);
         }
 
-        // Guardar especialidades anteriores para limpiar overrides huérfanos
-        Set<Especialidad> especialidadesAnteriores = new HashSet<>(profesional.getEspecialidades());
-
-        // Obtener nuevas especialidades
-        Set<Especialidad> especialidadesNuevas = obtenerOCrearEspecialidades(dto.getEspecialidades());
-        
-        // MEJORA-003: Validar que todas las especialidades estén activas
-        validarEspecialidadesActivas(especialidadesNuevas);
-
         // Actualizar datos
         profesional.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(dto.getNombre()));
         profesional.setApellido(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(dto.getApellido()));
         profesional.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(dto.getTelefono()));
-        profesional.setEspecialidades(especialidadesNuevas);
         profesional.setDescripcion(dto.getDescripcion());
         
         // Solo actualizar contraseña si se proporciona una nueva
@@ -149,11 +127,6 @@ public class ServicioProfesional {
         profesional.setFechaActualizacion(LocalDateTime.now());
 
         Profesional actualizado = repositorioProfesional.save(profesional);
-        
-        // HERENCIA-002: Limpiar overrides huérfanos si cambiaron las especialidades
-        if (!especialidadesAnteriores.equals(especialidadesNuevas)) {
-            limpiarOverridesHuerfanos(actualizado);
-        }
         
         return ProfesionalMapper.toResponse(actualizado);
     }
@@ -228,38 +201,9 @@ public class ServicioProfesional {
     }
 
     /**
-     * Valida que las especialidades existan en el sistema
-     * Si alguna no existe, lanza una excepción para que el dueño contacte al administrador
-     */
-    private Set<Especialidad> obtenerOCrearEspecialidades(List<String> nombresEspecialidades) {
-        Set<Especialidad> especialidades = new HashSet<>();
-        
-        for (String nombre : nombresEspecialidades) {
-            String nombreNormalizado = nombre.trim();
-            Especialidad especialidad = repositorioEspecialidad.findByNombreIgnoreCase(nombreNormalizado)
-                    .orElseThrow(() -> new RecursoNoEncontradoException(
-                            "Especialidad '" + nombreNormalizado + "' no encontrada. " +
-                            "Contacte al administrador para darla de alta en el sistema."
-                    ));
-            
-            // Verificar que la especialidad esté activa
-            if (!especialidad.getActiva()) {
-                throw new RecursoNoEncontradoException(
-                        "La especialidad '" + nombreNormalizado + "' está desactivada. " +
-                        "Contacte al administrador."
-                );
-            }
-            
-            especialidades.add(especialidad);
-        }
-        
-        return especialidades;
-    }
-
-    /**
-     * Obtiene todos los servicios disponibles para un profesional
-     * Lógica: Servicios que comparten al menos una especialidad con el profesional
-     * Indica si están activos o desactivados manualmente
+     * Obtiene todos los servicios disponibles para un profesional.
+     * Lógica: Todos los servicios activos de la empresa, indicando cuáles están habilitados
+     * explícitamente en la tabla profesional_servicio.
      */
     @Transactional(readOnly = true)
     public List<ProfesionalServicioResponse> obtenerServiciosDeProfesional(String emailDueno, Long profesionalId) {
@@ -274,48 +218,29 @@ public class ServicioProfesional {
         }
         
         // Obtener todos los servicios activos de la empresa
-        List<Servicio> servicios = repositorioServicio.findByEmpresaAndActivoTrueWithEspecialidades(dueno.getEmpresa());
+        List<Servicio> servicios = repositorioServicio.findByEmpresaAndActivoTrue(dueno.getEmpresa());
         
-        // Obtener overrides del profesional
-        List<ProfesionalServicio> overrides = repositorioProfesionalServicio.findByProfesional(profesional);
+        // Obtener habilitaciones explícitas (profesional_servicio con activo=true)
+        List<ProfesionalServicio> habilitaciones = repositorioProfesionalServicio.findByProfesionalAndActivoTrue(profesional);
+        Set<Long> serviciosHabilitados = habilitaciones.stream()
+                .map(ps -> ps.getServicio().getId())
+                .collect(Collectors.toSet());
         
         List<ProfesionalServicioResponse> resultado = new ArrayList<>();
         
         for (Servicio servicio : servicios) {
-            // Verificar si el servicio comparte al menos una especialidad con el profesional
-            boolean compatiblePorEspecialidad = servicio.getEspecialidades().stream()
-                    .anyMatch(especialidadServicio -> 
-                        profesional.getEspecialidades().stream()
-                            .anyMatch(especialidadProf -> 
-                                especialidadProf.getId().equals(especialidadServicio.getId())
-                            )
-                    );
+            ProfesionalServicioResponse response = new ProfesionalServicioResponse();
+            response.setServicioId(servicio.getId());
+            response.setNombre(servicio.getNombre());
+            response.setDescripcion(servicio.getDescripcion());
+            response.setDuracionMinutos(servicio.getDuracionMinutos());
+            response.setPrecio(servicio.getPrecio().doubleValue());
             
-            if (compatiblePorEspecialidad) {
-                // Buscar si hay override
-                Optional<ProfesionalServicio> override = overrides.stream()
-                        .filter(ps -> ps.getServicio().getId().equals(servicio.getId()))
-                        .findFirst();
-                
-                ProfesionalServicioResponse response = new ProfesionalServicioResponse();
-                response.setServicioId(servicio.getId());
-                response.setNombre(servicio.getNombre());
-                response.setDescripcion(servicio.getDescripcion());
-                response.setDuracionMinutos(servicio.getDuracionMinutos());
-                response.setPrecio(servicio.getPrecio().doubleValue());
-                
-                if (override.isPresent()) {
-                    // Hay override explícito
-                    response.setDisponible(override.get().getActivo());
-                    response.setHeredado(false);
-                } else {
-                    // Disponible por herencia (especialidad)
-                    response.setDisponible(true);
-                    response.setHeredado(true);
-                }
-                
-                resultado.add(response);
-            }
+            // El servicio está disponible si tiene habilitación explícita
+            boolean disponible = serviciosHabilitados.contains(servicio.getId());
+            response.setDisponible(disponible);
+            
+            resultado.add(response);
         }
         
         return resultado;
@@ -353,83 +278,27 @@ public class ServicioProfesional {
             );
         }
         
-        // Verificar que el servicio es compatible con las especialidades del profesional
-        boolean compatible = servicio.getEspecialidades().stream()
-                .anyMatch(especialidadServicio -> 
-                    profesional.getEspecialidades().stream()
-                        .anyMatch(especialidadProf -> 
-                            especialidadProf.getId().equals(especialidadServicio.getId())
-                        )
-                );
-        
-        if (!compatible) {
-            throw new IllegalArgumentException(
-                "El servicio no es compatible con las especialidades del profesional"
-            );
-        }
-        
-        // Buscar o crear override
+        // Buscar o crear habilitación
         Optional<ProfesionalServicio> existente = repositorioProfesionalServicio
                 .findByProfesionalAndServicio(profesional, servicio);
         
         if (disponible) {
-            // Si se activa y hay override, eliminarlo (volver a herencia)
-            existente.ifPresent(repositorioProfesionalServicio::delete);
+            // Si se activa y no existe, crear habilitación
+            if (existente.isEmpty()) {
+                ProfesionalServicio ps = new ProfesionalServicio();
+                ps.setProfesional(profesional);
+                ps.setServicio(servicio);
+                ps.setActivo(true);
+                repositorioProfesionalServicio.save(ps);
+            } else {
+                // Si existe, actualizar a activo
+                ProfesionalServicio ps = existente.get();
+                ps.setActivo(true);
+                repositorioProfesionalServicio.save(ps);
+            }
         } else {
-            // Si se desactiva, crear/actualizar override
-            ProfesionalServicio ps = existente.orElse(new ProfesionalServicio());
-            ps.setProfesional(profesional);
-            ps.setServicio(servicio);
-            ps.setActivo(false);
-            repositorioProfesionalServicio.save(ps);
-        }
-    }
-    
-    /**
-     * Limpia overrides de ProfesionalServicio que ya no son compatibles
-     * con las especialidades actuales del profesional (HERENCIA-002)
-     */
-    /**
-     * MEJORA-003: Valida que todas las especialidades estén activas.
-     * 
-     * @param especialidades Especialidades a validar
-     * @throws IllegalArgumentException si alguna especialidad está desactivada
-     */
-    private void validarEspecialidadesActivas(Set<Especialidad> especialidades) {
-        List<String> especialidadesInactivas = especialidades.stream()
-                .filter(e -> !e.getActiva())
-                .map(Especialidad::getNombre)
-                .collect(Collectors.toList());
-        
-        if (!especialidadesInactivas.isEmpty()) {
-            throw new IllegalArgumentException(
-                "Las siguientes especialidades están desactivadas: " + 
-                String.join(", ", especialidadesInactivas)
-            );
-        }
-    }
-
-    private void limpiarOverridesHuerfanos(Profesional profesional) {
-        List<ProfesionalServicio> overrides = repositorioProfesionalServicio.findByProfesional(profesional);
-        
-        List<ProfesionalServicio> huerfanos = overrides.stream()
-            .filter(override -> {
-                // Verificar si el servicio sigue siendo compatible
-                boolean sigueCompatible = override.getServicio().getEspecialidades().stream()
-                    .anyMatch(especialidadServicio -> 
-                        profesional.getEspecialidades().stream()
-                            .anyMatch(especialidadProf -> 
-                                especialidadProf.getId().equals(especialidadServicio.getId())
-                            )
-                    );
-                return !sigueCompatible; // Retornar los que YA NO son compatibles
-            })
-            .collect(Collectors.toList());
-        
-        // Eliminar overrides huérfanos
-        if (!huerfanos.isEmpty()) {
-            repositorioProfesionalServicio.deleteAll(huerfanos);
+            // Si se desactiva, eliminar habilitación
+            existente.ifPresent(repositorioProfesionalServicio::delete);
         }
     }
 }
-

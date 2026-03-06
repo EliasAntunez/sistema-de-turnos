@@ -3,12 +3,12 @@ package com.example.sitema_de_turnos.modelo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -60,25 +60,11 @@ public class Servicio {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 
-    @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresa empresa;
-
-    /**
-     * Especialidades que pueden ofrecer este servicio
-     * Ejemplo: Servicio "Corte de cabello" puede estar en especialidades "Barbería" y "Peluquería"
-     */
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "servicio_especialidad",
-        joinColumns = @JoinColumn(name = "servicio_id"),
-        inverseJoinColumns = @JoinColumn(name = "especialidad_id"),
-        indexes = {
-            @Index(name = "idx_serv_esp_servicio", columnList = "servicio_id"),
-            @Index(name = "idx_serv_esp_especialidad", columnList = "especialidad_id")
-        }
-    )
-    private Set<Especialidad> especialidades = new HashSet<>();
 
     @Column(nullable = false)
     private Boolean activo = true;

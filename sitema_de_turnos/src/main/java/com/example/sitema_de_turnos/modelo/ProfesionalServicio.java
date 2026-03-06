@@ -6,9 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Tabla de override para deshabilitar servicios específicos de un profesional.
- * Si no existe registro, el profesional puede ofrecer todos los servicios de sus especialidades.
- * Si existe con activo=false, el profesional NO ofrece ese servicio.
+ * Tabla para habilitar servicios específicos de un profesional.
+ * Si existe registro con activo=true, el profesional puede ofrecer ese servicio.
+ * Si no existe registro, el profesional NO ofrece ese servicio.
  */
 @Data
 @NoArgsConstructor
@@ -22,7 +22,6 @@ import lombok.NoArgsConstructor;
            @Index(name = "idx_prof_serv_activo", columnList = "profesional_id, activo")
        }
 )
-@Deprecated(since = "1.0", forRemoval = true)
 public class ProfesionalServicio {
 
     @Id
@@ -38,8 +37,8 @@ public class ProfesionalServicio {
     private Servicio servicio;
 
     /**
-     * false = El profesional NO ofrece este servicio (override)
-     * true = El profesional SÍ ofrece este servicio (redundante con herencia, pero útil para futuros casos)
+     * true = El profesional ofrece este servicio
+     * false = El profesional NO ofrece este servicio (deshabilitado)
      */
     @Column(nullable = false)
     private Boolean activo = false;

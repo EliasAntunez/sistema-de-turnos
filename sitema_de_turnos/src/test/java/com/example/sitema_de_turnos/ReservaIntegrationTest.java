@@ -137,22 +137,22 @@ public class ReservaIntegrationTest {
         request.put("fecha", LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE));
         request.put("horaInicio", "09:00");
         request.put("nombreCliente", "Invitado");
-        request.put("telefonoCliente", "+5491112345678");
+        request.put("emailCliente", "cliente@example.com");
 
         mockMvc.perform(post("/api/publico/empresa/" + empresaA.getSlug() + "/turnos")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("El teléfono pertenece a una cuenta registrada. Por favor, iniciá sesión o usá otro número."));
+                .andExpect(jsonPath("$.mensaje").value("El email pertenece a una cuenta registrada. Por favor, iniciá sesión o usá otro email."));
     }
 
     @Test
-    public void crearTurno_conTelefonoDeClienteInvitado_debeRetornar201() throws Exception {
+    public void crearTurno_conEmailDeClienteInvitado_debeRetornar201() throws Exception {
         // Crear cliente invitado tieneUsuario = false
         Cliente cliente = new Cliente();
         cliente.setEmpresa(empresaA);
         cliente.setNombre("Invitado");
-        cliente.setTelefono("+5491110000000");
+        cliente.setEmail("invitado@example.com");
         cliente.setTieneUsuario(false);
         cliente.setActivo(true);
         repoCliente.save(cliente);
@@ -163,7 +163,7 @@ public class ReservaIntegrationTest {
         request.put("fecha", LocalDate.now().plusDays(2).format(DateTimeFormatter.ISO_LOCAL_DATE));
         request.put("horaInicio", "10:00");
         request.put("nombreCliente", "Invitado");
-        request.put("telefonoCliente", "+5491110000000");
+        request.put("emailCliente", "invitado@example.com");
 
         mockMvc.perform(post("/api/publico/empresa/" + empresaA.getSlug() + "/turnos")
                 .contentType(MediaType.APPLICATION_JSON)
