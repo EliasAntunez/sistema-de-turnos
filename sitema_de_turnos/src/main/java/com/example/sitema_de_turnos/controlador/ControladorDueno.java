@@ -172,8 +172,8 @@ public class ControladorDueno {
     }
 
     /**
-     * Obtiene todos los servicios disponibles para un profesional (por especialidad)
-     * Indica cuáles están activos y cuáles desactivados
+     * Obtiene todos los servicios disponibles para un profesional.
+     * Indica cuáles están habilitados explícitamente en profesional_servicio.
      */
     @GetMapping("/profesionales/{id}/servicios")
     public ResponseEntity<RespuestaApi<List<ProfesionalServicioResponse>>> obtenerServiciosDeProfesional(

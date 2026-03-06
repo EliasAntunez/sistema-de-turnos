@@ -1,9 +1,11 @@
 package com.example.sitema_de_turnos.modelo;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -125,11 +127,15 @@ public class Empresa {
     @Column(nullable = false)
     private Boolean activa = true;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToOne(optional = false)
     @JoinColumn(name = "dueno_id", nullable = false, unique = true)
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.RESTRICT)
     private Dueno dueno;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL)
     private List<Profesional> profesionales = new ArrayList<>();
 

@@ -71,14 +71,6 @@
             <div class="info-item">
               <strong>Teléfono:</strong> {{ profesional.telefono || 'No especificado' }}
             </div>
-            <div class="info-item">
-              <strong>Especialidades:</strong> 
-              <span class="especialidades-tags">
-                <span v-for="(esp, index) in profesional.especialidades" :key="index" class="tag-especialidad">
-                  {{ esp }}
-                </span>
-              </span>
-            </div>
             <div class="info-item" v-if="profesional.descripcion">
               <strong>Descripción:</strong> {{ profesional.descripcion }}
             </div>
@@ -130,14 +122,6 @@
             </div>
             <div class="info-item">
               <strong>Precio:</strong> ${{ servicio.precio }}
-            </div>
-            <div class="info-item">
-              <strong>Especialidades:</strong> 
-              <span class="especialidades-tags">
-                <span v-for="(esp, index) in servicio.especialidades" :key="index" class="tag-especialidad">
-                  {{ esp }}
-                </span>
-              </span>
             </div>
           </div>
           <div class="card-actions">
@@ -540,23 +524,6 @@
             </div>
           </div>
 
-          <div class="form-group" :class="{ 'has-error': fieldErrors.especialidades }">
-            <label>Especialidades *</label>
-            <div v-if="especialidadesDisponibles.length > 0" class="checkbox-group">
-              <label v-for="esp in especialidadesDisponibles" :key="esp.id" class="checkbox-item">
-                <input 
-                  type="checkbox" 
-                  :value="esp.nombre"
-                  v-model="formData.especialidades"
-                />
-                <span>{{ esp.nombre }}</span>
-              </label>
-            </div>
-            <div v-else class="loading-text">Cargando especialidades...</div>
-            <small>Seleccione al menos una especialidad</small>
-            <span v-if="fieldErrors.especialidades" class="field-error">{{ fieldErrors.especialidades }}</span>
-          </div>
-
           <div class="form-group" :class="{ 'has-error': fieldErrors.descripcion }">
             <label>Descripción</label>
             <textarea 
@@ -589,8 +556,6 @@
                 <div class="servicio-info">
                   <strong>{{ servicio.nombre }}</strong>
                   <span class="servicio-meta">{{ servicio.duracionMinutos }} min - ${{ servicio.precio }}</span>
-                  <span v-if="servicio.heredado" class="badge-heredado">Por especialidad</span>
-                  <span v-else class="badge-override">Modificado</span>
                 </div>
                 <button 
                   type="button"
@@ -682,23 +647,6 @@
             />
             <small class="field-hint">Si no se especifica, se usará el buffer del profesional o de la empresa</small>
             <span v-if="fieldErrorsServicio.bufferMinutos" class="field-error">{{ fieldErrorsServicio.bufferMinutos }}</span>
-          </div>
-
-          <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.especialidades }">
-            <label>Especialidades *</label>
-            <div v-if="especialidadesDisponibles.length > 0" class="checkbox-group">
-              <label v-for="esp in especialidadesDisponibles" :key="esp.id" class="checkbox-item">
-                <input 
-                  type="checkbox" 
-                  :value="esp.nombre"
-                  v-model="formDataServicio.especialidades"
-                />
-                <span>{{ esp.nombre }}</span>
-              </label>
-            </div>
-            <div v-else class="loading-text">Cargando especialidades...</div>
-            <small>El servicio estará disponible para profesionales con estas especialidades</small>
-            <span v-if="fieldErrorsServicio.especialidades" class="field-error">{{ fieldErrorsServicio.especialidades }}</span>
           </div>
 
           <div v-if="errorServicio" class="error-message">{{ errorServicio }}</div>
@@ -823,7 +771,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import { servicioService, type ServicioRequest, type ServicioResponse } from '../services/servicios'
-import { especialidadService, type EspecialidadResponse } from '../services/especialidades'
 import PoliticasService from '../services/politicasCancelacion'
 import type { PoliticaCancelacionRequest, PoliticaCancelacionResponse } from '../types/politicasCancelacion'
 import { useToastStore } from '../composables/useToast'
@@ -860,7 +807,6 @@ const formDataPolitica = ref<PoliticaCancelacionRequest>({
 
 // Estado para Profesionales
 const profesionales = ref<any[]>([])
-const especialidadesDisponibles = ref<EspecialidadResponse[]>([])
 const serviciosProfesional = ref<any[]>([])
 const cargandoServicios = ref(false)
 const submittingToggle = ref(false)
@@ -877,7 +823,6 @@ const formData = ref({
   email: '',
   contrasena: '',
   telefono: '',
-  especialidades: [] as string[],
   descripcion: ''
 })
 
@@ -895,8 +840,7 @@ const formDataServicio = ref<ServicioRequest>({
   descripcion: '',
   duracionMinutos: 0,
   bufferMinutos: null,
-  precio: 0,
-  especialidades: []
+  precio: 0
 })
 
 // Estado para Horarios
@@ -970,7 +914,6 @@ onMounted(async () => {
   cargarProfesionales()
   cargarServicios()
   cargarHorarios()
-  cargarEspecialidadesDisponibles()
   await cargarPoliticasCancelacion()
   cargarConfiguracion()
 })
@@ -1206,14 +1149,7 @@ async function cargarProfesionales() {
   }
 }
 
-async function cargarEspecialidadesDisponibles() {
-  try {
-    especialidadesDisponibles.value = await especialidadService.obtenerEspecialidadesActivas()
-  } catch (err: any) {
-    console.error('Error al cargar especialidades:', err)
-    error.value = 'Error al cargar las especialidades disponibles'
-  }
-}
+
 
 function openModal(profesional: any = null) {
   editingProfesional.value = profesional
@@ -1225,7 +1161,6 @@ function openModal(profesional: any = null) {
       email: profesional.email,
       contrasena: '',
       telefono: profesional.telefono || '',
-      especialidades: profesional.especialidades || [],
       descripcion: profesional.descripcion || ''
     }
   } else {
@@ -1235,7 +1170,6 @@ function openModal(profesional: any = null) {
       email: '',
       contrasena: '',
       telefono: '',
-      especialidades: [],
       descripcion: ''
     }
   }
@@ -1279,7 +1213,6 @@ async function toggleServicio(servicio: any) {
     
     // Actualizar localmente
     servicio.disponible = !servicio.disponible
-    servicio.heredado = servicio.disponible // Si se activa, vuelve a ser heredado
   } catch (err: any) {
     console.error('Error al cambiar servicio:', err)
     alert(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
@@ -1294,20 +1227,12 @@ async function submitForm() {
   submitting.value = true
   
   try {
-    // Validar que se haya seleccionado al menos una especialidad
-    if (formData.value.especialidades.length === 0) {
-      fieldErrors.value.especialidades = 'Debe seleccionar al menos una especialidad'
-      submitting.value = false
-      return
-    }
-
     const payload = {
       nombre: formData.value.nombre,
       apellido: formData.value.apellido,
       email: formData.value.email,
       contrasena: formData.value.contrasena,
       telefono: formData.value.telefono,
-      especialidades: formData.value.especialidades,
       descripcion: formData.value.descripcion
       // empresaId ya no es necesario - el backend lo obtiene automáticamente del dueño autenticado
     }
@@ -1412,16 +1337,14 @@ function openModalServicio(servicio: ServicioResponse | null = null) {
       nombre: servicio.nombre,
       descripcion: servicio.descripcion,
       duracionMinutos: servicio.duracionMinutos,
-      precio: servicio.precio,
-      especialidades: [...servicio.especialidades]
+      precio: servicio.precio
     }
   } else {
     formDataServicio.value = {
       nombre: '',
       descripcion: '',
       duracionMinutos: 0,
-      precio: 0,
-      especialidades: []
+      precio: 0
     }
   }
   errorServicio.value = ''
@@ -1436,8 +1359,7 @@ function closeModalServicio() {
     nombre: '',
     descripcion: '',
     duracionMinutos: 0,
-    precio: 0,
-    especialidades: []
+    precio: 0
   }
   errorServicio.value = ''
   fieldErrorsServicio.value = {}
@@ -1449,13 +1371,6 @@ async function submitFormServicio() {
   fieldErrorsServicio.value = {}
   
   try {
-    // Validar que se haya seleccionado al menos una especialidad
-    if (formDataServicio.value.especialidades.length === 0) {
-      fieldErrorsServicio.value.especialidades = 'Debe seleccionar al menos una especialidad'
-      submittingServicio.value = false
-      return
-    }
-    
     if (editingServicio.value) {
       await servicioService.actualizarServicio(editingServicio.value.id, formDataServicio.value)
     } else {
@@ -1494,7 +1409,6 @@ async function toggleServicioActivo(servicio: ServicioResponse) {
     alert('Error al cambiar el estado del servicio')
   }
 }
-
 // ==================== FUNCIONES PARA HORARIOS ====================
 
 async function cargarHorarios() {
@@ -1908,20 +1822,9 @@ async function submitConfiguracion() {
   color: #2d3748;
 }
 
-.especialidades-tags {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.tag-especialidad {
-  background: #e6fffa;
-  color: #234e52;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 500;
+.text-muted {
+  color: #a0aec0;
+  font-style: italic;
 }
 
 .card-actions {
@@ -2289,28 +2192,6 @@ async function submitConfiguracion() {
   font-size: 0.85rem;
 }
 
-.badge-heredado {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  background: #bee3f8;
-  color: #2c5282;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-top: 0.25rem;
-}
-
-.badge-override {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  background: #feebc8;
-  color: #c05621;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-top: 0.25rem;
-}
-
 .btn-toggle {
   padding: 0.4rem 0.8rem;
   border: none;
@@ -2376,49 +2257,6 @@ async function submitConfiguracion() {
 .btn-activate:hover {
   background: #38a169;
   transform: translateY(-2px);
-}
-
-.especialidades-input {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.especialidades-input input {
-  flex: 1;
-}
-
-.btn-add-esp {
-  background: #667eea;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.btn-add-esp:hover {
-  background: #5a67d8;
-}
-
-.especialidades-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.tag-especialidad-editable {
-  background: #e6fffa;
-  color: #234e52;
-  padding: 0.4rem 0.75rem;
-  border-radius: 16px;
-  font-size: 0.875rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .btn-remove-esp {
@@ -2865,5 +2703,55 @@ async function submitConfiguracion() {
   font-size: 0.8rem;
   font-style: italic;
 }
+
+.info-box {
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.error-box {
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.stat-badge {
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 0.95rem;
+}
+
+.btn-danger {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 </style>
+
 

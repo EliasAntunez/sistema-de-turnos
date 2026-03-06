@@ -17,12 +17,6 @@
       >
         Empresas
       </button>
-      <button 
-        :class="['tab', { active: activeTab === 'especialidades' }]" 
-        @click="activeTab = 'especialidades'"
-      >
-        Especialidades
-      </button>
     </div>
 
     <!-- Main Content - Empresas -->
@@ -222,95 +216,6 @@
         </div>
       </div>
     </main>
-
-    <!-- Main Content - Especialidades -->
-    <main v-if="activeTab === 'especialidades'" class="admin-content">
-      <div class="actions-bar">
-        <button @click="mostrarFormularioEsp = true" class="btn-primary">
-          ➕ Nueva Especialidad
-        </button>
-      </div>
-
-      <!-- Formulario de especialidad -->
-      <div v-if="mostrarFormularioEsp" class="modal-overlay" @click.self="cerrarFormularioEsp">
-        <div class="modal-content modal-small">
-          <h2>{{ editingEspecialidad ? 'Editar' : 'Nueva' }} Especialidad</h2>
-          
-          <div v-if="errorEsp" class="error-message">{{ errorEsp }}</div>
-          <div v-if="exitoEsp" class="success-message">{{ exitoEsp }}</div>
-
-          <form @submit.prevent="guardarEspecialidad">
-            <div class="form-group" :class="{ 'has-error': fieldErrorsEsp.nombre }">
-              <label>Nombre *</label>
-              <input v-model="formDataEsp.nombre" required placeholder="Ej: Barbero" />
-              <span v-if="fieldErrorsEsp.nombre" class="field-error">{{ fieldErrorsEsp.nombre }}</span>
-            </div>
-
-            <div class="form-group" :class="{ 'has-error': fieldErrorsEsp.descripcion }">
-              <label>Descripción</label>
-              <textarea v-model="formDataEsp.descripcion" rows="3" placeholder="Describe esta especialidad..."></textarea>
-              <span v-if="fieldErrorsEsp.descripcion" class="field-error">{{ fieldErrorsEsp.descripcion }}</span>
-            </div>
-
-            <div class="form-actions">
-              <button type="button" @click="cerrarFormularioEsp" class="btn-secondary">
-                Cancelar
-              </button>
-              <button type="submit" :disabled="cargandoEsp" class="btn-primary">
-                {{ cargandoEsp ? 'Guardando...' : 'Guardar' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Lista de especialidades -->
-      <div class="empresas-grid">
-        <div v-if="cargandoEspecialidades" class="loading">Cargando especialidades...</div>
-        
-        <div v-else-if="especialidades.length === 0" class="empty-state">
-          No hay especialidades registradas. Crea la primera especialidad.
-        </div>
-
-        <div v-else v-for="especialidad in especialidades" :key="especialidad.id" class="empresa-card">
-          <div class="empresa-header">
-            <h3>{{ especialidad.nombre }}</h3>
-            <span :class="['badge', especialidad.activa ? 'badge-active' : 'badge-inactive']">
-              {{ especialidad.activa ? 'Activa' : 'Inactiva' }}
-            </span>
-          </div>
-          
-          <div class="empresa-info">
-            <p v-if="especialidad.descripcion">{{ especialidad.descripcion }}</p>
-            <p v-else class="text-muted">Sin descripción</p>
-            <p class="text-small"><strong>Creada:</strong> {{ formatearFecha(especialidad.fechaCreacion) }}</p>
-          </div>
-
-          <div class="empresa-actions">
-            <button 
-              @click="editarEspecialidad(especialidad)"
-              class="btn-edit-sm"
-            >
-              Editar
-            </button>
-            <button 
-              v-if="especialidad.activa"
-              @click="cambiarEstadoEspecialidad(especialidad.id, false)"
-              class="btn-danger-sm"
-            >
-              Desactivar
-            </button>
-            <button 
-              v-else
-              @click="cambiarEstadoEspecialidad(especialidad.id, true)"
-              class="btn-success-sm"
-            >
-              Activar
-            </button>
-          </div>
-        </div>
-      </div>
-    </main>
   </div>
 </template>
 
@@ -324,7 +229,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 // Tab activo
-const activeTab = ref<'empresas' | 'especialidades'>('empresas')
+const activeTab = ref<'empresas'>('empresas')
 
 // Estado para Empresas
 const mostrarFormulario = ref(false)
@@ -334,21 +239,6 @@ const cargandoEmpresas = ref(false)
 const error = ref('')
 const exito = ref('')
 const fieldErrors = ref<Record<string, string>>({})
-
-// Estado para Especialidades
-const mostrarFormularioEsp = ref(false)
-const especialidades = ref<any[]>([])
-const cargandoEsp = ref(false)
-const cargandoEspecialidades = ref(false)
-const errorEsp = ref('')
-const exitoEsp = ref('')
-const fieldErrorsEsp = ref<Record<string, string>>({})
-const editingEspecialidad = ref<any>(null)
-
-const formDataEsp = ref({
-  nombre: '',
-  descripcion: ''
-})
 
 const formData = ref({
   dueno: {
@@ -376,7 +266,6 @@ const formData = ref({
 
 onMounted(() => {
   cargarEmpresas()
-  cargarEspecialidades()
 })
 
 async function cargarEmpresas() {
@@ -491,91 +380,6 @@ function handleLogout() {
       authStore.logout()
       router.push('/login')
     })
-}
-
-// ==================== FUNCIONES PARA ESPECIALIDADES ====================
-
-async function cargarEspecialidades() {
-  cargandoEspecialidades.value = true
-  try {
-    const response = await api.get('/admin/especialidades')
-    if (response.data.exito) {
-      especialidades.value = response.data.datos
-    }
-  } catch (err) {
-    console.error('Error al cargar especialidades:', err)
-  } finally {
-    cargandoEspecialidades.value = false
-  }
-}
-
-async function guardarEspecialidad() {
-  errorEsp.value = ''
-  exitoEsp.value = ''
-  fieldErrorsEsp.value = {}
-  cargandoEsp.value = true
-
-  try {
-    if (editingEspecialidad.value) {
-      // Actualizar
-      await api.put(`/admin/especialidades/${editingEspecialidad.value.id}`, formDataEsp.value)
-      exitoEsp.value = 'Especialidad actualizada exitosamente'
-    } else {
-      // Crear
-      await api.post('/admin/especialidades', formDataEsp.value)
-      exitoEsp.value = 'Especialidad creada exitosamente'
-    }
-
-    setTimeout(() => {
-      cerrarFormularioEsp()
-      cargarEspecialidades()
-    }, 1500)
-  } catch (err: any) {
-    console.error('Error al guardar especialidad:', err)
-    
-    if (err.response?.data?.errores) {
-      fieldErrorsEsp.value = err.response.data.errores
-      errorEsp.value = 'Por favor corrija los errores en el formulario'
-    } else if (err.response?.data?.mensaje) {
-      errorEsp.value = err.response.data.mensaje
-    } else {
-      errorEsp.value = 'Error al guardar la especialidad'
-    }
-  } finally {
-    cargandoEsp.value = false
-  }
-}
-
-function editarEspecialidad(especialidad: any) {
-  editingEspecialidad.value = especialidad
-  formDataEsp.value = {
-    nombre: especialidad.nombre,
-    descripcion: especialidad.descripcion || ''
-  }
-  mostrarFormularioEsp.value = true
-}
-
-function cerrarFormularioEsp() {
-  mostrarFormularioEsp.value = false
-  editingEspecialidad.value = null
-  formDataEsp.value = {
-    nombre: '',
-    descripcion: ''
-  }
-  errorEsp.value = ''
-  exitoEsp.value = ''
-  fieldErrorsEsp.value = {}
-}
-
-async function cambiarEstadoEspecialidad(id: number, activar: boolean) {
-  try {
-    const endpoint = activar ? 'activar' : 'desactivar'
-    await api.patch(`/admin/especialidades/${id}/${endpoint}`)
-    await cargarEspecialidades()
-  } catch (err) {
-    console.error('Error al cambiar estado:', err)
-    alert('Error al cambiar el estado de la especialidad')
-  }
 }
 
 function formatearFecha(fecha: string) {

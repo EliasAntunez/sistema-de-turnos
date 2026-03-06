@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.Set;
 
 @Data
 public class RegistroServicioRequest {
@@ -33,8 +32,4 @@ public class RegistroServicioRequest {
     @NotNull(message = "El precio es obligatorio")
     @Positive(message = "El precio debe ser un número positivo")
     private BigDecimal precio;
-
-    @NotNull(message = "Debe seleccionar al menos una especialidad")
-    @Size(min = 1, message = "Debe seleccionar al menos una especialidad")
-    private Set<String> especialidades; // Nombres de especialidades
 }

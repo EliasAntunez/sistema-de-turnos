@@ -2,14 +2,11 @@ package com.example.sitema_de_turnos.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -34,10 +31,6 @@ public class RegistroProfesionalRequest {
 
     @Pattern(regexp = "^$|^\\d{10,15}$", message = "El teléfono debe estar vacío o contener entre 10 y 15 dígitos numéricos")
     private String telefono; // Opcional
-
-    @NotNull(message = "Debe especificar al menos una especialidad")
-    @Size(min = 1, message = "Debe especificar al menos una especialidad")
-    private List<String> especialidades;
 
     @Size(max = 500, message = "La descripción no puede exceder 500 caracteres")
     private String descripcion;

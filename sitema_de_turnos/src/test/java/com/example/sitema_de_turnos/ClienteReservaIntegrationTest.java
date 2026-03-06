@@ -124,6 +124,7 @@ public class ClienteReservaIntegrationTest {
         cliente.setEmpresa(empresaA);
         cliente.setNombre("Invitado");
         cliente.setTelefono("+5491110000001");
+        cliente.setEmail("cliente1@example.com");
         cliente.setTieneUsuario(true);
         cliente.setActivo(true);
         repoCliente.save(cliente);
@@ -145,7 +146,7 @@ public class ClienteReservaIntegrationTest {
         var req = new CancelarReservaRequest("Cambio de planes");
 
         mockMvc.perform(post("/api/cliente/reservas/" + turno.getId() + "/cancelar")
-            .with(user("cliente:" + empresaA.getSlug() + ":" + cliente.getTelefono())
+            .with(user("cliente:" + empresaA.getSlug() + ":cliente1@example.com")
                 .authorities(new SimpleGrantedAuthority("CLIENTE")))
             .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -161,6 +162,7 @@ public class ClienteReservaIntegrationTest {
         cliente.setEmpresa(empresaA);
         cliente.setNombre("Invitado");
         cliente.setTelefono("+5491110000002");
+        cliente.setEmail("cliente2@example.com");
         cliente.setTieneUsuario(false);
         cliente.setActivo(true);
         repoCliente.save(cliente);
@@ -170,6 +172,7 @@ public class ClienteReservaIntegrationTest {
         otro.setEmpresa(empresaA);
         otro.setNombre("Otro");
         otro.setTelefono("+5491110000999");
+        otro.setEmail("otro@example.com");
         otro.setTieneUsuario(true);
         otro.setActivo(true);
         repoCliente.save(otro);
@@ -191,7 +194,7 @@ public class ClienteReservaIntegrationTest {
         var req = new CancelarReservaRequest("No soy dueño");
 
         mockMvc.perform(post("/api/cliente/reservas/" + turno.getId() + "/cancelar")
-            .with(user("cliente:" + empresaA.getSlug() + ":" + otro.getTelefono())
+            .with(user("cliente:" + empresaA.getSlug() + ":otro@example.com")
                 .authorities(new SimpleGrantedAuthority("CLIENTE")))
             .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -206,6 +209,7 @@ public class ClienteReservaIntegrationTest {
         cliente.setEmpresa(empresaA);
         cliente.setNombre("Invitado");
         cliente.setTelefono("+5491110000003");
+        cliente.setEmail("cliente3@example.com");
         cliente.setTieneUsuario(true);
         cliente.setActivo(true);
         repoCliente.save(cliente);
@@ -227,7 +231,7 @@ public class ClienteReservaIntegrationTest {
         ReservaModificarRequest req = new ReservaModificarRequest("Nombre Nuevo", "Traigo puntualidad");
 
         mockMvc.perform(put("/api/cliente/reservas/" + turno.getId())
-            .with(user("cliente:" + empresaA.getSlug() + ":" + cliente.getTelefono())
+            .with(user("cliente:" + empresaA.getSlug() + ":cliente3@example.com")
                 .authorities(new SimpleGrantedAuthority("CLIENTE")))
             .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -245,6 +249,7 @@ public class ClienteReservaIntegrationTest {
         cliente.setEmpresa(empresaA);
         cliente.setNombre("Invitado");
         cliente.setTelefono("+5491110000010");
+        cliente.setEmail("cliente10@example.com");
         cliente.setTieneUsuario(true);
         cliente.setActivo(true);
         repoCliente.save(cliente);
@@ -269,7 +274,7 @@ public class ClienteReservaIntegrationTest {
         req.put("horaInicio", "14:00");
 
         mockMvc.perform(put("/api/cliente/reservas/" + turno.getId() + "/reprogramar")
-            .with(user("cliente:" + empresaA.getSlug() + ":" + cliente.getTelefono())
+            .with(user("cliente:" + empresaA.getSlug() + ":cliente10@example.com")
                 .authorities(new SimpleGrantedAuthority("CLIENTE")))
             .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -288,6 +293,7 @@ public class ClienteReservaIntegrationTest {
         cliente.setEmpresa(empresaA);
         cliente.setNombre("Invitado");
         cliente.setTelefono("+5491110000020");
+        cliente.setEmail("cliente20@example.com");
         cliente.setTieneUsuario(true);
         cliente.setActivo(true);
         repoCliente.save(cliente);
@@ -328,7 +334,7 @@ public class ClienteReservaIntegrationTest {
         req.put("horaInicio", "11:00");
 
         mockMvc.perform(put("/api/cliente/reservas/" + turno.getId() + "/reprogramar")
-            .with(user("cliente:" + empresaA.getSlug() + ":" + cliente.getTelefono())
+            .with(user("cliente:" + empresaA.getSlug() + ":cliente20@example.com")
                 .authorities(new SimpleGrantedAuthority("CLIENTE")))
             .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)

@@ -1,10 +1,7 @@
 package com.example.sitema_de_turnos.mapper;
 
 import com.example.sitema_de_turnos.dto.ProfesionalResponse;
-import com.example.sitema_de_turnos.modelo.Especialidad;
 import com.example.sitema_de_turnos.modelo.Profesional;
-
-import java.util.stream.Collectors;
 
 /**
  * Mapper estático para convertir entidades Profesional a DTOs.
@@ -34,11 +31,6 @@ public class ProfesionalMapper {
         response.setEmail(profesional.getEmail());
         response.setTelefono(profesional.getTelefono());
         response.setDescripcion(profesional.getDescripcion());
-        response.setEspecialidades(
-                profesional.getEspecialidades().stream()
-                        .map(Especialidad::getNombre)
-                        .collect(Collectors.toList())
-        );
         response.setEmpresaId(profesional.getEmpresa().getId());
         response.setEmpresaNombre(profesional.getEmpresa().getNombre());
         response.setActivo(profesional.getActivo());

@@ -14,5 +14,4 @@ public class ProfesionalServicioResponse {
     private Integer duracionMinutos;
     private Double precio;
     private Boolean disponible; // true = profesional puede ofrecer este servicio, false = está desactivado
-    private Boolean heredado; // true = disponible por especialidad, false = override explícito
 }
