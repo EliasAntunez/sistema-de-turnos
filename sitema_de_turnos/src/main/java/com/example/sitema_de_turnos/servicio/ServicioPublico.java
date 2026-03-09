@@ -174,7 +174,7 @@ public class ServicioPublico {
         }
 
         // Verificar si el profesional tiene bloqueo en esta fecha
-        if (tieneBloqueoDeFecha(profesional, fecha)) {
+        if (!repositorioBloqueoFecha.findBloqueoEnFecha(profesional, fecha).isEmpty()) {
             return new ArrayList<>(); // No hay slots disponibles
         }
 
@@ -193,20 +193,6 @@ public class ServicioPublico {
 
         // Generar slots
         return generarSlots(rangosHorarios, fecha, servicio.getDuracionMinutos(), bufferMinutos, profesional, empresa);
-    }
-
-    /**
-     * Verificar si el profesional tiene bloqueo en una fecha específica
-     */
-    private boolean tieneBloqueoDeFecha(Profesional profesional, LocalDate fecha) {
-        List<BloqueoFecha> bloqueos = repositorioBloqueoFecha.findByProfesionalAndActivoTrue(profesional);
-        
-        return bloqueos.stream()
-                .anyMatch(bloqueo -> {
-                    LocalDate inicio = bloqueo.getFechaInicio();
-                    LocalDate fin = bloqueo.getFechaFin() != null ? bloqueo.getFechaFin() : inicio;
-                    return !fecha.isBefore(inicio) && !fecha.isAfter(fin);
-                });
     }
 
     /**

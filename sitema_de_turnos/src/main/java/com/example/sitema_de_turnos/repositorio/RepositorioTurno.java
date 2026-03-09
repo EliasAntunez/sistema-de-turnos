@@ -2,11 +2,13 @@ package com.example.sitema_de_turnos.repositorio;
 
 import com.example.sitema_de_turnos.modelo.*;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -64,15 +66,77 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
     );
 
     /**
-     * Buscar turnos de un profesional en un rango de fechas
-     * 
-     * ⚠️ DEPRECADO: Causa N+1 queries. Usar findByProfesionalWithDetails() en su lugar.
+     * Buscar turnos conflictivos con un bloqueo de fechas.
+     *
+     * OPTIMIZADO: JOIN FETCH elimina el problema N+1 previo.
+     * Carga Turno + Cliente + Servicio en una sola query.
+     * Filtra automáticamente estados terminales (CANCELADO, ATENDIDO, NO_ASISTIO).
+     *
+     * Mejora vs versión anterior: 1 + 3N queries → 1 query
+     *
+     * @param profesional Profesional dueño del bloqueo
+     * @param fechaInicio Inicio del rango del bloqueo (inclusive)
+     * @param fechaFin    Fin del rango del bloqueo (inclusive)
+     * @return Turnos activos en el rango con cliente y servicio pre-cargados
      */
-    List<Turno> findByProfesionalAndFechaBetweenOrderByFechaAscHoraInicioAsc(
-        Profesional profesional,
-        LocalDate fechaInicio,
-        LocalDate fechaFin
+    @Query("SELECT DISTINCT t FROM Turno t " +
+           "LEFT JOIN FETCH t.cliente " +
+           "LEFT JOIN FETCH t.servicio " +
+           "WHERE t.profesional = :profesional " +
+           "AND t.fecha BETWEEN :fechaInicio AND :fechaFin " +
+           "AND t.estado NOT IN ('CANCELADO', 'ATENDIDO', 'NO_ASISTIO') " +
+           "ORDER BY t.fecha ASC, t.horaInicio ASC")
+    List<Turno> findConflictosBloqueo(
+        @Param("profesional") Profesional profesional,
+        @Param("fechaInicio") LocalDate fechaInicio,
+        @Param("fechaFin") LocalDate fechaFin
     );
+
+    /**
+     * Cancela masivamente una lista de turnos en una sola sentencia UPDATE.
+     *
+     * OPTIMIZADO: Reemplaza el patrón N*(findById + save) por 1 sola query.
+     * clearAutomatically=true invalida el caché de primer nivel de Hibernate
+     * para evitar lecturas de entidades obsoletas en la misma transacción.
+     *
+     * @param ids           IDs de los turnos a cancelar
+     * @param estado        Estado destino (siempre CANCELADO desde negocio)
+     * @param motivo        Motivo de cancelación
+     * @param canceladoPor  Origen de la cancelación ("PROFESIONAL")
+     * @param ahora         Timestamp de cancelación
+     * @return              Número de filas actualizadas
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Turno t SET t.estado = :estado, " +
+           "t.motivoCancelacion = :motivo, " +
+           "t.canceladoPor = :canceladoPor, " +
+           "t.fechaCancelacion = :ahora " +
+           "WHERE t.id IN :ids")
+    int cancelarTurnosMasivamente(
+        @Param("ids") List<Long> ids,
+        @Param("estado") EstadoTurno estado,
+        @Param("motivo") String motivo,
+        @Param("canceladoPor") String canceladoPor,
+        @Param("ahora") LocalDateTime ahora
+    );
+
+    /**
+     * Carga los datos necesarios para las notificaciones de cancelación por bloqueo.
+     *
+     * Un único JOIN FETCH carga: Turno + Cliente + Servicio + Profesional + Empresa.
+     * Se invoca ANTES del bulk UPDATE para aprovechar el contexto JPA aún cargado
+     * y construir los DTOs de notificación sin queries adicionales por relación.
+     *
+     * @param ids IDs de los turnos que serán cancelados
+     * @return Entidades con todas las relaciones pre-cargadas
+     */
+    @Query("SELECT DISTINCT t FROM Turno t " +
+           "LEFT JOIN FETCH t.cliente " +
+           "LEFT JOIN FETCH t.servicio " +
+           "LEFT JOIN FETCH t.profesional p " +
+           "LEFT JOIN FETCH p.empresa " +
+           "WHERE t.id IN :ids")
+    List<Turno> findByIdsParaNotificacion(@Param("ids") List<Long> ids);
 
     /**
      * Buscar turnos de un profesional en un rango de fechas con todas las relaciones.
