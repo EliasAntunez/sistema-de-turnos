@@ -327,4 +327,66 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * @return Cantidad de turnos que el profesional tiene en los estados indicados
      */
     long countByProfesionalAndEstadoIn(Profesional profesional, List<EstadoTurno> estados);
+
+    /**
+     * Retorna turnos futuros activos de la empresa cuyo rango de horas se solapa
+     * con [horaInicio, horaFin].
+     *
+     * El filtro por día de la semana debe aplicarse en la capa de servicio usando
+     * {@link java.time.LocalDate#getDayOfWeek()} para mantener portabilidad JPQL.
+     *
+     * Casos de uso:
+     * - Validar eliminación de un HorarioEmpresa
+     * - Validar achicamiento de un HorarioEmpresa (filtro de rango nuevo se hace en servicio)
+     *
+     * @param empresa     Empresa propietaria
+     * @param hoy         Fecha a partir de la cual buscar (inclusive)
+     * @param estados     Estados que se consideran "activos" (CREADO, PENDIENTE_CONFIRMACION, CONFIRMADO)
+     * @param horaInicio  Inicio del rango a evaluar
+     * @param horaFin     Fin del rango a evaluar
+     */
+    @Query("SELECT t FROM Turno t WHERE t.empresa = :empresa " +
+           "AND t.fecha >= :hoy " +
+           "AND t.estado IN :estados " +
+           "AND t.horaInicio < :horaFin " +
+           "AND t.horaFin > :horaInicio " +
+           "ORDER BY t.fecha ASC, t.horaInicio ASC")
+    List<Turno> findActivosFuturosEnRangoPorEmpresa(
+        @Param("empresa") Empresa empresa,
+        @Param("hoy") LocalDate hoy,
+        @Param("estados") List<EstadoTurno> estados,
+        @Param("horaInicio") LocalTime horaInicio,
+        @Param("horaFin") LocalTime horaFin
+    );
+
+    /**
+     * Retorna turnos futuros activos de un profesional cuyo rango de horas se solapa
+     * con [horaInicio, horaFin].
+     *
+     * El filtro por día de la semana debe aplicarse en la capa de servicio usando
+     * {@link java.time.LocalDate#getDayOfWeek()} para mantener portabilidad JPQL.
+     *
+     * Casos de uso:
+     * - Validar eliminación de una DisponibilidadProfesional
+     * - Validar achicamiento de una DisponibilidadProfesional
+     *
+     * @param profesional Profesional propietario
+     * @param hoy         Fecha a partir de la cual buscar (inclusive)
+     * @param estados     Estados activos
+     * @param horaInicio  Inicio del rango a evaluar
+     * @param horaFin     Fin del rango a evaluar
+     */
+    @Query("SELECT t FROM Turno t WHERE t.profesional = :profesional " +
+           "AND t.fecha >= :hoy " +
+           "AND t.estado IN :estados " +
+           "AND t.horaInicio < :horaFin " +
+           "AND t.horaFin > :horaInicio " +
+           "ORDER BY t.fecha ASC, t.horaInicio ASC")
+    List<Turno> findActivosFuturosEnRangoPorProfesional(
+        @Param("profesional") Profesional profesional,
+        @Param("hoy") LocalDate hoy,
+        @Param("estados") List<EstadoTurno> estados,
+        @Param("horaInicio") LocalTime horaInicio,
+        @Param("horaFin") LocalTime horaFin
+    );
 }

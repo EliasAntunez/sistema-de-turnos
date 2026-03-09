@@ -761,6 +761,50 @@
     </div>
   </div>
   
+  <!-- Modal: Confirmar eliminación de horario -->
+  <div v-if="showConfirmDeleteHorario" class="modal-overlay" @click="cerrarConfirmDeleteHorario">
+    <div class="modal modal-small" @click.stop>
+      <div class="modal-header">
+        <h2>Eliminar Horario</h2>
+        <button @click="cerrarConfirmDeleteHorario" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-form">
+        <div v-if="!errorEliminarHorario">
+          <p>¿Estás seguro de eliminar el horario de
+            <strong>{{ nombresDias[horarioPendienteEliminar?.diaSemana] }}</strong>
+            ({{ horarioPendienteEliminar?.horaInicio }} - {{ horarioPendienteEliminar?.horaFin }})?</p>
+          <p class="text-muted" style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
+        </div>
+        <div v-else>
+          <div class="error-message">{{ errorEliminarHorario }}</div>
+          <ul v-if="turnosBloqueanEliminarHorario.length" class="lista-bloqueantes">
+            <li v-for="turno in turnosBloqueanEliminarHorario" :key="turno">{{ turno }}</li>
+          </ul>
+          <ul v-if="profesionalesBloqueanEliminarHorario.length" class="lista-bloqueantes">
+            <li v-for="prof in profesionalesBloqueanEliminarHorario" :key="prof">{{ prof }}</li>
+          </ul>
+          <p v-if="profesionalesBloqueanEliminarHorario.length" class="text-muted" style="color:#718096;font-size:0.875rem;margin-top:0.75rem;">
+            Primero ajustá la disponibilidad de esos profesionales.
+          </p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" @click="cerrarConfirmDeleteHorario" class="btn-cancel">
+            {{ errorEliminarHorario ? 'Cerrar' : 'Cancelar' }}
+          </button>
+          <button
+            v-if="!errorEliminarHorario"
+            type="button"
+            @click="ejecutarEliminarHorario"
+            class="btn-danger"
+            :disabled="eliminandoHorario"
+          >
+            {{ eliminandoHorario ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast para notificaciones -->
   <Toast />
 </template>
@@ -851,6 +895,14 @@ const editingHorario = ref<any>(null)
 const errorHorario = ref('')
 const submittingHorario = ref(false)
 const fieldErrorsHorario = ref<Record<string, string>>({})
+
+// Estado para modal de confirmación de eliminación de horario
+const showConfirmDeleteHorario = ref(false)
+const horarioPendienteEliminar = ref<any>(null)
+const eliminandoHorario = ref(false)
+const errorEliminarHorario = ref('')
+const turnosBloqueanEliminarHorario = ref<string[]>([])
+const profesionalesBloqueanEliminarHorario = ref<string[]>([])
 
 const formDataHorario = ref({
   diaSemana: '',
@@ -1478,7 +1530,19 @@ async function submitFormHorario() {
   } catch (err: any) {
     console.error('Error al guardar horario:', err)
     
-    if (err.response?.status === 400) {
+    if (err.response?.status === 409) {
+      // Conflicto de disponibilidad de profesionales o turnos activos
+      const data = err.response.data
+      if (data?.turnosAfectados?.length) {
+        errorHorario.value = data.mensaje +
+          '\n\nTurnos afectados:\n• ' + data.turnosAfectados.join('\n• ')
+      } else if (data?.profesionalesAfectados?.length) {
+        errorHorario.value = data.mensaje +
+          '\n\nProfesionales afectados:\n• ' + data.profesionalesAfectados.join('\n• ')
+      } else {
+        errorHorario.value = data?.mensaje || 'El horario no puede modificarse porque hay profesionales con disponibilidad activa en ese rango.'
+      }
+    } else if (err.response?.status === 400) {
       const mensaje = err.response.data.mensaje || err.response.data.message
       if (mensaje) {
         errorHorario.value = mensaje
@@ -1493,23 +1557,48 @@ async function submitFormHorario() {
   }
 }
 
-async function confirmarEliminarHorario(horario: any) {
-  const confirmacion = confirm(
-    `¿Estás seguro de eliminar el horario de ${nombresDias[horario.diaSemana]} (${horario.horaInicio} - ${horario.horaFin})?`
-  )
-  
-  if (confirmacion) {
-    await eliminarHorario(horario.id)
-  }
+function confirmarEliminarHorario(horario: any) {
+  horarioPendienteEliminar.value = horario
+  errorEliminarHorario.value = ''
+  turnosBloqueanEliminarHorario.value = []
+  profesionalesBloqueanEliminarHorario.value = []
+  showConfirmDeleteHorario.value = true
 }
 
-async function eliminarHorario(id: number) {
+function cerrarConfirmDeleteHorario() {
+  showConfirmDeleteHorario.value = false
+  horarioPendienteEliminar.value = null
+  errorEliminarHorario.value = ''
+  turnosBloqueanEliminarHorario.value = []
+  profesionalesBloqueanEliminarHorario.value = []
+}
+
+async function ejecutarEliminarHorario() {
+  if (!horarioPendienteEliminar.value) return
+  eliminandoHorario.value = true
+  errorEliminarHorario.value = ''
   try {
-    await api.eliminarHorarioEmpresa(id)
+    await api.eliminarHorarioEmpresa(horarioPendienteEliminar.value.id)
     await cargarHorarios()
+    cerrarConfirmDeleteHorario()
   } catch (err: any) {
     console.error('Error al eliminar horario:', err)
-    alert('Error al eliminar el horario')
+    if (err.response?.status === 409) {
+      const data = err.response.data
+      if (data?.turnosAfectados?.length) {
+        errorEliminarHorario.value = data.mensaje
+        turnosBloqueanEliminarHorario.value = data.turnosAfectados as string[]
+      } else if (data?.profesionalesAfectados?.length) {
+        errorEliminarHorario.value = data.mensaje
+        profesionalesBloqueanEliminarHorario.value = data.profesionalesAfectados as string[]
+      } else {
+        errorEliminarHorario.value = data?.mensaje || 'No se puede eliminar: hay conflictos activos en ese horario.'
+      }
+    } else {
+      errorEliminarHorario.value = 'Error inesperado al eliminar el horario. Intente nuevamente.'
+    }
+  } finally {
+    eliminandoHorario.value = false
   }
 }
 
@@ -2751,6 +2840,17 @@ async function submitConfiguracion() {
 .btn-danger:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.lista-bloqueantes {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+  font-size: 0.875rem;
+  color: #374151;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 </style>
 

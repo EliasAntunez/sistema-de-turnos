@@ -3,23 +3,40 @@ package com.example.sitema_de_turnos.servicio;
 import com.example.sitema_de_turnos.dto.HorarioEmpresaRequest;
 import com.example.sitema_de_turnos.dto.HorarioEmpresaResponse;
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
+import com.example.sitema_de_turnos.excepcion.HorarioEnUsoException;
+import com.example.sitema_de_turnos.excepcion.OperacionBloqueadaPorTurnosException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
+import com.example.sitema_de_turnos.modelo.DisponibilidadProfesional;
 import com.example.sitema_de_turnos.modelo.Dueno;
 import com.example.sitema_de_turnos.modelo.Empresa;
+import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.HorarioEmpresa;
+import com.example.sitema_de_turnos.modelo.Turno;
+import com.example.sitema_de_turnos.repositorio.RepositorioDisponibilidadProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioHorarioEmpresa;
+import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ServicioHorarioEmpresa {
 
+    private static final List<EstadoTurno> ESTADOS_ACTIVOS =
+            List.of(EstadoTurno.CREADO, EstadoTurno.PENDIENTE_CONFIRMACION, EstadoTurno.CONFIRMADO);
+
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
+    private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
+    private final RepositorioTurno repositorioTurno;
     private final ServicioValidacionDueno servicioValidacionDueno;
 
     @Transactional
@@ -79,6 +96,69 @@ public class ServicioHorarioEmpresa {
 
         validarNoSolapamiento(horariosExistentes, request.getHoraInicio(), request.getHoraFin(), horarioId);
 
+        // Verificar que ningún profesional quede con disponibilidad huérfana tras el cambio.
+        // Caso A: cambio de día → toda disponibilidad en el día anterior queda sin cobertura.
+        // Caso B: mismo día con rango achicado → disponibilidades fuera del nuevo rango quedan huérfanas.
+        List<DisponibilidadProfesional> conflictos;
+        if (!horario.getDiaSemana().equals(request.getDiaSemana())) {
+            conflictos = repositorioDisponibilidadProfesional.findConflictosPorEliminacion(
+                    empresa, horario.getDiaSemana(),
+                    horario.getHoraInicio(), horario.getHoraFin());
+        } else {
+            conflictos = repositorioDisponibilidadProfesional.findConflictosPorAchicamiento(
+                    empresa, horario.getDiaSemana(),
+                    horario.getHoraInicio(), horario.getHoraFin(),
+                    request.getHoraInicio(), request.getHoraFin());
+        }
+
+        if (!conflictos.isEmpty()) {
+            List<String> afectados = conflictos.stream()
+                    .map(d -> d.getProfesional().getNombre() + " " + d.getProfesional().getApellido()
+                            + " (" + d.getDiaSemana() + " " + d.getHoraInicio() + "-" + d.getHoraFin() + ")")
+                    .distinct()
+                    .collect(Collectors.toList());
+            log.warn("[HorarioEmpresa] Modificación bloqueada – empresa_id={}, horario_id={}, afectados={}",
+                    empresa.getId(), horarioId, afectados);
+            throw new HorarioEnUsoException(
+                    "No se puede modificar el horario porque los siguientes profesionales tienen " +
+                    "disponibilidad activa dentro del rango actual y quedarían sin cobertura: " +
+                    String.join(", ", afectados),
+                    afectados);
+        }
+
+        // Verificar que ningún turno activo quede sin cobertura tras el cambio.
+        // Candidatos: turnos futuros de la empresa solapados con el rango ANTERIOR, en el día ANTERIOR.
+        DayOfWeek diaAnteriorJava = horario.getDiaSemana().toDayOfWeek();
+        List<Turno> candidatos = repositorioTurno
+                .findActivosFuturosEnRangoPorEmpresa(empresa, LocalDate.now(), ESTADOS_ACTIVOS,
+                        horario.getHoraInicio(), horario.getHoraFin())
+                .stream()
+                .filter(t -> t.getFecha().getDayOfWeek() == diaAnteriorJava)
+                .collect(Collectors.toList());
+
+        List<Turno> turnosConflicto;
+        if (!horario.getDiaSemana().equals(request.getDiaSemana())) {
+            // Cambio de día: todos los turnos del día anterior quedan huérfanos
+            turnosConflicto = candidatos;
+        } else {
+            // Mismo día: solo los que no caben dentro del nuevo rango
+            turnosConflicto = candidatos.stream()
+                    .filter(t -> t.getHoraInicio().isBefore(request.getHoraInicio())
+                              || t.getHoraFin().isAfter(request.getHoraFin()))
+                    .collect(Collectors.toList());
+        }
+
+        if (!turnosConflicto.isEmpty()) {
+            List<String> descripciones = formatearTurnosAfectados(turnosConflicto);
+            log.warn("[HorarioEmpresa] Modificación bloqueada por turnos – empresa_id={}, horario_id={}, turnos={}",
+                    empresa.getId(), horarioId, turnosConflicto.size());
+            throw new OperacionBloqueadaPorTurnosException(
+                    "No se puede modificar el horario porque existen " + turnosConflicto.size() +
+                    " turno(s) activo(s) que quedarían sin cobertura. " +
+                    "Cancele o reprograme esos turnos primero.",
+                    descripciones);
+        }
+
         // Actualizar horario
         horario.setDiaSemana(request.getDiaSemana());
         horario.setHoraInicio(request.getHoraInicio());
@@ -125,34 +205,48 @@ public class ServicioHorarioEmpresa {
             throw new AccesoDenegadoException("No tiene permiso para eliminar este horario");
         }
 
-        // TODO: Cuando exista el modelo Turno, descomentar esta validación:
-        /*
-        List<Turno> turnos = repositorioTurno.findByHorarioEmpresaId(horarioId);
-        
-        if (!turnos.isEmpty()) {
-            // Verificar si hay turnos futuros o actuales (pendientes)
-            LocalDateTime ahora = LocalDateTime.now();
-            boolean hasTurnosFuturos = turnos.stream()
-                    .anyMatch(t -> t.getEstado() != EstadoTurno.COMPLETADO 
-                                && t.getEstado() != EstadoTurno.CANCELADO
-                                && t.getFechaHora().isAfter(ahora));
-            
-            if (hasTurnosFuturos) {
-                throw new IllegalStateException(
-                    "No se puede eliminar el horario porque tiene turnos pendientes o futuros. " +
-                    "Debe cancelar o completar los turnos primero."
-                );
-            }
-            
-            // Si solo tiene turnos pasados/completados, hacer soft delete
-            horario.setActivo(false);
-            repositorioHorarioEmpresa.save(horario);
-            return;
+        // Verificar que ningún profesional tenga disponibilidad activa dentro de este rango
+        List<DisponibilidadProfesional> conflictos = repositorioDisponibilidadProfesional
+                .findConflictosPorEliminacion(
+                        empresa, horario.getDiaSemana(),
+                        horario.getHoraInicio(), horario.getHoraFin());
+
+        if (!conflictos.isEmpty()) {
+            List<String> afectados = conflictos.stream()
+                    .map(d -> d.getProfesional().getNombre() + " " + d.getProfesional().getApellido()
+                            + " (" + d.getDiaSemana() + " " + d.getHoraInicio() + "-" + d.getHoraFin() + ")")
+                    .distinct()
+                    .collect(Collectors.toList());
+            log.warn("[HorarioEmpresa] Eliminación bloqueada – empresa_id={}, horario_id={}, afectados={}",
+                    empresa.getId(), horarioId, afectados);
+            throw new HorarioEnUsoException(
+                    "No se puede eliminar el horario porque los siguientes profesionales tienen " +
+                    "disponibilidad activa dentro de este rango: " +
+                    String.join(", ", afectados),
+                    afectados);
         }
-        */
-        
-        // Mientras no exista Turno, hacer DELETE físico directamente
-        // (Una vez implementado Turno, este código solo se ejecuta si no hay turnos asociados)
+
+        // Verificar turnos activos que quedarían sin cobertura al eliminar este rango
+        DayOfWeek diaJava = horario.getDiaSemana().toDayOfWeek();
+        List<Turno> turnosAfectados = repositorioTurno
+                .findActivosFuturosEnRangoPorEmpresa(empresa, LocalDate.now(), ESTADOS_ACTIVOS,
+                        horario.getHoraInicio(), horario.getHoraFin())
+                .stream()
+                .filter(t -> t.getFecha().getDayOfWeek() == diaJava)
+                .collect(Collectors.toList());
+
+        if (!turnosAfectados.isEmpty()) {
+            List<String> descripciones = formatearTurnosAfectados(turnosAfectados);
+            log.warn("[HorarioEmpresa] Eliminación bloqueada por turnos – empresa_id={}, horario_id={}, turnos={}",
+                    empresa.getId(), horarioId, turnosAfectados.size());
+            throw new OperacionBloqueadaPorTurnosException(
+                    "No se puede eliminar el horario porque existen " + turnosAfectados.size() +
+                    " turno(s) activo(s) programados en ese rango. " +
+                    "Cancele o reprograme esos turnos primero.",
+                    descripciones);
+        }
+
+        // Sin conflictos → DELETE físico
         repositorioHorarioEmpresa.delete(horario);
     }
 
@@ -164,9 +258,9 @@ public class ServicioHorarioEmpresa {
      * - El nuevo horario envuelve completamente uno existente
      * - Los horarios son exactamente iguales
      */
-    private void validarNoSolapamiento(List<HorarioEmpresa> horariosExistentes, 
-                                       java.time.LocalTime horaInicio, 
-                                       java.time.LocalTime horaFin, 
+    private void validarNoSolapamiento(List<HorarioEmpresa> horariosExistentes,
+                                       LocalTime horaInicio,
+                                       LocalTime horaFin,
                                        Long horarioIdExcluir) {
         for (HorarioEmpresa existente : horariosExistentes) {
             // Excluir el horario actual si estamos actualizando
@@ -279,5 +373,12 @@ public class ServicioHorarioEmpresa {
         response.setHoraFin(horario.getHoraFin());
         response.setActivo(horario.getActivo());
         return response;
+    }
+
+    private List<String> formatearTurnosAfectados(List<Turno> turnos) {
+        return turnos.stream()
+                .map(t -> String.format("Turno #%d \u2013 %s (%s - %s)",
+                        t.getId(), t.getFecha(), t.getHoraInicio(), t.getHoraFin()))
+                .collect(Collectors.toList());
     }
 }
