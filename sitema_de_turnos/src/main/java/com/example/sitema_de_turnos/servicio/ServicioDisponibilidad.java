@@ -3,13 +3,17 @@ package com.example.sitema_de_turnos.servicio;
 import com.example.sitema_de_turnos.dto.DisponibilidadResponse;
 import com.example.sitema_de_turnos.dto.RegistroDisponibilidadRequest;
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
+import com.example.sitema_de_turnos.excepcion.OperacionBloqueadaPorTurnosException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.modelo.*;
 import com.example.sitema_de_turnos.repositorio.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,12 +21,17 @@ import java.util.stream.Collectors;
 /**
  * CORREGIDO: Ahora usa ServicioValidacionProfesional para validar empresa activa
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ServicioDisponibilidad {
 
+    private static final List<EstadoTurno> ESTADOS_ACTIVOS =
+            List.of(EstadoTurno.CREADO, EstadoTurno.PENDIENTE_CONFIRMACION, EstadoTurno.CONFIRMADO);
+
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidad;
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
+    private final RepositorioTurno repositorioTurno;
     private final ServicioValidacionProfesional servicioValidacionProfesional;
 
     @Transactional
@@ -130,6 +139,39 @@ public class ServicioDisponibilidad {
             }
         }
 
+        // Verificar turnos activos que quedarían sin cobertura tras la actualización.
+        // En este punto `disponibilidad` aún tiene los valores ANTERIORES (antes de setters).
+        DayOfWeek diaAnteriorJava = disponibilidad.getDiaSemana().toDayOfWeek();
+        List<Turno> candidatos = repositorioTurno
+                .findActivosFuturosEnRangoPorProfesional(profesional, LocalDate.now(), ESTADOS_ACTIVOS,
+                        disponibilidad.getHoraInicio(), disponibilidad.getHoraFin())
+                .stream()
+                .filter(t -> t.getFecha().getDayOfWeek() == diaAnteriorJava)
+                .collect(Collectors.toList());
+
+        List<Turno> turnosConflicto;
+        if (!disponibilidad.getDiaSemana().equals(request.getDiaSemana())) {
+            // Cambio de día: todos los turnos del día anterior quedan huérfanos
+            turnosConflicto = candidatos;
+        } else {
+            // Mismo día: solo los que no caben en el nuevo rango
+            turnosConflicto = candidatos.stream()
+                    .filter(t -> t.getHoraInicio().isBefore(request.getHoraInicio())
+                              || t.getHoraFin().isAfter(request.getHoraFin()))
+                    .collect(Collectors.toList());
+        }
+
+        if (!turnosConflicto.isEmpty()) {
+            List<String> descripciones = formatearTurnosAfectados(turnosConflicto);
+            log.warn("[Disponibilidad] Modificación bloqueada por turnos – profesional_id={}, disponibilidad_id={}, turnos={}",
+                    profesional.getId(), disponibilidadId, turnosConflicto.size());
+            throw new OperacionBloqueadaPorTurnosException(
+                    "No se puede modificar la disponibilidad porque existen " + turnosConflicto.size() +
+                    " turno(s) activo(s) que quedarían sin cobertura. " +
+                    "Cancele o reprograme esos turnos primero.",
+                    descripciones);
+        }
+
         // Actualizar disponibilidad
         disponibilidad.setDiaSemana(request.getDiaSemana());
         disponibilidad.setHoraInicio(request.getHoraInicio());
@@ -175,34 +217,26 @@ public class ServicioDisponibilidad {
             throw new AccesoDenegadoException("No puede eliminar la disponibilidad de otro profesional");
         }
 
-        // TODO: Cuando exista el modelo Turno, descomentar esta validación:
-        /*
-        List<Turno> turnos = repositorioTurno.findByDisponibilidadProfesionalId(disponibilidadId);
-        
-        if (!turnos.isEmpty()) {
-            // Verificar si hay turnos futuros o actuales (pendientes)
-            LocalDateTime ahora = LocalDateTime.now();
-            boolean hasTurnosFuturos = turnos.stream()
-                    .anyMatch(t -> t.getEstado() != EstadoTurno.COMPLETADO 
-                                && t.getEstado() != EstadoTurno.CANCELADO
-                                && t.getFechaHora().isAfter(ahora));
-            
-            if (hasTurnosFuturos) {
-                throw new IllegalStateException(
-                    "No se puede eliminar la disponibilidad porque tiene turnos pendientes o futuros. " +
-                    "Debe cancelar o completar los turnos primero."
-                );
-            }
-            
-            // Si solo tiene turnos pasados/completados, hacer soft delete
-            disponibilidad.setActivo(false);
-            repositorioDisponibilidad.save(disponibilidad);
-            return;
+        // Verificar turnos activos que quedarían sin cobertura al eliminar esta disponibilidad
+        DayOfWeek diaJava = disponibilidad.getDiaSemana().toDayOfWeek();
+        List<Turno> turnosAfectados = repositorioTurno
+                .findActivosFuturosEnRangoPorProfesional(profesional, LocalDate.now(), ESTADOS_ACTIVOS,
+                        disponibilidad.getHoraInicio(), disponibilidad.getHoraFin())
+                .stream()
+                .filter(t -> t.getFecha().getDayOfWeek() == diaJava)
+                .collect(Collectors.toList());
+
+        if (!turnosAfectados.isEmpty()) {
+            List<String> descripciones = formatearTurnosAfectados(turnosAfectados);
+            log.warn("[Disponibilidad] Eliminación bloqueada por turnos – profesional_id={}, disponibilidad_id={}, turnos={}",
+                    profesional.getId(), disponibilidadId, turnosAfectados.size());
+            throw new OperacionBloqueadaPorTurnosException(
+                    "No se puede eliminar la disponibilidad porque existen " + turnosAfectados.size() +
+                    " turno(s) activo(s) programados en ese horario. " +
+                    "Cancele o reprograme esos turnos primero.",
+                    descripciones);
         }
-        */
-        
-        // Mientras no exista Turno, hacer DELETE físico directamente
-        // (Una vez implementado Turno, este código solo se ejecuta si no hay turnos asociados)
+
         repositorioDisponibilidad.delete(disponibilidad);
     }
 
@@ -329,6 +363,13 @@ public class ServicioDisponibilidad {
         }
 
         return disponibilidadesCreadas;
+    }
+
+    private List<String> formatearTurnosAfectados(List<Turno> turnos) {
+        return turnos.stream()
+                .map(t -> String.format("Turno #%d – %s (%s - %s)",
+                        t.getId(), t.getFecha(), t.getHoraInicio(), t.getHoraFin()))
+                .collect(Collectors.toList());
     }
 
     private DisponibilidadResponse convertirAResponse(DisponibilidadProfesional disponibilidad) {

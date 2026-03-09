@@ -4,6 +4,8 @@ import com.example.sitema_de_turnos.dto.ErrorValidacion;
 import com.example.sitema_de_turnos.dto.RespuestaApi;
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
 import com.example.sitema_de_turnos.excepcion.CuentaDesactivadaException;
+import com.example.sitema_de_turnos.excepcion.HorarioEnUsoException;
+import com.example.sitema_de_turnos.excepcion.OperacionBloqueadaPorTurnosException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -81,6 +84,38 @@ public class ManejadorExcepcionesGlobal {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(RespuestaApi.error(ex.getMessage()));
+    }
+
+    /**
+     * Maneja el intento de eliminar/modificar un horario que tiene disponibilidades
+     * de profesionales activas dentro de ese rango (409).
+     * El cuerpo incluye el campo "profesionalesAfectados" con la lista detallada.
+     */
+    @ExceptionHandler(HorarioEnUsoException.class)
+    public ResponseEntity<Map<String, Object>> manejarHorarioEnUso(HorarioEnUsoException ex) {
+        Map<String, Object> cuerpo = new HashMap<>();
+        cuerpo.put("exito", false);
+        cuerpo.put("mensaje", ex.getMessage());
+        cuerpo.put("profesionalesAfectados", ex.getProfesionalesAfectados());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(cuerpo);
+    }
+
+    /**
+     * Maneja el intento de eliminar/modificar un horario que tiene turnos activos
+     * (CREADO, PENDIENTE_CONFIRMACION o CONFIRMADO) dentro del rango afectado (409).
+     * El cuerpo incluye "turnosAfectados" con la descripción de cada turno bloqueante.
+     */
+    @ExceptionHandler(OperacionBloqueadaPorTurnosException.class)
+    public ResponseEntity<Map<String, Object>> manejarOperacionBloqueadaPorTurnos(OperacionBloqueadaPorTurnosException ex) {
+        Map<String, Object> cuerpo = new HashMap<>();
+        cuerpo.put("exito", false);
+        cuerpo.put("mensaje", ex.getMessage());
+        cuerpo.put("turnosAfectados", ex.getTurnosAfectados());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(cuerpo);
     }
 
     /**

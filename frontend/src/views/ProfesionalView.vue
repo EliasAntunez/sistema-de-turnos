@@ -401,6 +401,47 @@
       @bloqueo-creado="onBloqueoCreado"
     />
 
+    <!-- Modal: Confirmar eliminación de disponibilidad -->
+    <div v-if="showConfirmDeleteDisponibilidad" class="modal-overlay" @click="cerrarConfirmDeleteDisponibilidad">
+      <div class="modal modal-small" @click.stop>
+        <div class="modal-header">
+          <h2>Eliminar Disponibilidad</h2>
+          <button @click="cerrarConfirmDeleteDisponibilidad" class="btn-close">&times;</button>
+        </div>
+        <div class="modal-form">
+          <div v-if="!errorEliminarDisponibilidad">
+            <p>¿Estás seguro de eliminar la disponibilidad del
+              <strong>{{ nombresDias[disponibilidadPendienteEliminar?.diaSemana ?? ''] }}</strong>
+              ({{ disponibilidadPendienteEliminar?.horaInicio }} - {{ disponibilidadPendienteEliminar?.horaFin }})?</p>
+            <p style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
+          </div>
+          <div v-else>
+            <div class="error-message">{{ errorEliminarDisponibilidad }}</div>
+            <ul v-if="turnosBloqueanEliminar.length" class="lista-bloqueantes">
+              <li v-for="turno in turnosBloqueanEliminar" :key="turno">{{ turno }}</li>
+            </ul>
+            <p v-if="turnosBloqueanEliminar.length" style="color:#718096;font-size:0.875rem;margin-top:0.75rem;">
+              Cancelá o reprograma esos turnos antes de continuar.
+            </p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="cerrarConfirmDeleteDisponibilidad" class="btn-cancel">
+              {{ errorEliminarDisponibilidad ? 'Cerrar' : 'Cancelar' }}
+            </button>
+            <button
+              v-if="!errorEliminarDisponibilidad"
+              type="button"
+              @click="ejecutarEliminarDisponibilidad"
+              class="btn-delete"
+              :disabled="eliminandoDisponibilidad"
+            >
+              {{ eliminandoDisponibilidad ? 'Eliminando...' : 'Eliminar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast para notificaciones -->
     <Toast />
   </div>
@@ -440,6 +481,13 @@ const errorDisponibilidad = ref('')
 const submittingDisponibilidad = ref(false)
 const submittingInicializar = ref(false)
 const errorInicializar = ref('')
+
+// Estado para modal de confirmación de eliminación de disponibilidad
+const showConfirmDeleteDisponibilidad = ref(false)
+const disponibilidadPendienteEliminar = ref<DisponibilidadResponse | null>(null)
+const eliminandoDisponibilidad = ref(false)
+const errorEliminarDisponibilidad = ref('')
+const turnosBloqueanEliminar = ref<string[]>([])
 
 const formDataDisponibilidad = ref<DisponibilidadRequest>({
   diaSemana: '' as any,
@@ -651,7 +699,15 @@ async function submitFormDisponibilidad() {
     cerrarModalDisponibilidad()
   } catch (err: any) {
     console.error('Error al guardar disponibilidad:', err)
-    if (err.response?.data?.mensaje || err.response?.data?.message) {
+    if (err.response?.status === 409) {
+      const data = err.response.data
+      if (data?.turnosAfectados?.length) {
+        errorDisponibilidad.value = data.mensaje +
+          '\n\nTurnos afectados:\n• ' + (data.turnosAfectados as string[]).join('\n• ')
+      } else {
+        errorDisponibilidad.value = data?.mensaje || 'No se puede modificar la disponibilidad por conflictos existentes.'
+      }
+    } else if (err.response?.data?.mensaje || err.response?.data?.message) {
       errorDisponibilidad.value = err.response.data.mensaje || err.response.data.message
     } else {
       errorDisponibilidad.value = 'Error al guardar la disponibilidad'
@@ -661,21 +717,44 @@ async function submitFormDisponibilidad() {
   }
 }
 
-async function confirmarEliminarDisponibilidad(disponibilidad: DisponibilidadResponse) {
+function confirmarEliminarDisponibilidad(disponibilidad: DisponibilidadResponse) {
   if (!disponibilidad.id) return
-  
-  const confirmacion = confirm(
-    `¿Estás seguro de eliminar el horario de ${nombresDias[disponibilidad.diaSemana]} (${disponibilidad.horaInicio} - ${disponibilidad.horaFin})?`
-  )
-  
-  if (confirmacion) {
-    try {
-      await disponibilidadService.eliminarDisponibilidad(disponibilidad.id)
-      await cargarDisponibilidad()
-    } catch (err: any) {
-      console.error('Error al eliminar disponibilidad:', err)
-      toastStore.show('Error al eliminar la disponibilidad', 4000)
+  disponibilidadPendienteEliminar.value = disponibilidad
+  errorEliminarDisponibilidad.value = ''
+  turnosBloqueanEliminar.value = []
+  showConfirmDeleteDisponibilidad.value = true
+}
+
+function cerrarConfirmDeleteDisponibilidad() {
+  showConfirmDeleteDisponibilidad.value = false
+  disponibilidadPendienteEliminar.value = null
+  errorEliminarDisponibilidad.value = ''
+  turnosBloqueanEliminar.value = []
+}
+
+async function ejecutarEliminarDisponibilidad() {
+  if (!disponibilidadPendienteEliminar.value?.id) return
+  eliminandoDisponibilidad.value = true
+  errorEliminarDisponibilidad.value = ''
+  try {
+    await disponibilidadService.eliminarDisponibilidad(disponibilidadPendienteEliminar.value.id)
+    await cargarDisponibilidad()
+    cerrarConfirmDeleteDisponibilidad()
+  } catch (err: any) {
+    console.error('Error al eliminar disponibilidad:', err)
+    if (err.response?.status === 409) {
+      const data = err.response.data
+      if (data?.turnosAfectados?.length) {
+        errorEliminarDisponibilidad.value = data.mensaje
+        turnosBloqueanEliminar.value = data.turnosAfectados as string[]
+      } else {
+        errorEliminarDisponibilidad.value = data?.mensaje || 'No se puede eliminar la disponibilidad por turnos activos.'
+      }
+    } else {
+      errorEliminarDisponibilidad.value = 'Error inesperado al eliminar la disponibilidad. Intente nuevamente.'
     }
+  } finally {
+    eliminandoDisponibilidad.value = false
   }
 }
 
@@ -1409,6 +1488,17 @@ function cerrarSesion() {
 
 .btn-delete:hover {
   background-color: #fecaca;
+}
+
+.lista-bloqueantes {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+  font-size: 0.875rem;
+  color: #374151;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 /* Empty State */
