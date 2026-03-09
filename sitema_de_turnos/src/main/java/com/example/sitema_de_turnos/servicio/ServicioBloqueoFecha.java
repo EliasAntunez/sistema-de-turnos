@@ -1,36 +1,45 @@
 package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.dto.*;
+import com.example.sitema_de_turnos.dto.notificacion.CancelacionBloqueoData;
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.*;
+import com.example.sitema_de_turnos.evento.CancelacionBloqueoEvent;
 import com.example.sitema_de_turnos.repositorio.RepositorioBloqueoFecha;
 import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
-import com.example.sitema_de_turnos.repositorio.RepositorioDisponibilidadProfesional;
+import com.example.sitema_de_turnos.repositorio.RepositorioPoliticaCancelacion;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.format.TextStyle;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * CORREGIDO: Ahora usa ServicioValidacionProfesional para validar empresa activa
+ * Gestiona el ciclo de vida de los bloqueos de agenda de un profesional.
+ * Verifica conflictos con turnos existentes, resuelve cancelaciones masivas
+ * y publica eventos para notificar a los clientes afectados.
  */
 @Service
 @RequiredArgsConstructor
 public class ServicioBloqueoFecha {
 
+    private static final Logger log = LoggerFactory.getLogger(ServicioBloqueoFecha.class);
+
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioTurno repositorioTurno;
-    private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
     private final ServicioValidacionProfesional servicioValidacionProfesional;
+    private final RepositorioPoliticaCancelacion repositorioPoliticaCancelacion;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public BloqueoFechaResponse crearBloqueo(String emailProfesional, BloqueoFechaRequest request) {
@@ -77,36 +86,71 @@ public class ServicioBloqueoFecha {
     }
 
     /**
-     * Verificar si existen turnos en conflicto con el bloqueo
+     * Verifica conflictos delegando la resolución del profesional al servicio de validación.
+     * Punto de entrada para controladores: evita que el controlador manipule entidades directamente.
+     */
+    @Transactional(readOnly = true)
+    public ConflictosBloqueoResponse verificarConflictosConTurnos(String emailProfesional, BloqueoFechaRequest request) {
+        Profesional profesional = obtenerProfesional(emailProfesional);
+        return verificarConflictosConTurnos(profesional, request);
+    }
+
+    /**
+     * Verificar si existen turnos en conflicto con el bloqueo.
+     *
+     * OPTIMIZADO: usa JOIN FETCH para evitar N+1 queries.
+     * PLUS: detecta violaciones a la política de cancelación de la empresa
+     * y enriquece cada ConflictoTurnoDTO con el flag violaPolitica (solo informativo).
      */
     @Transactional(readOnly = true)
     public ConflictosBloqueoResponse verificarConflictosConTurnos(Profesional profesional, BloqueoFechaRequest request) {
         LocalDate fechaInicio = request.getFechaInicio();
         LocalDate fechaFin = request.getFechaFin() != null ? request.getFechaFin() : request.getFechaInicio();
 
-        // Buscar turnos activos en el rango
-        List<Turno> turnosEnRango = repositorioTurno.findByProfesionalAndFechaBetweenOrderByFechaAscHoraInicioAsc(
+        // 1. Buscar turnos conflictivos con JOIN FETCH (1 query en lugar de 1+3N)
+        List<Turno> turnosConflictivos = repositorioTurno.findConflictosBloqueo(
                 profesional, fechaInicio, fechaFin);
-
-        // Filtrar solo estados conflictivos
-        List<Turno> turnosConflictivos = turnosEnRango.stream()
-                .filter(t -> t.getEstado() == EstadoTurno.CREADO || 
-                             t.getEstado() == EstadoTurno.PENDIENTE_CONFIRMACION || 
-                             t.getEstado() == EstadoTurno.CONFIRMADO)
-                .collect(Collectors.toList());
 
         ConflictosBloqueoResponse response = new ConflictosBloqueoResponse();
         response.setTieneConflictos(!turnosConflictivos.isEmpty());
         response.setCantidadConflictos(turnosConflictivos.size());
 
         if (!turnosConflictivos.isEmpty()) {
+            // 2. Obtener política de cancelación activa de la empresa (si existe)
+            Optional<PoliticaCancelacion> politica = repositorioPoliticaCancelacion
+                    .findByEmpresaAndActivaTrue(profesional.getEmpresa())
+                    .stream()
+                    .filter(p -> p.getTipo() == TipoPoliticaCancelacion.CANCELACION
+                              || p.getTipo() == TipoPoliticaCancelacion.AMBOS)
+                    .findFirst();
+
+            LocalDateTime ahora = LocalDateTime.now();
+
+            // 3. Mapear a DTO enriquecido con flag de política
             List<ConflictoTurnoDTO> conflictos = turnosConflictivos.stream()
-                    .map(this::convertirAConflictoDTO)
+                    .map(turno -> {
+                        ConflictoTurnoDTO dto = convertirAConflictoDTO(turno);
+                        politica.ifPresent(p -> {
+                            LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
+                            long horasHastaTurno = ChronoUnit.HOURS.between(ahora, inicioTurno);
+                            if (horasHastaTurno >= 0 && horasHastaTurno < p.getHorasLimiteCancelacion()) {
+                                dto.setViolaPolitica(true);
+                                dto.setDescripcionViolacion("Faltan " + horasHastaTurno + "h para el turno. "
+                                        + "La política requiere " + p.getHorasLimiteCancelacion()
+                                        + "h de anticipación para cancelar.");
+                            }
+                        });
+                        return dto;
+                    })
                     .collect(Collectors.toList());
+
+            boolean hayViolacion = conflictos.stream().anyMatch(ConflictoTurnoDTO::isViolaPolitica);
             response.setTurnosConflictivos(conflictos);
-            response.setMensaje("Se encontraron " + turnosConflictivos.size() + 
-                    " turno(s) que deben ser resueltos antes de crear el bloqueo.");
+            response.setHayViolacionPolitica(hayViolacion);
+            response.setMensaje("Se encontraron " + turnosConflictivos.size()
+                    + " turno(s) que deben ser resueltos antes de crear el bloqueo.");
         } else {
+            response.setHayViolacionPolitica(false);
             response.setMensaje("No hay conflictos con turnos existentes.");
         }
 
@@ -122,123 +166,42 @@ public class ServicioBloqueoFecha {
 
         // Verificar conflictos nuevamente
         ConflictosBloqueoResponse conflictos = verificarConflictosConTurnos(profesional, request.getBloqueo());
-        
+
         if (!conflictos.isTieneConflictos()) {
             // No hay conflictos, crear normalmente
             return crearBloqueoSinValidacionConflictos(profesional, request.getBloqueo());
         }
 
         // Resolver según la acción elegida
-        switch (request.getAccion()) {
-            case CANCELAR_TODOS:
-                cancelarTodosLosTurnos(conflictos.getTurnosConflictivos());
-                break;
-                
-            case REPROGRAMAR:
-                if (request.getReprogramaciones() == null || request.getReprogramaciones().isEmpty()) {
-                    throw new ValidacionException("Debe proporcionar las reprogramaciones para todos los turnos");
-                }
-                reprogramarTurnos(profesional, request.getReprogramaciones(), request.getBloqueo());
-                break;
-                
-            case CANCELAR_FUTUROS:
-                cancelarSoloTurnosFuturos(conflictos.getTurnosConflictivos());
-                break;
-                
-            default:
-                throw new ValidacionException("Acción no válida");
-        }
+        if (request.getAccion() == ResolucionConflictoRequest.AccionResolucion.CANCELAR_EN_RANGO) {
 
-        // Crear el bloqueo
-        return crearBloqueoSinValidacionConflictos(profesional, request.getBloqueo());
-    }
-
-    /**
-     * Sugerir slots disponibles para reprogramar un turno
-     */
-    @Transactional(readOnly = true)
-    public List<SlotDisponibleDTO> sugerirSlotsDisponibles(String emailProfesional, Long turnoId, int diasABuscar) {
-        Profesional profesional = obtenerProfesional(emailProfesional);
-        
-        // Obtener el turno
-        Turno turno = repositorioTurno.findById(turnoId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
-
-        if (!turno.getProfesional().getId().equals(profesional.getId())) {
-            throw new AccesoDenegadoException("No puede reprogramar turnos de otro profesional");
-        }
-
-        List<SlotDisponibleDTO> slots = new ArrayList<>();
-        LocalDate fechaBusqueda = LocalDate.now();
-        LocalDate fechaLimite = fechaBusqueda.plusDays(diasABuscar);
-        
-        // Obtener tiempo mínimo de anticipación de la empresa
-        int tiempoMinimoAnticipacion = profesional.getEmpresa().getTiempoMinimoAnticipacionMinutos() != null ?
-            profesional.getEmpresa().getTiempoMinimoAnticipacionMinutos() : 30;
-        LocalTime horaLimiteHoy = LocalTime.now().plusMinutes(tiempoMinimoAnticipacion);
-
-        // Obtener disponibilidades del profesional
-        List<DisponibilidadProfesional> disponibilidades = repositorioDisponibilidadProfesional.findByProfesionalAndActivoTrue(profesional);
-
-        while (fechaBusqueda.isBefore(fechaLimite) && slots.size() < 20) { // Máximo 20 sugerencias
-            final LocalDate fechaActual = fechaBusqueda;
-            final boolean esHoy = fechaActual.isEqual(LocalDate.now());
-            
-            // Convertir DayOfWeek a DiaSemana
-            DiaSemana diaSemana = convertirDayOfWeekADiaSemana(fechaActual.getDayOfWeek());
-            
-            // Buscar disponibilidad para ese día
-            List<DisponibilidadProfesional> disponibilidadesDia = disponibilidades.stream()
-                    .filter(d -> d.getDiaSemana() == diaSemana)
+            // 1. Cargar datos para notificación ANTES del bulk UPDATE,
+            //    mientras las relaciones (cliente, servicio, empresa) están en el contexto JPA.
+            List<Long> ids = conflictos.getTurnosConflictivos().stream()
+                    .map(ConflictoTurnoDTO::getTurnoId)
                     .collect(Collectors.toList());
 
-            // Para cada franja horaria disponible, generar slots
-            for (DisponibilidadProfesional disp : disponibilidadesDia) {
-                LocalTime horaActual = disp.getHoraInicio();
-                while (horaActual.plusMinutes(turno.getDuracionMinutos()).isBefore(disp.getHoraFin()) ||
-                       horaActual.plusMinutes(turno.getDuracionMinutos()).equals(disp.getHoraFin())) {
-                    
-                    LocalTime horaFin = horaActual.plusMinutes(turno.getDuracionMinutos());
-                    
-                    // Si es hoy, verificar que el slot esté después del tiempo mínimo de anticipación
-                    if (esHoy && horaActual.isBefore(horaLimiteHoy)) {
-                        horaActual = horaActual.plusMinutes(30);
-                        continue;
-                    }
-                    
-                    // Verificar que no haya turnos en ese slot
-                    final LocalTime horaInicioFinal = horaActual;
-                    boolean ocupado = repositorioTurno.existeSolapamiento(profesional, fechaActual, horaInicioFinal, horaFin);
-                    
-                    if (!ocupado) {
-                        SlotDisponibleDTO slot = new SlotDisponibleDTO();
-                        slot.setFecha(fechaActual);
-                        slot.setHoraInicio(horaInicioFinal);
-                        slot.setHoraFin(horaFin);
-                        slot.setDia(fechaActual.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.of("es")));
-                        slots.add(slot);
-                    }
-                    
-                    horaActual = horaActual.plusMinutes(30); // Intervalos de 30 minutos
-                }
-            }
+            List<CancelacionBloqueoData> datosNotificacion = repositorioTurno
+                    .findByIdsParaNotificacion(ids)
+                    .stream()
+                    .map(this::construirDatoNotificacion)
+                    .collect(Collectors.toList());
 
-            fechaBusqueda = fechaBusqueda.plusDays(1);
+            // 2. Cancelar masivamente (1 sola query UPDATE)
+            cancelarEnRango(conflictos.getTurnosConflictivos());
+
+            // 3. Crear el bloqueo
+            BloqueoFechaResponse resultado = crearBloqueoSinValidacionConflictos(profesional, request.getBloqueo());
+
+            // 4. Publicar evento: el listener @TransactionalEventListener(AFTER_COMMIT)
+            //    garantiza que los emails se envían solo si la transacción confirmó en DB.
+            eventPublisher.publishEvent(new CancelacionBloqueoEvent(datosNotificacion));
+
+            return resultado;
+
+        } else {
+            throw new ValidacionException("Acción no válida");
         }
-
-        return slots;
-    }
-
-    private DiaSemana convertirDayOfWeekADiaSemana(java.time.DayOfWeek dayOfWeek) {
-        return switch (dayOfWeek) {
-            case MONDAY -> DiaSemana.LUNES;
-            case TUESDAY -> DiaSemana.MARTES;
-            case WEDNESDAY -> DiaSemana.MIERCOLES;
-            case THURSDAY -> DiaSemana.JUEVES;
-            case FRIDAY -> DiaSemana.VIERNES;
-            case SATURDAY -> DiaSemana.SABADO;
-            case SUNDAY -> DiaSemana.DOMINGO;
-        };
     }
 
     private BloqueoFechaResponse crearBloqueoSinValidacionConflictos(Profesional profesional, BloqueoFechaRequest request) {
@@ -248,112 +211,40 @@ public class ServicioBloqueoFecha {
         bloqueo.setFechaFin(request.getFechaFin());
         bloqueo.setMotivo(request.getMotivo());
         bloqueo.setActivo(true);
-
         bloqueo = repositorioBloqueoFecha.save(bloqueo);
         return convertirAResponse(bloqueo);
     }
 
-    private void cancelarTodosLosTurnos(List<ConflictoTurnoDTO> conflictos) {
-        for (ConflictoTurnoDTO conflicto : conflictos) {
-            Turno turno = repositorioTurno.findById(conflicto.getTurnoId())
-                    .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
-            
-            turno.setEstado(EstadoTurno.CANCELADO);
-            turno.setMotivoCancelacion("Cancelado por creación de bloqueo de fecha");
-            turno.setCanceladoPor("PROFESIONAL");
-            turno.setFechaCancelacion(java.time.LocalDateTime.now());
-            repositorioTurno.save(turno);
-        }
+    private CancelacionBloqueoData construirDatoNotificacion(Turno turno) {
+        Profesional p = turno.getProfesional();
+        return CancelacionBloqueoData.builder()
+                .clienteEmail(turno.getCliente().getEmail())
+                .clienteNombre(turno.getCliente().getNombre())
+                .fecha(turno.getFecha())
+                .horaInicio(turno.getHoraInicio())
+                .servicioNombre(turno.getServicio().getNombre())
+                .profesionalNombre(p.getNombre() + " " + p.getApellido())
+                .empresaNombre(p.getEmpresa().getNombre())
+                .empresaSlug(p.getEmpresa().getSlug())
+                .build();
     }
 
-    private void cancelarSoloTurnosFuturos(List<ConflictoTurnoDTO> conflictos) {
-        LocalDate hoy = LocalDate.now();
-        
-        for (ConflictoTurnoDTO conflicto : conflictos) {
-            // Solo cancelar turnos >= hoy
-            if (conflicto.getFecha().isBefore(hoy)) {
-                continue;
-            }
-            
-            Turno turno = repositorioTurno.findById(conflicto.getTurnoId())
-                    .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
-            
-            turno.setEstado(EstadoTurno.CANCELADO);
-            turno.setMotivoCancelacion("Cancelado por creación de bloqueo de fecha");
-            turno.setCanceladoPor("PROFESIONAL");
-            turno.setFechaCancelacion(java.time.LocalDateTime.now());
-            repositorioTurno.save(turno);
-        }
-    }
-
-    private void reprogramarTurnos(Profesional profesional, List<ReprogramacionTurnoDTO> reprogramaciones, 
-                                   BloqueoFechaRequest bloqueoPendiente) {
-        for (ReprogramacionTurnoDTO reprog : reprogramaciones) {
-            Turno turno = repositorioTurno.findById(reprog.getTurnoId())
-                    .orElseThrow(() -> new RecursoNoEncontradoException("Turno " + reprog.getTurnoId() + " no encontrado"));
-
-            // Validar que el turno pertenece al profesional
-            if (!turno.getProfesional().getId().equals(profesional.getId())) {
-                throw new ValidacionException("El turno " + reprog.getTurnoId() + " no pertenece al profesional");
-            }
-
-            // Validar que la nueva fecha no esté en el pasado
-            if (reprog.getNuevaFecha().isBefore(LocalDate.now())) {
-                throw new ValidacionException("No se puede reprogramar a una fecha pasada");
-            }
-            
-            // Validar tiempo mínimo de anticipación para el día actual
-            if (reprog.getNuevaFecha().isEqual(LocalDate.now())) {
-                int tiempoMinimo = profesional.getEmpresa().getTiempoMinimoAnticipacionMinutos() != null ?
-                    profesional.getEmpresa().getTiempoMinimoAnticipacionMinutos() : 30;
-                LocalTime horaLimite = LocalTime.now().plusMinutes(tiempoMinimo);
-                if (reprog.getNuevaHora().isBefore(horaLimite)) {
-                    throw new ValidacionException("No se puede reprogramar para hoy con menos de " + tiempoMinimo + 
-                        " minutos de anticipación. Hora mínima: " + horaLimite.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
-                }
-            }
-
-            // Validar que la nueva fecha no esté dentro del bloqueo
-            LocalDate fechaFinBloqueo = bloqueoPendiente.getFechaFin() != null ? 
-                    bloqueoPendiente.getFechaFin() : bloqueoPendiente.getFechaInicio();
-            
-            if (!reprog.getNuevaFecha().isBefore(bloqueoPendiente.getFechaInicio()) && 
-                !reprog.getNuevaFecha().isAfter(fechaFinBloqueo)) {
-                throw new ValidacionException("No se puede reprogramar a una fecha dentro del bloqueo");
-            }
-
-            LocalTime nuevaHoraFin = reprog.getNuevaHora().plusMinutes(turno.getDuracionMinutos());
-
-            // Validar disponibilidad del profesional
-            DiaSemana diaSemana = convertirDayOfWeekADiaSemana(reprog.getNuevaFecha().getDayOfWeek());
-            List<DisponibilidadProfesional> disponibilidades = repositorioDisponibilidadProfesional
-                    .findByProfesionalAndActivoTrue(profesional).stream()
-                    .filter(d -> d.getDiaSemana() == diaSemana)
-                    .collect(Collectors.toList());
-
-            boolean dentroDisponibilidad = disponibilidades.stream().anyMatch(disp ->
-                    !reprog.getNuevaHora().isBefore(disp.getHoraInicio()) &&
-                    !nuevaHoraFin.isAfter(disp.getHoraFin())
-            );
-
-            if (!dentroDisponibilidad) {
-                throw new ValidacionException("El horario " + reprog.getNuevaHora() + 
-                        " no está dentro de la disponibilidad del profesional para el día " + 
-                        reprog.getNuevaFecha());
-            }
-
-            // Validar solapamiento
-            if (repositorioTurno.existeSolapamiento(profesional, reprog.getNuevaFecha(), 
-                    reprog.getNuevaHora(), nuevaHoraFin)) {
-                throw new ValidacionException("Ya existe un turno en el horario " + 
-                        reprog.getNuevaFecha() + " " + reprog.getNuevaHora());
-            }
-
-            // Reprogramar el turno
-            turno.setFecha(reprog.getNuevaFecha());
-            turno.setHoraInicio(reprog.getNuevaHora());
-            turno.setHoraFin(nuevaHoraFin);
-            repositorioTurno.save(turno);
+    private void cancelarEnRango(List<ConflictoTurnoDTO> conflictos) {
+        if (conflictos.isEmpty()) return;
+        List<Long> ids = conflictos.stream()
+                .map(ConflictoTurnoDTO::getTurnoId)
+                .collect(Collectors.toList());
+        int actualizados = repositorioTurno.cancelarTurnosMasivamente(
+                ids,
+                EstadoTurno.CANCELADO,
+                "Cancelado por creación de bloqueo de fecha",
+                "PROFESIONAL",
+                LocalDateTime.now()
+        );
+        if (actualizados != ids.size()) {
+            log.warn("cancelarEnRango: se esperaba cancelar {} turno(s) pero se actualizaron {}. "
+                    + "Algunos pueden haber alcanzado un estado terminal antes del bloqueo.",
+                    ids.size(), actualizados);
         }
     }
 

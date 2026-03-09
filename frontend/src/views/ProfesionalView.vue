@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="profesional-view">
     <!-- Header -->
     <header class="header">
@@ -392,147 +392,14 @@
       </div>
     </div>
 
-    <!-- Modal: Conflictos con Turnos -->
-    <div v-if="showModalConflictos" class="modal-overlay" @click="cerrarModalConflictos">
-      <div class="modal modal-medium" @click.stop>
-        <div class="modal-header">
-          <h2>⚠️ Conflictos con Turnos Existentes</h2>
-          <button @click="cerrarModalConflictos" class="btn-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p class="conflicto-mensaje">
-            Se encontraron <strong>{{ conflictosData?.cantidadConflictos }}</strong> turno(s) 
-            que están dentro del rango del bloqueo. Elegí cómo resolverlos:
-          </p>
-
-          <div class="turnos-conflictivos">
-            <div v-for="turno in conflictosData?.turnosConflictivos" :key="turno.turnoId" class="turno-conflicto-item">
-              <div class="turno-conflicto-info">
-                <strong>{{ turno.fecha }} {{ turno.horaInicio }}-{{ turno.horaFin }}</strong>
-                <p>{{ turno.servicioNombre }}</p>
-                <p class="cliente-info">{{ turno.clienteNombre }} - {{ turno.clienteTelefono }}</p>
-                <span :class="['estado-badge-small', `estado-${turno.estado.toLowerCase()}`]">
-                  {{ turno.estado }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="opciones-resolucion">
-            <h3>Seleccioná una opción:</h3>
-            
-            <button @click="resolverConflicto('CANCELAR_TODOS')" class="opcion-btn opcion-cancelar">
-              <span class="opcion-icono">❌</span>
-              <div class="opcion-texto">
-                <strong>Cancelar Todos los Turnos</strong>
-                <small>Se cancelarán automáticamente todos los turnos en conflicto</small>
-              </div>
-            </button>
-
-            <button @click="resolverConflicto('REPROGRAMAR')" class="opcion-btn opcion-reprogramar">
-              <span class="opcion-icono">📅</span>
-              <div class="opcion-texto">
-                <strong>Reprogramar Manualmente</strong>
-                <small>Elegir nueva fecha/hora para cada turno (paso a paso)</small>
-              </div>
-            </button>
-
-            <button @click="resolverConflicto('CANCELAR_FUTUROS')" class="opcion-btn opcion-futuros">
-              <span class="opcion-icono">⏩</span>
-              <div class="opcion-texto">
-                <strong>Cancelar Solo Futuros</strong>
-                <small>Los turnos pasados se mantienen, solo se cancelan los futuros</small>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal: Reprogramación Paso a Paso -->
-    <div v-if="showModalReprogramacion" class="modal-overlay" @click="cerrarModalReprogramacion">
-      <div class="modal modal-large" @click.stop>
-        <div class="modal-header">
-          <h2>Reprogramar Turno {{ indiceTurnoActual + 1 }} de {{ turnosAReprogramar.length }}</h2>
-          <button @click="cerrarModalReprogramacion" class="btn-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div v-if="turnoActual" class="turno-actual-info">
-            <h3>Turno Original:</h3>
-            <div class="info-box">
-              <p><strong>Fecha:</strong> {{ turnoActual.fecha }}</p>
-              <p><strong>Hora:</strong> {{ turnoActual.horaInicio }} - {{ turnoActual.horaFin }}</p>
-              <p><strong>Cliente:</strong> {{ turnoActual.clienteNombre }} ({{ turnoActual.clienteTelefono }})</p>
-              <p><strong>Servicio:</strong> {{ turnoActual.servicioNombre }}</p>
-            </div>
-          </div>
-
-          <h3>Nueva Fecha y Hora:</h3>
-
-          <!-- Slots Sugeridos -->
-          <div v-if="loadingSlots" class="loading-small">Cargando sugerencias...</div>
-          <div v-else-if="slotsSugeridos.length > 0" class="slots-sugeridos">
-            <p class="slots-titulo">Horarios disponibles sugeridos:</p>
-            <div class="slots-grid">
-              <button 
-                v-for="(slot, idx) in slotsSugeridos.slice(0, 12)" 
-                :key="idx"
-                @click="seleccionarSlot(slot)"
-                :class="['slot-btn', { 'slot-seleccionado': esSlotSeleccionado(slot) }]">
-                <div class="slot-fecha">{{ formatearFechaCorta(slot.fecha) }}</div>
-                <div class="slot-hora">{{ slot.horaInicio }}</div>
-              </button>
-            </div>
-          </div>
-
-          <!-- Inputs Manuales -->
-          <div class="inputs-manuales">
-            <p class="inputs-titulo">O elegí manualmente:</p>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Nueva Fecha *</label>
-                <input 
-                  v-model="reprogramacionActual.nuevaFecha" 
-                  type="date" 
-                  :min="fechaMinimaReprogramacion"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label>Nueva Hora *</label>
-                <input 
-                  v-model="reprogramacionActual.nuevaHora" 
-                  type="time" 
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <div v-if="errorReprogramacion" class="error-message">{{ errorReprogramacion }}</div>
-
-          <div class="modal-actions reprogramacion-actions">
-            <button 
-              v-if="indiceTurnoActual > 0" 
-              @click="turnoAnterior" 
-              class="btn-secondary">
-              ← Anterior
-            </button>
-            <button 
-              @click="cancelarReprogramacion" 
-              class="btn-cancel">
-              Cancelar Todo
-            </button>
-            <button 
-              @click="siguienteTurno" 
-              class="btn-primary"
-              :disabled="!reprogramacionActual.nuevaFecha || !reprogramacionActual.nuevaHora">
-              {{ indiceTurnoActual < turnosAReprogramar.length - 1 ? 'Siguiente →' : 'Finalizar' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Modal: Resolución de conflictos de bloqueo (componente extraído) -->
+    <BloqueoConflictosModal
+      :show="showModalConflictos"
+      :conflictos-data="conflictosData"
+      :bloqueo-pendiente="bloqueoPendiente"
+      @cerrar="cerrarModalConflictos"
+      @bloqueo-creado="onBloqueoCreado"
+    />
 
     <!-- Toast para notificaciones -->
     <Toast />
@@ -546,8 +413,9 @@ import { useAuthStore } from '../stores/auth'
 import { useNotificacionesStore } from '../stores/notificaciones'
 import NotificationBell from '../components/NotificationBell.vue'
 import Toast from '../components/Toast.vue'
+import BloqueoConflictosModal from '../components/BloqueoConflictosModal.vue'
 import { disponibilidadService, type DisponibilidadRequest, type DisponibilidadResponse, diasSemana } from '../services/disponibilidad'
-import { bloqueosService, type BloqueoRequest, type BloqueoResponse } from '../services/bloqueos'
+import { bloqueosService, type BloqueoRequest, type BloqueoResponse, type ConflictosBloqueoResponse } from '../services/bloqueos'
 import api from '../services/api'
 import { useToastStore } from '../composables/useToast'
 
@@ -623,29 +491,8 @@ const formDataBloqueo = ref<BloqueoRequest>({
 
 // Estado para Conflictos de Bloqueos
 const showModalConflictos = ref(false)
-const conflictosData = ref<any>(null)
+const conflictosData = ref<ConflictosBloqueoResponse | null>(null)
 const bloqueoPendiente = ref<BloqueoRequest | null>(null)
-
-// Estado para Reprogramación
-const showModalReprogramacion = ref(false)
-const turnosAReprogramar = ref<any[]>([])
-const indiceTurnoActual = ref(0)
-const reprogramaciones = ref<any[]>([])
-const reprogramacionActual = ref({
-  nuevaFecha: '',
-  nuevaHora: ''
-})
-const slotsSugeridos = ref<any[]>([])
-const loadingSlots = ref(false)
-const errorReprogramacion = ref('')
-
-const turnoActual = computed(() => {
-  return turnosAReprogramar.value[indiceTurnoActual.value]
-})
-
-const fechaMinimaReprogramacion = computed(() => {
-  return new Date().toISOString().split('T')[0]
-})
 
 const fechaMinima = computed(() => {
   return new Date().toISOString().split('T')[0]
@@ -827,7 +674,7 @@ async function confirmarEliminarDisponibilidad(disponibilidad: DisponibilidadRes
       await cargarDisponibilidad()
     } catch (err: any) {
       console.error('Error al eliminar disponibilidad:', err)
-      alert('Error al eliminar la disponibilidad')
+      toastStore.show('Error al eliminar la disponibilidad', 4000)
     }
   }
 }
@@ -901,7 +748,7 @@ async function submitFormBloqueo() {
         await bloqueosService.crearBloqueo(formDataBloqueo.value)
         await cargarBloqueos()
         cerrarModalBloqueo()
-        alert('Bloqueo creado exitosamente')
+      toastStore.show('Bloqueo creado exitosamente', 4000)
       }
     }
   } catch (err: any) {
@@ -925,184 +772,12 @@ function cerrarModalConflictos() {
   showModalBloqueo.value = true // Volver al modal de bloqueo
 }
 
-async function resolverConflicto(accion: 'CANCELAR_TODOS' | 'REPROGRAMAR' | 'CANCELAR_FUTUROS') {
-  if (!bloqueoPendiente.value || !conflictosData.value) return
-
-  if (accion === 'REPROGRAMAR') {
-    // Iniciar proceso de reprogramación
-    turnosAReprogramar.value = [...conflictosData.value.turnosConflictivos]
-    indiceTurnoActual.value = 0
-    reprogramaciones.value = []
-    reprogramacionActual.value = { nuevaFecha: '', nuevaHora: '' }
-    showModalConflictos.value = false
-    showModalReprogramacion.value = true
-    cargarSlotsSugeridos()
-  } else {
-    // Cancelar directamente
-    try {
-      submittingBloqueo.value = true
-      await bloqueosService.crearBloqueoConResolucion({
-        bloqueo: bloqueoPendiente.value,
-        accion: accion,
-        reprogramaciones: undefined
-      })
-      await cargarBloqueos()
-      cerrarModalConflictos()
-      showModalBloqueo.value = false
-      alert('Bloqueo creado exitosamente. Turnos procesados.')
-    } catch (err: any) {
-      console.error('Error al resolver conflicto:', err)
-      alert('Error al crear el bloqueo: ' + (err.response?.data?.mensaje || err.message))
-    } finally {
-      submittingBloqueo.value = false
-    }
-  }
-}
-
-// ==================== FUNCIONES DE REPROGRAMACIÓN ====================
-
-function cerrarModalReprogramacion() {
-  showModalReprogramacion.value = false
-  turnosAReprogramar.value = []
-  indiceTurnoActual.value = 0
-  reprogramaciones.value = []
-  reprogramacionActual.value = { nuevaFecha: '', nuevaHora: '' }
-  slotsSugeridos.value = []
-  errorReprogramacion.value = ''
-  showModalConflictos.value = true // Volver al modal de conflictos
-}
-
-function cancelarReprogramacion() {
-  const confirmar = confirm('¿Estás seguro de cancelar la reprogramación? Se perderán los cambios.')
-  if (confirmar) {
-    cerrarModalReprogramacion()
-  }
-}
-
-async function cargarSlotsSugeridos() {
-  if (!turnoActual.value) return
-
-  loadingSlots.value = true
-  try {
-    slotsSugeridos.value = await bloqueosService.sugerirSlots(turnoActual.value.turnoId, 30)
-  } catch (err) {
-    console.error('Error al cargar slots:', err)
-    slotsSugeridos.value = []
-  } finally {
-    loadingSlots.value = false
-  }
-}
-
-function seleccionarSlot(slot: any) {
-  reprogramacionActual.value.nuevaFecha = slot.fecha
-  reprogramacionActual.value.nuevaHora = slot.horaInicio
-}
-
-function esSlotSeleccionado(slot: any) {
-  return reprogramacionActual.value.nuevaFecha === slot.fecha &&
-         reprogramacionActual.value.nuevaHora === slot.horaInicio
-}
-
-function turnoAnterior() {
-  if (indiceTurnoActual.value > 0) {
-    // Guardar reprogramación actual
-    reprogramaciones.value[indiceTurnoActual.value] = {
-      turnoId: turnoActual.value.turnoId,
-      nuevaFecha: reprogramacionActual.value.nuevaFecha,
-      nuevaHora: reprogramacionActual.value.nuevaHora
-    }
-
-    // Ir al anterior
-    indiceTurnoActual.value--
-
-    // Cargar datos del anterior (si existen)
-    if (reprogramaciones.value[indiceTurnoActual.value]) {
-      reprogramacionActual.value = {
-        nuevaFecha: reprogramaciones.value[indiceTurnoActual.value].nuevaFecha,
-        nuevaHora: reprogramaciones.value[indiceTurnoActual.value].nuevaHora
-      }
-    } else {
-      reprogramacionActual.value = { nuevaFecha: '', nuevaHora: '' }
-    }
-
-    cargarSlotsSugeridos()
-  }
-}
-
-async function siguienteTurno() {
-  errorReprogramacion.value = ''
-
-  // Validar que se haya elegido fecha y hora
-  if (!reprogramacionActual.value.nuevaFecha || !reprogramacionActual.value.nuevaHora) {
-    errorReprogramacion.value = 'Debe seleccionar una fecha y hora'
-    return
-  }
-
-  // Guardar reprogramación actual
-  reprogramaciones.value[indiceTurnoActual.value] = {
-    turnoId: turnoActual.value.turnoId,
-    nuevaFecha: reprogramacionActual.value.nuevaFecha,
-    nuevaHora: reprogramacionActual.value.nuevaHora
-  }
-
-  if (indiceTurnoActual.value < turnosAReprogramar.value.length - 1) {
-    // Ir al siguiente turno
-    indiceTurnoActual.value++
-
-    // Cargar datos del siguiente (si ya se había completado)
-    if (reprogramaciones.value[indiceTurnoActual.value]) {
-      reprogramacionActual.value = {
-        nuevaFecha: reprogramaciones.value[indiceTurnoActual.value].nuevaFecha,
-        nuevaHora: reprogramaciones.value[indiceTurnoActual.value].nuevaHora
-      }
-    } else {
-      reprogramacionActual.value = { nuevaFecha: '', nuevaHora: '' }
-    }
-
-    cargarSlotsSugeridos()
-  } else {
-    // Último turno: finalizar reprogramación
-    await finalizarReprogramacion()
-  }
-}
-
-async function finalizarReprogramacion() {
-  if (!bloqueoPendiente.value) return
-
-  try {
-    submittingBloqueo.value = true
-    await bloqueosService.crearBloqueoConResolucion({
-      bloqueo: bloqueoPendiente.value,
-      accion: 'REPROGRAMAR',
-      reprogramaciones: reprogramaciones.value
-    })
-
-    await cargarBloqueos()
-    showModalReprogramacion.value = false
-    showModalConflictos.value = false
-    showModalBloqueo.value = false
-    alert('Bloqueo creado y turnos reprogramados exitosamente')
-
-    // Limpiar estado
-    turnosAReprogramar.value = []
-    indiceTurnoActual.value = 0
-    reprogramaciones.value = []
-    bloqueoPendiente.value = null
-    conflictosData.value = null
-  } catch (err: any) {
-    console.error('Error al finalizar reprogramación:', err)
-    errorReprogramacion.value = 'Error: ' + (err.response?.data?.mensaje || err.message)
-  } finally {
-    submittingBloqueo.value = false
-  }
-}
-
-function formatearFechaCorta(fecha: string) {
-  const date = new Date(fecha + 'T00:00:00')
-  return date.toLocaleDateString('es-AR', { 
-    day: '2-digit', 
-    month: 'short'
-  })
+async function onBloqueoCreado() {
+  showModalConflictos.value = false
+  showModalBloqueo.value = false
+  bloqueoPendiente.value = null
+  conflictosData.value = null
+  await cargarBloqueos()
 }
 
 async function confirmarEliminarBloqueo(bloqueo: BloqueoResponse) {
@@ -1118,7 +793,7 @@ async function confirmarEliminarBloqueo(bloqueo: BloqueoResponse) {
       await cargarBloqueos()
     } catch (err: any) {
       console.error('Error al eliminar bloqueo:', err)
-      alert('Error al eliminar el bloqueo')
+      toastStore.show('Error al eliminar el bloqueo', 4000)
     }
   }
 }
@@ -1156,7 +831,7 @@ async function cargarTurnos() {
     turnos.value = response.data.datos
   } catch (error: any) {
     console.error('Error al cargar turnos:', error)
-    alert('Error al cargar turnos: ' + (error.response?.data?.mensaje || error.message))
+    toastStore.show('Error al cargar turnos: ' + (error.response?.data?.mensaje || error.message), 4000)
   } finally {
     loadingTurnos.value = false
   }
@@ -1246,7 +921,7 @@ async function submitObservaciones() {
     }
     
     cerrarModalObservaciones()
-    alert('Observación agregada exitosamente')
+    toastStore.show('Observación agregada exitosamente', 4000)
   } catch (error: any) {
     errorObservaciones.value = error.response?.data?.mensaje || 'Error al agregar observación'
   } finally {

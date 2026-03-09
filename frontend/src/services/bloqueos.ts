@@ -25,6 +25,8 @@ export interface ConflictoTurno {
   clienteTelefono: string
   servicioNombre: string
   estado: string
+  violaPolitica: boolean
+  descripcionViolacion: string | null
 }
 
 export interface ConflictosBloqueoResponse {
@@ -32,25 +34,12 @@ export interface ConflictosBloqueoResponse {
   cantidadConflictos: number
   turnosConflictivos: ConflictoTurno[]
   mensaje: string
-}
-
-export interface ReprogramacionTurno {
-  turnoId: number
-  nuevaFecha: string
-  nuevaHora: string
+  hayViolacionPolitica: boolean
 }
 
 export interface ResolucionConflictoRequest {
   bloqueo: BloqueoRequest
-  accion: 'CANCELAR_TODOS' | 'REPROGRAMAR' | 'CANCELAR_FUTUROS'
-  reprogramaciones?: ReprogramacionTurno[]
-}
-
-export interface SlotDisponible {
-  fecha: string
-  horaInicio: string
-  horaFin: string
-  dia: string
+  accion: 'CANCELAR_EN_RANGO'
 }
 
 export const bloqueosService = {
@@ -66,11 +55,6 @@ export const bloqueosService = {
 
   async crearBloqueoConResolucion(datos: ResolucionConflictoRequest): Promise<BloqueoResponse> {
     const response = await api.post('/profesional/bloqueos/con-resolucion', datos)
-    return response.data.datos
-  },
-
-  async sugerirSlots(turnoId: number, diasABuscar: number = 30): Promise<SlotDisponible[]> {
-    const response = await api.get(`/profesional/bloqueos/slots-sugeridos/${turnoId}?diasABuscar=${diasABuscar}`)
     return response.data.datos
   },
 

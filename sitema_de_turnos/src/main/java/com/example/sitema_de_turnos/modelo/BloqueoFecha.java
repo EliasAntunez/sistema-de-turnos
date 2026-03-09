@@ -64,6 +64,6 @@ public class BloqueoFecha {
 
     @PrePersist
     protected void onCreate() {
-        fechaCreacion = LocalDateTime.now();
+        fechaCreacion = LocalDateTime.now(java.time.ZoneOffset.UTC);
     }
 }

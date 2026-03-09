@@ -91,7 +91,7 @@ public class ServicioTurno {
         LocalTime horaFin = horaInicio.plusMinutes(servicio.getDuracionMinutos()).plusMinutes(buffer);
 
         // 4.1. Validar que el profesional NO tenga bloqueo en esta fecha
-        if (tieneBloqueoDeFecha(profesional, fecha)) {
+        if (!repositorioBloqueoFecha.findBloqueoEnFecha(profesional, fecha).isEmpty()) {
             throw new ValidacionException("El profesional no está disponible en la fecha seleccionada");
         }
 
@@ -289,7 +289,7 @@ public class ServicioTurno {
         }
 
         // Validar bloqueos de fecha del profesional destino
-        if (tieneBloqueoDeFecha(profesionalDestino, nuevaFecha)) {
+        if (!repositorioBloqueoFecha.findBloqueoEnFecha(profesionalDestino, nuevaFecha).isEmpty()) {
             throw new ValidacionException("El profesional no está disponible en la fecha seleccionada");
         }
 
@@ -333,20 +333,6 @@ public class ServicioTurno {
 
         // Delega en la lógica existente que valida tiempos y estados
         cancelarTurno(turnoId, motivo, "CLIENTE");
-    }
-
-    /**
-     * Verificar si el profesional tiene bloqueo en una fecha específica
-     */
-    private boolean tieneBloqueoDeFecha(Profesional profesional, LocalDate fecha) {
-        java.util.List<BloqueoFecha> bloqueos = repositorioBloqueoFecha.findByProfesionalAndActivoTrue(profesional);
-        
-        return bloqueos.stream()
-                .anyMatch(bloqueo -> {
-                    LocalDate inicio = bloqueo.getFechaInicio();
-                    LocalDate fin = bloqueo.getFechaFin() != null ? bloqueo.getFechaFin() : inicio;
-                    return !fecha.isBefore(inicio) && !fecha.isAfter(fin);
-                });
     }
 
     /**

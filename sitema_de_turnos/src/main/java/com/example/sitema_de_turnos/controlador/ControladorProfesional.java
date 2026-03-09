@@ -258,14 +258,7 @@ public class ControladorProfesional {
             @Valid @RequestBody BloqueoFechaRequest dto,
             Authentication authentication) {
         String emailProfesional = authentication.getName();
-        
-        // Obtener profesional
-        Usuario usuario = repositorioUsuario.findByEmail(emailProfesional)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-        
-        ConflictosBloqueoResponse conflictos = servicioBloqueoFecha.verificarConflictosConTurnos(
-                (com.example.sitema_de_turnos.modelo.Profesional) usuario, dto);
-        
+        ConflictosBloqueoResponse conflictos = servicioBloqueoFecha.verificarConflictosConTurnos(emailProfesional, dto);
         return ResponseEntity.ok(RespuestaApi.exitosa("Verificación completada", conflictos));
     }
 
@@ -281,20 +274,6 @@ public class ControladorProfesional {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 RespuestaApi.exitosa("Bloqueo creado exitosamente", bloqueo)
         );
-    }
-
-    /**
-     * Sugerir slots disponibles para reprogramar un turno
-     */
-    @GetMapping("/bloqueos/slots-sugeridos/{turnoId}")
-    public ResponseEntity<RespuestaApi<List<SlotDisponibleDTO>>> sugerirSlots(
-            @PathVariable Long turnoId,
-            @RequestParam(defaultValue = "30") int diasABuscar,
-            Authentication authentication) {
-        String emailProfesional = authentication.getName();
-        List<SlotDisponibleDTO> slots = servicioBloqueoFecha.sugerirSlotsDisponibles(
-                emailProfesional, turnoId, diasABuscar);
-        return ResponseEntity.ok(RespuestaApi.exitosa("Slots sugeridos", slots));
     }
 
     @PostMapping("/bloqueos")

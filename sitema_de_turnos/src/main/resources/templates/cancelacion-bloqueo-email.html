@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turno Cancelado</title>
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #f97316 0%, #dc2626 100%); color: white; padding: 35px 30px; border-radius: 12px 12px 0 0; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="font-size: 48px; margin-bottom: 12px;">📅</div>
+        <h1 style="margin: 0 0 10px 0; font-size: 26px; font-weight: 600;">Turno Cancelado</h1>
+        <p style="margin: 0; font-size: 15px; opacity: 0.95;">{empresaNombre}</p>
+    </div>
+
+    <!-- Cuerpo principal -->
+    <div style="background-color: white; padding: 35px 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+
+        <!-- Saludo -->
+        <p style="font-size: 17px; margin-bottom: 10px; color: #444;">
+            Hola <strong style="color: #f97316;">{clienteNombre}</strong>,
+        </p>
+
+        <!-- Mensaje empático -->
+        <p style="font-size: 16px; margin-bottom: 24px; color: #555; line-height: 1.7;">
+            Lamentamos informarte que tu profesional tuvo un imprevisto y no podrá atenderte en la fecha reservada.
+            Por ese motivo, tu turno ha sido <strong style="color: #dc2626;">cancelado automáticamente</strong>.
+        </p>
+
+        <!-- Tarjeta del turno cancelado -->
+        <div style="background: linear-gradient(135deg, #fff7f5 0%, #fef2f2 100%); padding: 24px; border-radius: 10px; border-left: 6px solid #f97316; margin-bottom: 28px; box-shadow: 0 2px 8px rgba(249,115,22,0.1);">
+            <p style="margin: 0 0 4px 0; font-size: 13px; color: #9a3412; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Turno cancelado</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280; font-size: 14px; width: 38%;">📅 Fecha</td>
+                    <td style="padding: 6px 0; font-weight: 600; color: #1f2937; font-size: 14px;">{diaSemana}, {fechaFormateada}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">🕐 Hora</td>
+                    <td style="padding: 6px 0; font-weight: 600; color: #1f2937; font-size: 14px;">{horaInicio} hs</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">✂️ Servicio</td>
+                    <td style="padding: 6px 0; font-weight: 600; color: #1f2937; font-size: 14px;">{servicioNombre}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">👤 Profesional</td>
+                    <td style="padding: 6px 0; font-weight: 600; color: #1f2937; font-size: 14px;">{profesionalNombre}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Invitación a reagendar -->
+        <p style="font-size: 16px; margin-bottom: 24px; color: #555; text-align: center;">
+            ¿Querés sacar un nuevo turno? ¡Podés hacerlo en cualquier momento!
+        </p>
+
+        <!-- CTA Button -->
+        <div style="text-align: center; margin-bottom: 32px;">
+            <a href="{reservarUrl}"
+               style="display: inline-block; background: linear-gradient(135deg, #f97316 0%, #dc2626 100%); color: white; text-decoration: none; padding: 14px 36px; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(249,115,22,0.35);">
+                📅 Reservar nuevo turno
+            </a>
+        </div>
+
+        <!-- Separador -->
+        <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 28px 0;">
+
+        <!-- Footer -->
+        <div style="text-align: center;">
+            <p style="color: #9ca3af; font-size: 13px; margin: 0 0 6px 0;">
+                Este mensaje fue enviado automáticamente por <strong>{empresaNombreFooter}</strong>.
+            </p>
+            <p style="color: #d1d5db; font-size: 12px; margin: 0;">
+                Por favor, no respondas a este correo.
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>
