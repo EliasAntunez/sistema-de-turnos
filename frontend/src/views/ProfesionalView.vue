@@ -331,7 +331,12 @@
             </div>
           </div>
 
-          <div v-if="errorDisponibilidad" class="error-message">{{ errorDisponibilidad }}</div>
+          <div v-if="errorDisponibilidad" class="error-message">
+            <p>{{ errorDisponibilidad }}</p>
+            <ul v-if="disponibilidadConflictoDetalles.length" class="lista-bloqueantes" style="margin-top:0.5rem;">
+              <li v-for="item in disponibilidadConflictoDetalles" :key="item">{{ item }}</li>
+            </ul>
+          </div>
 
           <div class="modal-actions">
             <button type="button" @click="cerrarModalDisponibilidad" class="btn-cancel">Cancelar</button>
@@ -409,27 +414,13 @@
           <button @click="cerrarConfirmDeleteDisponibilidad" class="btn-close">&times;</button>
         </div>
         <div class="modal-form">
-          <div v-if="!errorEliminarDisponibilidad">
-            <p>¿Estás seguro de eliminar la disponibilidad del
-              <strong>{{ nombresDias[disponibilidadPendienteEliminar?.diaSemana ?? ''] }}</strong>
-              ({{ disponibilidadPendienteEliminar?.horaInicio }} - {{ disponibilidadPendienteEliminar?.horaFin }})?</p>
-            <p style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
-          </div>
-          <div v-else>
-            <div class="error-message">{{ errorEliminarDisponibilidad }}</div>
-            <ul v-if="turnosBloqueanEliminar.length" class="lista-bloqueantes">
-              <li v-for="turno in turnosBloqueanEliminar" :key="turno">{{ turno }}</li>
-            </ul>
-            <p v-if="turnosBloqueanEliminar.length" style="color:#718096;font-size:0.875rem;margin-top:0.75rem;">
-              Cancelá o reprograma esos turnos antes de continuar.
-            </p>
-          </div>
+          <p>¿Estás seguro de eliminar la disponibilidad del
+            <strong>{{ nombresDias[disponibilidadPendienteEliminar?.diaSemana ?? ''] }}</strong>
+            ({{ disponibilidadPendienteEliminar?.horaInicio }} - {{ disponibilidadPendienteEliminar?.horaFin }})?</p>
+          <p style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
           <div class="modal-actions">
-            <button type="button" @click="cerrarConfirmDeleteDisponibilidad" class="btn-cancel">
-              {{ errorEliminarDisponibilidad ? 'Cerrar' : 'Cancelar' }}
-            </button>
+            <button type="button" @click="cerrarConfirmDeleteDisponibilidad" class="btn-cancel">Cancelar</button>
             <button
-              v-if="!errorEliminarDisponibilidad"
               type="button"
               @click="ejecutarEliminarDisponibilidad"
               class="btn-delete"
@@ -444,6 +435,31 @@
 
     <!-- Toast para notificaciones -->
     <Toast />
+  </div>
+
+  <!-- Modal: Confirmar eliminación de bloqueo -->
+  <div v-if="showConfirmDeleteBloqueo" class="modal-overlay" @click="showConfirmDeleteBloqueo = false">
+    <div class="modal modal-small" @click.stop>
+      <div class="modal-header">
+        <h2>Eliminar Bloqueo</h2>
+        <button @click="showConfirmDeleteBloqueo = false" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-form">
+        <p>
+          ¿Estás seguro de eliminar el bloqueo del
+          <strong>
+            {{ formatearFecha(bloqueoAPendienteEliminar?.fechaInicio ?? '') }}
+            <span v-if="bloqueoAPendienteEliminar?.fechaFin && bloqueoAPendienteEliminar.fechaFin !== bloqueoAPendienteEliminar.fechaInicio">
+              - {{ formatearFecha(bloqueoAPendienteEliminar.fechaFin) }}
+            </span>
+          </strong>?
+        </p>
+        <div class="modal-actions">
+          <button type="button" @click="showConfirmDeleteBloqueo = false" class="btn-cancel">Cancelar</button>
+          <button type="button" @click="ejecutarEliminarBloqueo" class="btn-delete">Eliminar</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -486,8 +502,9 @@ const errorInicializar = ref('')
 const showConfirmDeleteDisponibilidad = ref(false)
 const disponibilidadPendienteEliminar = ref<DisponibilidadResponse | null>(null)
 const eliminandoDisponibilidad = ref(false)
-const errorEliminarDisponibilidad = ref('')
-const turnosBloqueanEliminar = ref<string[]>([])
+
+// Detalles de conflicto 409 en el formulario de disponibilidad
+const disponibilidadConflictoDetalles = ref<string[]>([])
 
 const formDataDisponibilidad = ref<DisponibilidadRequest>({
   diaSemana: '' as any,
@@ -638,6 +655,7 @@ async function inicializarDesdeEmpresa() {
   try {
     await disponibilidadService.inicializarDesdeEmpresa()
     await cargarDisponibilidad()
+    toastStore.showSuccess('Horarios inicializados desde la empresa correctamente')
   } catch (err: any) {
     console.error('Error al inicializar desde empresa:', err)
     if (err.response?.data?.mensaje || err.response?.data?.message) {
@@ -679,6 +697,7 @@ function cerrarModalDisponibilidad() {
     horaFin: ''
   }
   errorDisponibilidad.value = ''
+  disponibilidadConflictoDetalles.value = []
 }
 
 async function submitFormDisponibilidad() {
@@ -697,13 +716,15 @@ async function submitFormDisponibilidad() {
     
     await cargarDisponibilidad()
     cerrarModalDisponibilidad()
+    toastStore.showSuccess('Disponibilidad guardada correctamente')
   } catch (err: any) {
     console.error('Error al guardar disponibilidad:', err)
+    disponibilidadConflictoDetalles.value = []
     if (err.response?.status === 409) {
       const data = err.response.data
       if (data?.turnosAfectados?.length) {
-        errorDisponibilidad.value = data.mensaje +
-          '\n\nTurnos afectados:\n• ' + (data.turnosAfectados as string[]).join('\n• ')
+        errorDisponibilidad.value = data.mensaje || 'No se puede modificar la disponibilidad por turnos activos.'
+        disponibilidadConflictoDetalles.value = data.turnosAfectados as string[]
       } else {
         errorDisponibilidad.value = data?.mensaje || 'No se puede modificar la disponibilidad por conflictos existentes.'
       }
@@ -720,38 +741,37 @@ async function submitFormDisponibilidad() {
 function confirmarEliminarDisponibilidad(disponibilidad: DisponibilidadResponse) {
   if (!disponibilidad.id) return
   disponibilidadPendienteEliminar.value = disponibilidad
-  errorEliminarDisponibilidad.value = ''
-  turnosBloqueanEliminar.value = []
   showConfirmDeleteDisponibilidad.value = true
 }
 
 function cerrarConfirmDeleteDisponibilidad() {
   showConfirmDeleteDisponibilidad.value = false
   disponibilidadPendienteEliminar.value = null
-  errorEliminarDisponibilidad.value = ''
-  turnosBloqueanEliminar.value = []
 }
 
 async function ejecutarEliminarDisponibilidad() {
   if (!disponibilidadPendienteEliminar.value?.id) return
   eliminandoDisponibilidad.value = true
-  errorEliminarDisponibilidad.value = ''
   try {
     await disponibilidadService.eliminarDisponibilidad(disponibilidadPendienteEliminar.value.id)
     await cargarDisponibilidad()
     cerrarConfirmDeleteDisponibilidad()
+    toastStore.showSuccess('Disponibilidad eliminada correctamente')
   } catch (err: any) {
     console.error('Error al eliminar disponibilidad:', err)
+    cerrarConfirmDeleteDisponibilidad()
     if (err.response?.status === 409) {
       const data = err.response.data
       if (data?.turnosAfectados?.length) {
-        errorEliminarDisponibilidad.value = data.mensaje
-        turnosBloqueanEliminar.value = data.turnosAfectados as string[]
+        toastStore.showErrorConDetalles(
+          data.mensaje || 'No se puede eliminar la disponibilidad por turnos activos.',
+          data.turnosAfectados as string[]
+        )
       } else {
-        errorEliminarDisponibilidad.value = data?.mensaje || 'No se puede eliminar la disponibilidad por turnos activos.'
+        toastStore.showError(data?.mensaje || 'No se puede eliminar la disponibilidad por conflictos existentes.')
       }
     } else {
-      errorEliminarDisponibilidad.value = 'Error inesperado al eliminar la disponibilidad. Intente nuevamente.'
+      toastStore.showError('Error inesperado al eliminar la disponibilidad. Intente nuevamente.')
     }
   } finally {
     eliminandoDisponibilidad.value = false
@@ -812,6 +832,7 @@ async function submitFormBloqueo() {
       await bloqueosService.actualizarBloqueo(editingBloqueo.value.id, formDataBloqueo.value)
       await cargarBloqueos()
       cerrarModalBloqueo()
+      toastStore.showSuccess('Bloqueo actualizado correctamente')
     } else {
       // Crear nuevo: verificar conflictos primero
       const conflictos = await bloqueosService.verificarConflictos(formDataBloqueo.value)
@@ -827,7 +848,7 @@ async function submitFormBloqueo() {
         await bloqueosService.crearBloqueo(formDataBloqueo.value)
         await cargarBloqueos()
         cerrarModalBloqueo()
-      toastStore.show('Bloqueo creado exitosamente', 4000)
+        toastStore.showSuccess('Bloqueo creado exitosamente')
       }
     }
   } catch (err: any) {
@@ -857,23 +878,30 @@ async function onBloqueoCreado() {
   bloqueoPendiente.value = null
   conflictosData.value = null
   await cargarBloqueos()
+  toastStore.showSuccess('Bloqueo creado exitosamente')
 }
 
-async function confirmarEliminarBloqueo(bloqueo: BloqueoResponse) {
-  const rango = bloqueo.fechaFin && bloqueo.fechaFin !== bloqueo.fechaInicio
-    ? `${formatearFecha(bloqueo.fechaInicio)} - ${formatearFecha(bloqueo.fechaFin)}`
-    : formatearFecha(bloqueo.fechaInicio)
-  
-  const confirmacion = confirm(`¿Estás seguro de eliminar el bloqueo del ${rango}?`)
-  
-  if (confirmacion) {
-    try {
-      await bloqueosService.eliminarBloqueo(bloqueo.id)
-      await cargarBloqueos()
-    } catch (err: any) {
-      console.error('Error al eliminar bloqueo:', err)
-      toastStore.show('Error al eliminar el bloqueo', 4000)
-    }
+// Estado para confirmación de eliminación de bloqueo
+const bloqueoAPendienteEliminar = ref<BloqueoResponse | null>(null)
+const showConfirmDeleteBloqueo = ref(false)
+
+function confirmarEliminarBloqueo(bloqueo: BloqueoResponse) {
+  bloqueoAPendienteEliminar.value = bloqueo
+  showConfirmDeleteBloqueo.value = true
+}
+
+async function ejecutarEliminarBloqueo() {
+  if (!bloqueoAPendienteEliminar.value) return
+  showConfirmDeleteBloqueo.value = false
+  try {
+    await bloqueosService.eliminarBloqueo(bloqueoAPendienteEliminar.value.id)
+    await cargarBloqueos()
+    toastStore.showSuccess('Bloqueo eliminado correctamente', 4000)
+  } catch (err: any) {
+    console.error('Error al eliminar bloqueo:', err)
+    toastStore.showError('Error al eliminar el bloqueo')
+  } finally {
+    bloqueoAPendienteEliminar.value = null
   }
 }
 
@@ -910,7 +938,7 @@ async function cargarTurnos() {
     turnos.value = response.data.datos
   } catch (error: any) {
     console.error('Error al cargar turnos:', error)
-    toastStore.show('Error al cargar turnos: ' + (error.response?.data?.mensaje || error.message), 4000)
+    toastStore.showError('Error al cargar turnos: ' + (error.response?.data?.mensaje || error.message))
   } finally {
     loadingTurnos.value = false
   }
@@ -957,10 +985,10 @@ async function cambiarEstado(turno: any, nuevoEstado: string) {
       turnos.value[index] = response.data.datos
     }
     
-    toastStore.show('Estado actualizado exitosamente')
+    toastStore.showSuccess('Estado actualizado exitosamente')
   } catch (error: any) {
     console.error('Error al cambiar estado:', error)
-    toastStore.show('Error al cambiar estado: ' + (error.response?.data?.mensaje || error.message))
+    toastStore.showError('Error al cambiar estado: ' + (error.response?.data?.mensaje || error.message))
   }
 }
 
@@ -1000,7 +1028,7 @@ async function submitObservaciones() {
     }
     
     cerrarModalObservaciones()
-    toastStore.show('Observación agregada exitosamente', 4000)
+    toastStore.showSuccess('Observación agregada exitosamente')
   } catch (error: any) {
     errorObservaciones.value = error.response?.data?.mensaje || 'Error al agregar observación'
   } finally {

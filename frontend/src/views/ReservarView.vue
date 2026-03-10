@@ -298,6 +298,10 @@
             <span v-if="!cargando">Confirmar Turno</span>
             <span v-else>Procesando...</span>
           </button>
+
+          <div v-if="mensajeError" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+            {{ mensajeError }}
+          </div>
         </form>
       </div>
     </div>
@@ -451,6 +455,31 @@
       :email="empresa.email"
     />
   </div>
+
+  <!-- Toast global -->
+  <Toast />
+
+  <!-- Modal: Cuenta registrada (409 email) -->
+  <div v-if="mostrarModal409Email" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+      <h3 class="text-lg font-bold text-gray-900 mb-3">Cuenta ya registrada</h3>
+      <p class="text-sm text-gray-600 mb-6">{{ mensaje409Email }}</p>
+      <div class="flex gap-3">
+        <button
+          @click="descartarModal409"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          @click="confirmarIrAlLogin409"
+          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors"
+        >
+          Ir al Login
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -470,10 +499,13 @@ import Footer from '@/components/Footer.vue'
 import PoliticasModal from '@/components/PoliticasModal.vue'
 import PoliticasService from '@/services/politicasCancelacion'
 import type { PoliticaCancelacion } from '@/types/politicasCancelacion'
+import Toast from '@/components/Toast.vue'
+import { useToastStore } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const clienteStore = useClienteStore()
+const toastStore = useToastStore()
 
 // Estado para el modal de políticas
 const mostrarModalPoliticas = ref(false)
@@ -546,6 +578,24 @@ const mostrarModalFinal = ref(false)
 const turnoCreado = ref<TurnoResponse | null>(null)
 const cargando = ref(false)
 const mensajeError = ref<string | null>(null)
+
+// Modal de decisión 409 (email registrado)
+const mostrarModal409Email = ref(false)
+const mensaje409Email = ref('')
+const empresaSlug409 = ref('')
+
+function confirmarIrAlLogin409() {
+  mostrarModal409Email.value = false
+  router.push({
+    name: 'LoginCliente',
+    params: { empresaSlug: empresaSlug409.value },
+    query: { redirect: `/reservar/${empresaSlug409.value}` }
+  })
+}
+
+function descartarModal409() {
+  mostrarModal409Email.value = false
+}
 
 // Modal de teléfono registrado
 const mostrarModalTelefonoRegistrado = ref(false)
@@ -678,7 +728,7 @@ onMounted(async () => {
     
     await cargarServicios()
   } catch (error: any) {
-    alert('Error al cargar la empresa: ' + (error.response?.data?.mensaje || error.message))
+    toastStore.showError('Error al cargar la empresa: ' + (error.response?.data?.mensaje || error.message))
     router.push('/')
   }
 })
@@ -688,7 +738,7 @@ async function cargarServicios() {
     cargandoServicios.value = true
     servicios.value = await publicoService.obtenerServicios(empresaSlug.value)
   } catch (error: any) {
-    alert('Error al cargar servicios: ' + (error.response?.data?.mensaje || error.message))
+    toastStore.showError('Error al cargar servicios: ' + (error.response?.data?.mensaje || error.message))
   } finally {
     cargandoServicios.value = false
   }
@@ -710,7 +760,7 @@ async function cargarProfesionales() {
       servicioSeleccionado.value.id
     )
   } catch (error: any) {
-    alert('Error al cargar profesionales: ' + (error.response?.data?.mensaje || error.message))
+    toastStore.showError('Error al cargar profesionales: ' + (error.response?.data?.mensaje || error.message))
   } finally {
     cargandoProfesionales.value = false
   }
@@ -792,7 +842,7 @@ async function cargarSlots() {
       fechaISO
     )
   } catch (error: any) {
-    alert('Error al cargar horarios: ' + (error.response?.data?.mensaje || error.message))
+    toastStore.showError('Error al cargar horarios: ' + (error.response?.data?.mensaje || error.message))
   } finally {
     cargandoSlots.value = false
   }
@@ -812,7 +862,7 @@ async function confirmarReserva() {
     // Validar datos del cliente (email es obligatorio, teléfono es opcional)
     if (!datosCliente.value.nombre || !datosCliente.value.email || 
         !datosCliente.value.aceptaCondiciones) {
-      alert('Por favor completa todos los campos obligatorios para continuar.')
+      mensajeError.value = 'Por favor completa todos los campos obligatorios para continuar.'
       return
     }
   }
@@ -827,7 +877,7 @@ async function procesarReserva() {
     
     if (!servicioSeleccionado.value || !profesionalSeleccionado.value || 
         !fechaSeleccionada.value || !slotSeleccionado.value) {
-      alert('Error interno: Faltan datos de reserva.')
+      mensajeError.value = 'Error interno: Faltan datos de reserva.'
       return
     }
 
@@ -871,21 +921,14 @@ async function procesarReserva() {
     // Manejar el error específico de email conflictivo con cuenta registrada
     if (err.response?.status === 409) {
       const mensaje = err.response?.data?.mensaje || 'El email proporcionado pertenece a una cuenta registrada. Por favor, inicia sesión para continuar.'
-      if (confirm(`${mensaje}\n\n¿Deseas ir a la página de login?`)) {
-        router.push({
-          name: 'LoginCliente',
-          params: { empresaSlug: empresaSlug.value },
-          query: { 
-            redirect: `/reservar/${empresaSlug.value}`
-          }
-        })
-      }
+      mensaje409Email.value = mensaje
+      empresaSlug409.value = empresaSlug.value
+      mostrarModal409Email.value = true
       return
     }
 
     // Para otros errores, mostrar mensaje genérico o específico del backend
     mensajeError.value = err.response?.data?.mensaje || 'Error al crear la reserva. Por favor intenta nuevamente.'
-    alert(mensajeError.value)
   } finally {
     cargando.value = false
   }

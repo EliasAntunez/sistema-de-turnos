@@ -78,7 +78,7 @@
           <div class="card-actions">
             <button @click="openModal(profesional)" class="btn-edit">Editar</button>
             <button 
-              @click="toggleEstadoProfesional(profesional)" 
+              @click="confirmarToggleProfesional(profesional)" 
               :class="profesional.activo ? 'btn-delete' : 'btn-activate'"
             >
               {{ profesional.activo ? 'Desactivar' : 'Activar' }}
@@ -202,9 +202,6 @@
   <div class="section-header">
     <h2>Políticas de Cancelación e Inasistencias</h2>
     <button class="btn-add" @click="openModalPolitica()">+ Nueva Política</button>
-  </div>
-  <div v-if="errorPolitica" class="error-message" style="margin-bottom: 1rem;">
-    {{ errorPolitica }}
   </div>
   <!-- Loading State -->
   <div v-if="loadingPoliticas" class="loading">Cargando...</div>
@@ -701,7 +698,12 @@
             </div>
           </div>
 
-          <div v-if="errorHorario" class="error-message">{{ errorHorario }}</div>
+          <div v-if="errorHorario" class="error-message">
+            <p>{{ errorHorario }}</p>
+            <ul v-if="horarioConflictoDetalles.length" class="lista-bloqueantes" style="margin-top:0.5rem;">
+              <li v-for="item in horarioConflictoDetalles" :key="item">{{ item }}</li>
+            </ul>
+          </div>
 
           <div class="modal-actions">
             <button type="button" @click="closeModalHorario" class="btn-cancel">Cancelar</button>
@@ -753,7 +755,7 @@
               @click="confirmarCopiarHorarios" 
               class="btn-submit" 
               :disabled="submittingCopiar || diasDestinoSeleccionados.length === 0">
-              {{ submittingCopiar ? 'Copiando...' : 'Copiar Horarios' }}
+              {{ submittingCopiar ? 'Copiando...' : (diasConConflicto.length > 0 ? 'Reemplazar y Copiar' : 'Copiar Horarios') }}
             </button>
           </div>
         </div>
@@ -769,30 +771,13 @@
         <button @click="cerrarConfirmDeleteHorario" class="btn-close">&times;</button>
       </div>
       <div class="modal-form">
-        <div v-if="!errorEliminarHorario">
-          <p>¿Estás seguro de eliminar el horario de
-            <strong>{{ nombresDias[horarioPendienteEliminar?.diaSemana] }}</strong>
-            ({{ horarioPendienteEliminar?.horaInicio }} - {{ horarioPendienteEliminar?.horaFin }})?</p>
-          <p class="text-muted" style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
-        </div>
-        <div v-else>
-          <div class="error-message">{{ errorEliminarHorario }}</div>
-          <ul v-if="turnosBloqueanEliminarHorario.length" class="lista-bloqueantes">
-            <li v-for="turno in turnosBloqueanEliminarHorario" :key="turno">{{ turno }}</li>
-          </ul>
-          <ul v-if="profesionalesBloqueanEliminarHorario.length" class="lista-bloqueantes">
-            <li v-for="prof in profesionalesBloqueanEliminarHorario" :key="prof">{{ prof }}</li>
-          </ul>
-          <p v-if="profesionalesBloqueanEliminarHorario.length" class="text-muted" style="color:#718096;font-size:0.875rem;margin-top:0.75rem;">
-            Primero ajustá la disponibilidad de esos profesionales.
-          </p>
-        </div>
+        <p>¿Estás seguro de eliminar el horario de
+          <strong>{{ nombresDias[horarioPendienteEliminar?.diaSemana] }}</strong>
+          ({{ horarioPendienteEliminar?.horaInicio }} - {{ horarioPendienteEliminar?.horaFin }})?</p>
+        <p class="text-muted" style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
         <div class="modal-actions">
-          <button type="button" @click="cerrarConfirmDeleteHorario" class="btn-cancel">
-            {{ errorEliminarHorario ? 'Cerrar' : 'Cancelar' }}
-          </button>
+          <button type="button" @click="cerrarConfirmDeleteHorario" class="btn-cancel">Cancelar</button>
           <button
-            v-if="!errorEliminarHorario"
             type="button"
             @click="ejecutarEliminarHorario"
             class="btn-danger"
@@ -800,6 +785,49 @@
           >
             {{ eliminandoHorario ? 'Eliminando...' : 'Eliminar' }}
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Toggle Profesional -->
+  <div v-if="showConfirmToggleProfesional" class="modal-overlay" @click="showConfirmToggleProfesional = false">
+    <div class="modal modal-small" @click.stop>
+      <div class="modal-header">
+        <h2>{{ profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar' }} Profesional</h2>
+        <button @click="showConfirmToggleProfesional = false" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-form">
+        <p>
+          ¿Estás seguro de {{ profesionalPendienteToggle?.activo ? 'desactivar' : 'activar' }} a
+          <strong>{{ profesionalPendienteToggle?.nombre }} {{ profesionalPendienteToggle?.apellido }}</strong>?
+        </p>
+        <div class="modal-actions">
+          <button type="button" @click="showConfirmToggleProfesional = false" class="btn-cancel">Cancelar</button>
+          <button
+            type="button"
+            @click="ejecutarToggleProfesional"
+            :class="profesionalPendienteToggle?.activo ? 'btn-danger' : 'btn-submit'"
+          >
+            {{ profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Eliminar Política -->
+  <div v-if="showConfirmDeletePolitica" class="modal-overlay" @click="showConfirmDeletePolitica = false">
+    <div class="modal modal-small" @click.stop>
+      <div class="modal-header">
+        <h2>Eliminar Política</h2>
+        <button @click="showConfirmDeletePolitica = false" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-form">
+        <p>¿Estás seguro de eliminar esta política? Esta acción no se puede deshacer.</p>
+        <div class="modal-actions">
+          <button type="button" @click="showConfirmDeletePolitica = false" class="btn-cancel">Cancelar</button>
+          <button type="button" @click="ejecutarEliminarPolitica" class="btn-danger">Eliminar</button>
         </div>
       </div>
     </div>
@@ -900,9 +928,9 @@ const fieldErrorsHorario = ref<Record<string, string>>({})
 const showConfirmDeleteHorario = ref(false)
 const horarioPendienteEliminar = ref<any>(null)
 const eliminandoHorario = ref(false)
-const errorEliminarHorario = ref('')
-const turnosBloqueanEliminarHorario = ref<string[]>([])
-const profesionalesBloqueanEliminarHorario = ref<string[]>([])
+
+// Detalles de conflicto 409 en el formulario de horario
+const horarioConflictoDetalles = ref<string[]>([])
 
 const formDataHorario = ref({
   diaSemana: '',
@@ -1006,7 +1034,7 @@ async function cargarPoliticasCancelacion() {
     if (!empresaId.value) {
       if (import.meta.env.DEV) console.warn('[FRONTEND] No se pudo obtener el id de la empresa para cargar políticas')
       politicas.value = []
-      errorPolitica.value = 'No se pudo obtener el id de la empresa.'
+      toast.showError('No se pudo obtener el id de la empresa.')
       return
     }
     // Nuevo endpoint backend-driven: no requiere empresaId
@@ -1026,7 +1054,7 @@ async function cargarPoliticasCancelacion() {
   } catch (err: any) {
     console.error('[FRONTEND] Error al cargar políticas:', err)
     politicas.value = []
-    errorPolitica.value = 'Error al cargar las políticas de cancelación.'
+    toast.showError('Error al cargar las políticas de cancelación.')
   } finally {
     loadingPoliticas.value = false
   }
@@ -1108,8 +1136,10 @@ async function submitFormPolitica() {
       }
       await PoliticasService.crear(formDataPolitica.value);
     }
+    const wasEditing = !!editingPolitica.value
     await cargarPoliticasCancelacion()
     showModalPolitica.value = false
+    toast.showSuccess(wasEditing ? 'Política actualizada correctamente' : 'Política creada correctamente')
   } catch (err: any) {
     console.error('Error al guardar política:', err);
     if (err.response?.data?.errores) {
@@ -1129,33 +1159,38 @@ async function togglePoliticaActiva(politica: PoliticaCancelacionResponse) {
   try {
     if (politica.activa) {
       await PoliticasService.desactivar(politica.id)
+      toast.showSuccess('Política desactivada correctamente')
     } else {
       await PoliticasService.activar(politica.id)
+      toast.showSuccess('Política activada correctamente')
     }
     await cargarPoliticasCancelacion()
-  } catch (err) {
-      console.error('Error al cambiar estado de política:', err)
-      if (typeof err === 'object' && err !== null && 'response' in err && (err as any).response?.data?.mensaje) {
-        errorPolitica.value = (err as any).response.data.mensaje
-      } else if (err instanceof Error && err.message) {
-        errorPolitica.value = err.message
-      } else {
-        errorPolitica.value = 'Error al cambiar el estado de la política.'
-      }
-    }
+  } catch (err: any) {
+    console.error('Error al cambiar estado de política:', err)
+    toast.showError(err?.response?.data?.mensaje || err?.message || 'Error al cambiar el estado de la política.')
+  }
 }
 
-async function eliminarPolitica(id: number) {
-  const confirmacion = confirm('¿Está seguro de eliminar esta política? Esta acción no se puede deshacer.')
-  
-  if (!confirmacion) return
-  
+const politicaPendienteEliminar = ref<number | null>(null)
+const showConfirmDeletePolitica = ref(false)
+
+function confirmarEliminarPolitica(id: number) {
+  politicaPendienteEliminar.value = id
+  showConfirmDeletePolitica.value = true
+}
+
+async function ejecutarEliminarPolitica() {
+  if (politicaPendienteEliminar.value === null) return
+  showConfirmDeletePolitica.value = false
   try {
-    await PoliticasService.eliminar(id)
+    await PoliticasService.eliminar(politicaPendienteEliminar.value)
     await cargarPoliticasCancelacion()
-  } catch (err) {
+    toast.showSuccess('Política eliminada correctamente')
+  } catch (err: any) {
     console.error('Error al eliminar política:', err)
-    errorPolitica.value = 'Error al eliminar la política.'
+    toast.showError(err?.response?.data?.mensaje || 'Error al eliminar la política.')
+  } finally {
+    politicaPendienteEliminar.value = null
   }
 }
 
@@ -1247,7 +1282,7 @@ async function cargarServiciosProfesional() {
     serviciosProfesional.value = response.data.datos
   } catch (err: any) {
     console.error('Error al cargar servicios:', err)
-    alert('Error al cargar servicios del profesional')
+    toast.showError('Error al cargar servicios del profesional')
   } finally {
     cargandoServicios.value = false
   }
@@ -1267,7 +1302,7 @@ async function toggleServicio(servicio: any) {
     servicio.disponible = !servicio.disponible
   } catch (err: any) {
     console.error('Error al cambiar servicio:', err)
-    alert(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
+    toast.showError(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
   } finally {
     submittingToggle.value = false
   }
@@ -1296,8 +1331,10 @@ async function submitForm() {
       // Crear nuevo profesional
       await api.post('/dueno/profesionales', payload)
     }
+    const wasEditing = !!editingProfesional.value
     closeModal()
     await cargarProfesionales()
+    toast.showSuccess(wasEditing ? 'Profesional actualizado correctamente' : 'Profesional creado correctamente')
   } catch (err: any) {
     console.error('Error completo:', err)
     console.error('Response data:', err.response?.data)
@@ -1323,33 +1360,37 @@ async function submitForm() {
   }
 }
 
-async function toggleEstadoProfesional(profesional: any) {
+const profesionalPendienteToggle = ref<any>(null)
+const showConfirmToggleProfesional = ref(false)
+
+function confirmarToggleProfesional(profesional: any) {
+  profesionalPendienteToggle.value = profesional
+  showConfirmToggleProfesional.value = true
+}
+
+async function ejecutarToggleProfesional() {
+  const profesional = profesionalPendienteToggle.value
+  if (!profesional) return
+  showConfirmToggleProfesional.value = false
   const accion = profesional.activo ? 'desactivar' : 'activar'
-  const mensaje = profesional.activo 
-    ? `¿Está seguro de desactivar al profesional ${profesional.nombre} ${profesional.apellido}?`
-    : `¿Está seguro de activar al profesional ${profesional.nombre} ${profesional.apellido}?`
-  
-  if (confirm(mensaje)) {
-    try {
-      if (profesional.activo) {
-        await api.patch(`/dueno/profesionales/${profesional.id}/desactivar`)
-        toast.show(`Profesional ${profesional.nombre} ${profesional.apellido} desactivado correctamente`, 5000)
-      } else {
-        await api.patch(`/dueno/profesionales/${profesional.id}/activar`)
-        toast.show(`Profesional ${profesional.nombre} ${profesional.apellido} activado correctamente`, 5000)
-      }
-      await cargarProfesionales()
-    } catch (err: any) {
-      console.error(`Error al ${accion} profesional:`, err)
-      // Extraer el mensaje específico del backend
-      const mensajeError = err.response?.data?.mensaje 
-        || err.response?.data?.error 
-        || err.response?.data 
-        || err.message 
-        || `Error al ${accion} el profesional`
-      
-      toast.show(mensajeError, 8000)
+  try {
+    if (profesional.activo) {
+      await api.patch(`/dueno/profesionales/${profesional.id}/desactivar`)
+      toast.showSuccess(`Profesional ${profesional.nombre} ${profesional.apellido} desactivado correctamente`, 5000)
+    } else {
+      await api.patch(`/dueno/profesionales/${profesional.id}/activar`)
+      toast.showSuccess(`Profesional ${profesional.nombre} ${profesional.apellido} activado correctamente`, 5000)
     }
+    await cargarProfesionales()
+  } catch (err: any) {
+    console.error(`Error al ${accion} profesional:`, err)
+    const mensajeError = err.response?.data?.mensaje 
+      || err.response?.data?.error 
+      || err.message 
+      || `Error al ${accion} el profesional`
+    toast.showError(mensajeError)
+  } finally {
+    profesionalPendienteToggle.value = null
   }
 }
 
@@ -1428,8 +1469,10 @@ async function submitFormServicio() {
     } else {
       await servicioService.crearServicio(formDataServicio.value)
     }
+    const wasEditing = !!editingServicio.value
     closeModalServicio()
     await cargarServicios()
+    toast.showSuccess(wasEditing ? 'Servicio actualizado correctamente' : 'Servicio creado correctamente')
   } catch (err: any) {
     console.error('Error completo:', err)
     
@@ -1452,13 +1495,15 @@ async function toggleServicioActivo(servicio: ServicioResponse) {
   try {
     if (servicio.activo) {
       await servicioService.desactivarServicio(servicio.id)
+      toast.showSuccess(`Servicio "${servicio.nombre}" desactivado correctamente`)
     } else {
       await servicioService.activarServicio(servicio.id)
+      toast.showSuccess(`Servicio "${servicio.nombre}" activado correctamente`)
     }
     await cargarServicios()
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error al cambiar estado del servicio:', err)
-    alert('Error al cambiar el estado del servicio')
+    toast.showError(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
   }
 }
 // ==================== FUNCIONES PARA HORARIOS ====================
@@ -1472,9 +1517,9 @@ async function cargarHorarios() {
     agruparHorariosPorDia()
   } catch (err: any) {
     console.error('Error al cargar horarios:', err)
-    horarios.value = [] // Limpiar en caso de error
-    agruparHorariosPorDia() // Reagrupar con array vacío
-    errorHorario.value = 'Error al cargar los horarios de la empresa'
+    horarios.value = []
+    agruparHorariosPorDia()
+    toast.showError('Error al cargar los horarios de la empresa')
   } finally {
     loadingHorarios.value = false
   }
@@ -1511,6 +1556,7 @@ function closeModalHorario() {
   }
   fieldErrorsHorario.value = {}
   errorHorario.value = ''
+  horarioConflictoDetalles.value = []
 }
 
 async function submitFormHorario() {
@@ -1525,30 +1571,29 @@ async function submitFormHorario() {
       await api.crearHorarioEmpresa(formDataHorario.value)
     }
     
+    const wasEditing = !!editingHorario.value
     await cargarHorarios()
     closeModalHorario()
+    toast.showSuccess(wasEditing ? 'Horario actualizado correctamente' : 'Horario creado correctamente')
   } catch (err: any) {
     console.error('Error al guardar horario:', err)
+    horarioConflictoDetalles.value = []
     
     if (err.response?.status === 409) {
       // Conflicto de disponibilidad de profesionales o turnos activos
       const data = err.response.data
       if (data?.turnosAfectados?.length) {
-        errorHorario.value = data.mensaje +
-          '\n\nTurnos afectados:\n• ' + data.turnosAfectados.join('\n• ')
+        errorHorario.value = data.mensaje || 'No se puede guardar el horario: hay turnos afectados.'
+        horarioConflictoDetalles.value = data.turnosAfectados as string[]
       } else if (data?.profesionalesAfectados?.length) {
-        errorHorario.value = data.mensaje +
-          '\n\nProfesionales afectados:\n• ' + data.profesionalesAfectados.join('\n• ')
+        errorHorario.value = data.mensaje || 'No se puede guardar el horario: hay profesionales afectados.'
+        horarioConflictoDetalles.value = data.profesionalesAfectados as string[]
       } else {
-        errorHorario.value = data?.mensaje || 'El horario no puede modificarse porque hay profesionales con disponibilidad activa en ese rango.'
+        errorHorario.value = data?.mensaje || 'El horario no puede modificarse porque hay conflictos activos.'
       }
     } else if (err.response?.status === 400) {
       const mensaje = err.response.data.mensaje || err.response.data.message
-      if (mensaje) {
-        errorHorario.value = mensaje
-      } else {
-        errorHorario.value = 'Error al validar los datos del horario'
-      }
+      errorHorario.value = mensaje || 'Error al validar los datos del horario'
     } else {
       errorHorario.value = 'Error al guardar el horario'
     }
@@ -1559,43 +1604,42 @@ async function submitFormHorario() {
 
 function confirmarEliminarHorario(horario: any) {
   horarioPendienteEliminar.value = horario
-  errorEliminarHorario.value = ''
-  turnosBloqueanEliminarHorario.value = []
-  profesionalesBloqueanEliminarHorario.value = []
   showConfirmDeleteHorario.value = true
 }
 
 function cerrarConfirmDeleteHorario() {
   showConfirmDeleteHorario.value = false
   horarioPendienteEliminar.value = null
-  errorEliminarHorario.value = ''
-  turnosBloqueanEliminarHorario.value = []
-  profesionalesBloqueanEliminarHorario.value = []
 }
 
 async function ejecutarEliminarHorario() {
   if (!horarioPendienteEliminar.value) return
   eliminandoHorario.value = true
-  errorEliminarHorario.value = ''
   try {
     await api.eliminarHorarioEmpresa(horarioPendienteEliminar.value.id)
     await cargarHorarios()
     cerrarConfirmDeleteHorario()
+    toast.showSuccess('Horario eliminado correctamente')
   } catch (err: any) {
     console.error('Error al eliminar horario:', err)
+    cerrarConfirmDeleteHorario()
     if (err.response?.status === 409) {
       const data = err.response.data
       if (data?.turnosAfectados?.length) {
-        errorEliminarHorario.value = data.mensaje
-        turnosBloqueanEliminarHorario.value = data.turnosAfectados as string[]
+        toast.showErrorConDetalles(
+          data.mensaje || 'No se puede eliminar el horario por turnos activos.',
+          data.turnosAfectados as string[]
+        )
       } else if (data?.profesionalesAfectados?.length) {
-        errorEliminarHorario.value = data.mensaje
-        profesionalesBloqueanEliminarHorario.value = data.profesionalesAfectados as string[]
+        toast.showErrorConDetalles(
+          data.mensaje || 'No se puede eliminar el horario por profesionales afectados.',
+          data.profesionalesAfectados as string[]
+        )
       } else {
-        errorEliminarHorario.value = data?.mensaje || 'No se puede eliminar: hay conflictos activos en ese horario.'
+        toast.showError(data?.mensaje || 'No se puede eliminar: hay conflictos activos en ese horario.')
       }
     } else {
-      errorEliminarHorario.value = 'Error inesperado al eliminar el horario. Intente nuevamente.'
+      toast.showError('Error inesperado al eliminar el horario. Intente nuevamente.')
     }
   } finally {
     eliminandoHorario.value = false
@@ -1624,15 +1668,8 @@ async function confirmarCopiarHorarios() {
     return
   }
 
-  // Si hay conflictos, pedir confirmación explícita
-  if (diasConConflicto.value.length > 0) {
-    const confirmacion = confirm(
-      `Los días ${diasConConflicto.value.map(d => nombresDias[d]).join(', ')} ya tienen horarios configurados.\n\n¿Desea reemplazarlos con los horarios de ${nombresDias[diaFuenteCopia.value]}?`
-    )
-    if (!confirmacion) {
-      return
-    }
-  }
+  // Los días con conflicto ya se muestran como advertencia en el modal (warning-message)
+  // El usuario ve el aviso y confirma al hacer clic en "Copiar Horarios"
 
   submittingCopiar.value = true
   errorCopiar.value = ''
@@ -1646,6 +1683,7 @@ async function confirmarCopiarHorarios() {
     
     await cargarHorarios()
     cerrarModalCopiar()
+    toast.showSuccess('Horarios copiados correctamente')
   } catch (err: any) {
     console.error('Error al copiar horarios:', err)
     
@@ -1696,7 +1734,7 @@ async function submitConfiguracion() {
     const response = await api.actualizarConfiguracion(formDataConfiguracion.value)
     
     // Mostrar mensaje de éxito
-    alert('✅ Configuración guardada exitosamente')
+    toast.showSuccess('Configuración guardada exitosamente')
     
     // Recargar configuración para reflejar cambios
     await cargarConfiguracion()
