@@ -217,6 +217,7 @@
       </div>
     </main>
   </div>
+  <Toast />
 </template>
 
 <script setup lang="ts">
@@ -224,9 +225,12 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import Toast from '../components/Toast.vue'
+import { useToastStore } from '../composables/useToast'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 
 // Tab activo
 const activeTab = ref<'empresas'>('empresas')
@@ -333,7 +337,7 @@ async function cambiarEstado(id: number, activa: boolean) {
     cargarEmpresas()
   } catch (err: any) {
     console.error('Error al cambiar estado:', err)
-    alert('Error al cambiar el estado de la empresa')
+    toastStore.showError('Error al cambiar el estado de la empresa')
   }
 }
 

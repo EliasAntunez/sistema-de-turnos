@@ -64,7 +64,7 @@
       </div>
     </div>
 
-    <Toast @dismiss="toast.dismiss" />
+    <Toast />
 
     <!-- Modales: se renderizan dentro del mismo template -->
     
