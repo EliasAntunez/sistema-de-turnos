@@ -37,6 +37,8 @@ public class ServicioTurno {
     private final RepositorioProfesional repositorioProfesional;
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
+    private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
+    private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final ServicioNotificacion servicioNotificacion;
 
     // ✅ M2: Constantes estáticas para formateo de fechas
@@ -220,8 +222,10 @@ public class ServicioTurno {
 
     /**
      * Reprogramar (cambiar fecha/hora y opcionalmente profesional) una reserva por el cliente propietario.
+     * ISOLATION.REPEATABLE_READ: garantiza que los turnos leídos para validar solapamiento
+     * no cambien hasta el commit, previniendo race conditions en la ventana de validación → save.
      */
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     public TurnoResponsePublico reprogramarReservaPorCliente(Long turnoId, Cliente cliente, com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request) {
         Turno turno = repositorioTurno.findById(turnoId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
@@ -296,13 +300,12 @@ public class ServicioTurno {
         // Calcular hora fin usando la duración y buffer del turno actual
         LocalTime nuevaHoraFin = nuevaHoraInicio.plusMinutes(turno.getDuracionMinutos()).plusMinutes(turno.getBufferMinutos());
 
-        // Validar disponibilidad: buscar turnos activos del profesional en esa fecha y comprobar solapamientos (excluyendo este turno)
-        java.util.List<Turno> turnosProfesional = repositorioTurno.findTurnosActivosByProfesionalAndFecha(profesionalDestino, nuevaFecha);
-        for (Turno t : turnosProfesional) {
-            if (t.getId().equals(turno.getId())) continue;
-            if (t.getHoraInicio().isBefore(nuevaHoraFin) && t.getHoraFin().isAfter(nuevaHoraInicio)) {
-                throw new ValidacionException("El horario seleccionado ya no está disponible");
-            }
+        // Validar que el nuevo horario esté dentro de la disponibilidad configurada del profesional
+        validarHorarioEnDisponibilidad(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getEmpresa());
+
+        // Validar solapamiento atómicamente (excluyendo el propio turno en su slot original)
+        if (repositorioTurno.existeSolapamientoExcluyendo(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getId())) {
+            throw new ValidacionException("El horario seleccionado ya no está disponible");
         }
 
         // Si todo OK, aplicar cambios
@@ -311,7 +314,15 @@ public class ServicioTurno {
         turno.setHoraInicio(nuevaHoraInicio);
         turno.setHoraFin(nuevaHoraFin);
 
-        turno = repositorioTurno.save(turno);
+        try {
+            turno = repositorioTurno.save(turno);
+        } catch (DataIntegrityViolationException e) {
+            // El constraint único de BD detectó solapamiento (race condition perdida)
+            throw new ValidacionException("El horario seleccionado ya no está disponible. Por favor, elija otro horario.");
+        }
+
+        log.info("Turno reprogramado: turnoId={}, profesional={}, nuevaFecha={}, nuevaHoraInicio={}, nuevaHoraFin={}",
+            turno.getId(), turno.getProfesional().getId(), turno.getFecha(), turno.getHoraInicio(), turno.getHoraFin());
 
         // Enviar notificación de reprogramación al profesional
         enviarNotificacionReprogramacion(turno, inicioTurno, nuevoInicioTurno);
@@ -444,7 +455,9 @@ public class ServicioTurno {
         response.setProfesionalNombre(turno.getProfesional().getNombre());
         response.setProfesionalApellido(turno.getProfesional().getApellido());
         response.setFecha(turno.getFecha().toString());
-        response.setHoraInicio(turno.getHoraInicio().format(DateTimeFormatter.ofPattern("HH:mm")));
+        response.setHoraInicio(turno.getHoraInicio().format(FORMATTER_HORA));
+        response.setHoraFin(turno.getHoraFin().format(FORMATTER_HORA));
+        response.setHoraFinServicio(turno.getHoraInicio().plusMinutes(turno.getDuracionMinutos()).format(FORMATTER_HORA));
         response.setDuracionMinutos(turno.getDuracionMinutos());
         response.setPrecio(turno.getPrecio());
         response.setEstado(turno.getEstado().name());
@@ -475,6 +488,55 @@ public class ServicioTurno {
         response.setClienteEmail(turno.getCliente().getEmail());
         response.setObservaciones(turno.getObservaciones());
         return response;
+    }
+
+    /**
+     * Valida que el intervalo [horaInicio, horaFin) se encuentre dentro de al menos un rango de
+     * disponibilidad configurado para el profesional en el día indicado.
+     * Primero consulta DisponibilidadProfesional; si no hay, usa HorarioEmpresa (fallback).
+     * Lanza ValidacionException si el horario está fuera de la disponibilidad configurada.
+     */
+    private void validarHorarioEnDisponibilidad(Profesional profesional, LocalDate fecha,
+                                                LocalTime horaInicio, LocalTime horaFin,
+                                                Empresa empresa) {
+        DiaSemana dia = convertirDiaSemana(fecha.getDayOfWeek());
+
+        java.util.List<DisponibilidadProfesional> disponibilidades =
+            repositorioDisponibilidadProfesional.findByProfesionalAndDiaSemanaAndActivoTrue(profesional, dia);
+
+        if (!disponibilidades.isEmpty()) {
+            boolean dentroDe = disponibilidades.stream().anyMatch(d ->
+                !horaInicio.isBefore(d.getHoraInicio()) && !horaFin.isAfter(d.getHoraFin()));
+            if (!dentroDe) {
+                throw new ValidacionException("El horario seleccionado está fuera de la disponibilidad del profesional");
+            }
+            return;
+        }
+
+        // Fallback: verificar contra horario de la empresa
+        java.util.List<HorarioEmpresa> horariosEmpresa =
+            repositorioHorarioEmpresa.findByEmpresaAndDiaSemanaAndActivoTrue(empresa, dia);
+        if (horariosEmpresa.isEmpty()) {
+            throw new ValidacionException("El profesional no tiene disponibilidad configurada para ese día");
+        }
+        boolean dentroDe = horariosEmpresa.stream().anyMatch(h ->
+            !horaInicio.isBefore(h.getHoraInicio()) && !horaFin.isAfter(h.getHoraFin()));
+        if (!dentroDe) {
+            throw new ValidacionException("El horario seleccionado está fuera del horario de atención");
+        }
+    }
+
+    private DiaSemana convertirDiaSemana(java.time.DayOfWeek dayOfWeek) {
+        switch (dayOfWeek) {
+            case MONDAY:    return DiaSemana.LUNES;
+            case TUESDAY:   return DiaSemana.MARTES;
+            case WEDNESDAY: return DiaSemana.MIERCOLES;
+            case THURSDAY:  return DiaSemana.JUEVES;
+            case FRIDAY:    return DiaSemana.VIERNES;
+            case SATURDAY:  return DiaSemana.SABADO;
+            case SUNDAY:    return DiaSemana.DOMINGO;
+            default: throw new ValidacionException("Día de semana inválido");
+        }
     }
 
     // ==================== MÉTODOS PARA PROFESIONAL ====================

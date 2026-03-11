@@ -54,6 +54,23 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
     );
 
     /**
+     * Igual que existeSolapamiento pero excluye un turno específico por ID.
+     * Úsalo al reprogramar para no detectar como solapamiento el propio turno en su slot original.
+     */
+    @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
+           "AND t.fecha = :fecha " +
+           "AND t.id <> :turnoId " +
+           "AND t.estado NOT IN ('CANCELADO') " +
+           "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
+    boolean existeSolapamientoExcluyendo(
+        @Param("profesional") Profesional profesional,
+        @Param("fecha") LocalDate fecha,
+        @Param("horaInicio") LocalTime horaInicio,
+        @Param("horaFin") LocalTime horaFin,
+        @Param("turnoId") Long turnoId
+    );
+
+    /**
      * Buscar turnos activos de un profesional en una fecha
      */
     @Query("SELECT t FROM Turno t WHERE t.profesional = :profesional " +

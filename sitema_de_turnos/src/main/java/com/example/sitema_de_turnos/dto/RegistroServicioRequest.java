@@ -2,6 +2,7 @@ package com.example.sitema_de_turnos.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -24,9 +25,9 @@ public class RegistroServicioRequest {
 
     /**
      * Buffer en minutos después del servicio (opcional).
-     * Si es null, usa el buffer por defecto de la empresa.
+     * 0 es válido (sin buffer). Si es null, usa el buffer por defecto de la empresa.
      */
-    @Positive(message = "El buffer debe ser un número positivo")
+    @Min(value = 0, message = "El buffer no puede ser negativo")
     private Integer bufferMinutos;
 
     @NotNull(message = "El precio es obligatorio")

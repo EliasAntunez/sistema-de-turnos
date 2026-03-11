@@ -130,11 +130,14 @@ export default {
     empresaSlug: string,
     servicioId: number,
     profesionalId: number,
-    fecha: string // YYYY-MM-DD
+    fecha: string, // YYYY-MM-DD
+    bloqueTotalMinutos?: number
   ): Promise<SlotDisponible[]> {
-    const response = await publicClient.get<ApiResponse<SlotDisponible[]>>('/disponibilidad', {
-      params: { empresaSlug, servicioId, profesionalId, fecha }
-    })
+    const params: Record<string, any> = { empresaSlug, servicioId, profesionalId, fecha }
+    if (bloqueTotalMinutos !== undefined) {
+      params.bloqueTotalMinutos = bloqueTotalMinutos
+    }
+    const response = await publicClient.get<ApiResponse<SlotDisponible[]>>('/disponibilidad', { params })
     return response.data.datos
   },
 

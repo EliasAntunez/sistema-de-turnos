@@ -23,6 +23,8 @@ public class TurnoResponsePublico {
     private String profesionalApellido;
     private String fecha;
     private String horaInicio;
+    private String horaFin;
+    private String horaFinServicio;
     private Integer duracionMinutos;
     private BigDecimal precio;
     private String estado;
