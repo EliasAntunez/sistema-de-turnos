@@ -911,7 +911,7 @@ const formDataServicio = ref<ServicioRequest>({
   nombre: '',
   descripcion: '',
   duracionMinutos: 0,
-  bufferMinutos: null,
+  bufferMinutos: undefined,
   precio: 0
 })
 
@@ -1430,14 +1430,16 @@ function openModalServicio(servicio: ServicioResponse | null = null) {
       nombre: servicio.nombre,
       descripcion: servicio.descripcion,
       duracionMinutos: servicio.duracionMinutos,
-      precio: servicio.precio
+      precio: servicio.precio,
+      bufferMinutos: servicio.bufferMinutos
     }
   } else {
     formDataServicio.value = {
       nombre: '',
       descripcion: '',
       duracionMinutos: 0,
-      precio: 0
+      precio: 0,
+      bufferMinutos: undefined
     }
   }
   errorServicio.value = ''
@@ -1452,7 +1454,8 @@ function closeModalServicio() {
     nombre: '',
     descripcion: '',
     duracionMinutos: 0,
-    precio: 0
+    precio: 0,
+    bufferMinutos: undefined
   }
   errorServicio.value = ''
   fieldErrorsServicio.value = {}
@@ -1495,7 +1498,7 @@ async function toggleServicioActivo(servicio: ServicioResponse) {
   try {
     if (servicio.activo) {
       await servicioService.desactivarServicio(servicio.id)
-      toast.showSuccess(`Servicio "${servicio.nombre}" desactivado correctamente`)
+      toast.showSuccess(`Servicio "${servicio.nombre}" oculto para nuevas reservas. Los turnos existentes se mantienen.`)
     } else {
       await servicioService.activarServicio(servicio.id)
       toast.showSuccess(`Servicio "${servicio.nombre}" activado correctamente`)

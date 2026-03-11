@@ -41,7 +41,13 @@ public class ServicioServicio {
         servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
         servicio.setDescripcion(request.getDescripcion());
         servicio.setDuracionMinutos(request.getDuracionMinutos());
-        servicio.setBufferMinutos(request.getBufferMinutos());
+        // Si el DTO no trae buffer, usar el buffer por defecto de la empresa (fallback: 10 min).
+        int bufferCreacion = (request.getBufferMinutos() != null)
+            ? request.getBufferMinutos()
+            : (dueno.getEmpresa().getBufferPorDefecto() != null
+                ? dueno.getEmpresa().getBufferPorDefecto()
+                : 10);
+        servicio.setBufferMinutos(bufferCreacion);
         servicio.setPrecio(request.getPrecio());
         servicio.setEmpresa(dueno.getEmpresa());
         servicio.setActivo(true);
@@ -87,10 +93,15 @@ public class ServicioServicio {
         }
 
         // Actualizar servicio
+        // Nota: cambios de duración/precio sólo afectan a nuevas reservas.
+        // Los turnos ya agendados conservan su duracionMinutos original (snapshot en la entidad Turno).
         servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
         servicio.setDescripcion(request.getDescripcion());
         servicio.setDuracionMinutos(request.getDuracionMinutos());
-        servicio.setBufferMinutos(request.getBufferMinutos());
+        // Si el DTO no trae buffer, conservar el valor ya persistido (no pisar con null).
+        if (request.getBufferMinutos() != null) {
+            servicio.setBufferMinutos(request.getBufferMinutos());
+        }
         servicio.setPrecio(request.getPrecio());
 
         servicio = repositorioServicio.save(servicio);
@@ -133,6 +144,8 @@ public class ServicioServicio {
             throw new AccesoDenegadoException("No puede modificar servicios de otra empresa");
         }
 
+        // La desactivación es siempre libre: el servicio deja de aparecer para nuevas
+        // reservas, pero todos los turnos existentes conservan su snapshot de datos.
         servicio.setActivo(activo);
         repositorioServicio.save(servicio);
     }

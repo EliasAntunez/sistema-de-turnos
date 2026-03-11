@@ -29,7 +29,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span class="font-semibold">{{ formatearFecha(turno.fecha) }}</span>
-                  <span class="ml-2">{{ turno.horaInicio }} - {{ turno.horaFin }}</span>
+                  <span class="ml-2">{{ turno.horaInicio }} - {{ turno.horaFinServicio }}</span>
                 </div>
 
                 <div class="flex items-center text-gray-700 mb-1">
@@ -126,7 +126,7 @@
           
           <div v-if="slotSeleccionado" class="p-3 bg-indigo-50 rounded-md">
             <p class="text-sm text-indigo-800">
-              <strong>Nuevo horario seleccionado:</strong> {{ formatearHoraSlot(slotSeleccionado.horaInicio) }} - {{ formatearHoraSlot(slotSeleccionado.horaFin) }}
+              <strong>Nuevo horario seleccionado:</strong> {{ formatearHoraSlot(slotSeleccionado.horaInicio) }} - {{ calcularFinServicioSlot(slotSeleccionado.horaInicio) }}
             </p>
           </div>
         </div>
@@ -177,6 +177,8 @@ interface Turno {
   fecha: string
   horaInicio: string
   horaFin: string
+  horaFinServicio: string
+  duracionMinutos: number
   servicioId?: number
   profesionalId?: number
   servicioNombre: string
@@ -342,7 +344,9 @@ async function cargarSlotsParaReprogramar() {
       empresaSlug.value,
       turno.servicioId,
       turno.profesionalId,
-      reprogramDate.value
+      reprogramDate.value,
+      // Bloque total congelado del turno = duracion + buffer almacenados en horaFin - horaInicio
+      calcularBloqueTotalMinutos(turno)
     )
     slotSeleccionado.value = null
   } catch (error: any) {
@@ -365,6 +369,27 @@ function formatearHoraSlot(isoDateTime: string): string {
   const horas = fecha.getHours().toString().padStart(2, '0')
   const minutos = fecha.getMinutes().toString().padStart(2, '0')
   return `${horas}:${minutos}`
+}
+
+/**
+ * Calcula el bloque total en minutos de un turno (duracionMinutos + bufferMinutos).
+ * Deriva el valor directamente de horaFin - horaInicio, que ya los incluye ambos.
+ */
+function calcularBloqueTotalMinutos(turno: Turno): number {
+  const [hInicio, mInicio] = turno.horaInicio.split(':').map(Number)
+  const [hFin, mFin] = turno.horaFin.split(':').map(Number)
+  return (hFin * 60 + mFin) - (hInicio * 60 + mInicio)
+}
+
+/**
+ * Hora fin visible al cliente en el modal de reprogramación:
+ * horaInicio del slot + duracionMinutos del turno (sin buffer).
+ */
+function calcularFinServicioSlot(horaInicioISO: string): string {
+  if (!selectedTurno.value) return ''
+  const base = new Date(horaInicioISO)
+  base.setMinutes(base.getMinutes() + selectedTurno.value.duracionMinutos)
+  return base.getHours().toString().padStart(2, '0') + ':' + base.getMinutes().toString().padStart(2, '0')
 }
 
 // Watch para recargar slots cuando cambia la fecha

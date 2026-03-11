@@ -13,7 +13,7 @@ export interface ServicioResponse {
   nombre: string
   descripcion: string
   duracionMinutos: number
-  bufferMinutos: number | null
+  bufferMinutos: number
   precio: number
   activo: boolean
   fechaCreacion: string

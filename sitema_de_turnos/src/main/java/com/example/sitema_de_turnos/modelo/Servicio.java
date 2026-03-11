@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
         @CheckConstraint(name = "chk_servicio_precio_positivo",
                         constraint = "precio >= 0"),
         @CheckConstraint(name = "chk_servicio_buffer_positivo",
-                        constraint = "buffer_minutos IS NULL OR buffer_minutos >= 0")
+                        constraint = "buffer_minutos >= 0")
     }
 )
 public class Servicio {
@@ -49,9 +49,9 @@ public class Servicio {
     /**
      * Buffer en minutos después de finalizar este servicio.
      * Tiempo de espera antes del próximo turno (limpieza, preparación, descanso, etc.)
-     * Si es null, usa el buffer por defecto de la empresa.
+     * Nunca es null: al crear se resuelve contra el buffer por defecto de la empresa.
      */
-    @Column(name = "buffer_minutos")
+    @Column(name = "buffer_minutos", nullable = false)
     private Integer bufferMinutos;
 
     /**

@@ -96,10 +96,11 @@ public class ControladorPublico {
             @RequestParam String empresaSlug,
             @RequestParam Long servicioId,
             @RequestParam Long profesionalId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam(required = false) Integer bloqueTotalMinutos
     ) {
         List<SlotDisponibleResponse> slots = servicioPublico.obtenerSlotsDisponibles(
-                empresaSlug, servicioId, profesionalId, fecha
+                empresaSlug, servicioId, profesionalId, fecha, bloqueTotalMinutos
         );
         return ResponseEntity.ok(ApiResponse.exito(slots, "Slots disponibles obtenidos exitosamente"));
     }

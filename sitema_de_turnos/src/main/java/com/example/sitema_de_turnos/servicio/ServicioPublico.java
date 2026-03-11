@@ -134,6 +134,26 @@ public class ServicioPublico {
             Long profesionalId,
             LocalDate fecha
     ) {
+        return obtenerSlotsDisponibles(empresaSlug, servicioId, profesionalId, fecha, null);
+    }
+
+    /**
+     * Obtener slots disponibles para un servicio, profesional y fecha específica.
+     * Considera: disponibilidad/horarios empresa + bloqueos + duración servicio + buffer
+     *
+     * @param bloqueTotalMinutos si no es null, representa el espacio total en agenda que ocupa el turno
+     *                           (duracionMinutos + bufferMinutos congelados del turno). Se usa al
+     *                           reprogramar para respetar exactamente el bloque original sin que un
+     *                           cambio en el servicio altere el tamaño del hueco buscado.
+     */
+    @Transactional(readOnly = true)
+    public List<SlotDisponibleResponse> obtenerSlotsDisponibles(
+            String empresaSlug,
+            Long servicioId,
+            Long profesionalId,
+            LocalDate fecha,
+            Integer bloqueTotalMinutos
+    ) {
         // Validar empresa
         Empresa empresa = repositorioEmpresa.findBySlugAndActivaTrue(empresaSlug)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada"));
@@ -188,10 +208,18 @@ public class ServicioPublico {
             return new ArrayList<>(); // No hay horarios configurados
         }
 
-        // Calcular buffer efectivo
+        // Calcular buffer efectivo (solo se usa cuando NO hay override)
         Integer bufferMinutos = calcularBufferEfectivo(servicio, profesional, empresa);
 
-        // Generar slots
+        if (bloqueTotalMinutos != null) {
+            // Reprogramación: el bloque total en agenda ya está congelado (duracion + buffer del turno).
+            // Se pasa como duracionServicio y buffer=0 para que generarSlots use exactamente
+            // ese tamaño de hueco. El frontend muestra el fin real del servicio usando
+            // turno.duracionMinutos, sin depender de horaFin del slot.
+            return generarSlots(rangosHorarios, fecha, bloqueTotalMinutos, 0, profesional, empresa);
+        }
+
+        // Nueva reserva: usar duración y buffer actuales del servicio
         return generarSlots(rangosHorarios, fecha, servicio.getDuracionMinutos(), bufferMinutos, profesional, empresa);
     }
 
