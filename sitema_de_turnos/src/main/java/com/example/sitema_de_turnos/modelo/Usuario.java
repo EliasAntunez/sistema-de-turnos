@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -17,8 +19,7 @@ import java.time.LocalDateTime;
                columnList = "email")
     }
 )
-@Inheritance(strategy = InheritanceType.JOINED)
-public abstract class Usuario {
+public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,9 +43,18 @@ public abstract class Usuario {
     @Column(nullable = false)
     private Boolean activo = true;
 
+    /**
+     * Set de roles del usuario (N-N lógico via @ElementCollection).
+     * Un mismo usuario puede tener DUENO y PROFESIONAL simultáneamente.
+     */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "usuario_roles",
+        joinColumns = @JoinColumn(name = "usuario_id")
+    )
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private RolUsuario rol;
+    @Column(name = "rol", nullable = false, length = 20)
+    private Set<RolUsuario> roles = new HashSet<>();
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;

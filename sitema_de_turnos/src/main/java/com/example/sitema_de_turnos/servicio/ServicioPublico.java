@@ -31,7 +31,7 @@ public class ServicioPublico {
 
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioServicio repositorioServicio;
-    private final RepositorioProfesional repositorioProfesional;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final RepositorioProfesionalServicio repositorioProfesionalServicio;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidad;
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
@@ -98,16 +98,15 @@ public class ServicioPublico {
         }
 
         // Obtener todos los profesionales activos de la empresa
-        List<Profesional> profesionales = repositorioProfesional.findByEmpresa(empresa);
+        List<PerfilProfesional> profesionales = repositorioPerfilProfesional.findByEmpresaAndActivoTrue(empresa);
 
-        // Filtrar: deben estar activos y tener habilitación explícita en profesional_servicio
+        // Filtrar: deben tener habilitación explícita en profesional_servicio
         return profesionales.stream()
-                .filter(p -> p.getActivo()) // Solo profesionales activos
                 .filter(p -> tieneServicioHabilitado(p, servicio))
                 .map(p -> new ProfesionalPublicoResponse(
                         p.getId(),
-                        p.getNombre(),
-                        p.getApellido(),
+                        p.getUsuario().getNombre(),
+                        p.getUsuario().getApellido(),
                         p.getDescripcion()
                 ))
                 .collect(Collectors.toList());
@@ -116,7 +115,7 @@ public class ServicioPublico {
     /**
      * Verificar si el profesional tiene el servicio habilitado en profesional_servicio
      */
-    private boolean tieneServicioHabilitado(Profesional profesional, Servicio servicio) {
+    private boolean tieneServicioHabilitado(PerfilProfesional profesional, Servicio servicio) {
         // Buscar en RepositorioProfesionalServicio si existe una entrada con activo=true
         return repositorioProfesionalServicio.findByProfesionalAndActivoTrue(profesional)
                 .stream()
@@ -177,7 +176,7 @@ public class ServicioPublico {
         }
 
         // Validar profesional
-        Profesional profesional = repositorioProfesional.findById(profesionalId)
+        PerfilProfesional profesional = repositorioPerfilProfesional.findById(profesionalId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         if (!profesional.getEmpresa().getId().equals(empresa.getId())) {
@@ -226,7 +225,7 @@ public class ServicioPublico {
     /**
      * Obtener rangos horarios del profesional (con fallback a empresa)
      */
-    private List<RangoHorario> obtenerRangosHorarios(Profesional profesional, DiaSemana diaSemana) {
+    private List<RangoHorario> obtenerRangosHorarios(PerfilProfesional profesional, DiaSemana diaSemana) {
         // Primero intentar obtener disponibilidad propia del profesional
         List<DisponibilidadProfesional> disponibilidades = 
                 repositorioDisponibilidad.findByProfesionalAndDiaSemanaAndActivoTrue(profesional, diaSemana);
@@ -249,7 +248,7 @@ public class ServicioPublico {
     /**
      * Calcular buffer efectivo: Servicio > Empresa
      */
-    private Integer calcularBufferEfectivo(Servicio servicio, Profesional profesional, Empresa empresa) {
+    private Integer calcularBufferEfectivo(Servicio servicio, PerfilProfesional profesional, Empresa empresa) {
         if (servicio.getBufferMinutos() != null) {
             return servicio.getBufferMinutos();
         }
@@ -272,7 +271,7 @@ public class ServicioPublico {
             LocalDate fecha,
             Integer duracionServicio,
             Integer buffer,
-            Profesional profesional,
+            PerfilProfesional profesional,
             Empresa empresa
     ) {
         List<SlotDisponibleResponse> slots = new ArrayList<>();
@@ -335,7 +334,7 @@ public class ServicioPublico {
     private void generarSlotsEnHueco(List<SlotDisponibleResponse> slots, LocalDate fecha,
                                      LocalTime inicioHueco, LocalTime finHueco,
                                      Integer duracionServicio, Integer duracionTotal,
-                                     Profesional profesional, Empresa empresa) {
+                                     PerfilProfesional profesional, Empresa empresa) {
         LocalTime horaActual = inicioHueco;
         
         // Verificar si es el día actual
@@ -365,7 +364,7 @@ public class ServicioPublico {
      * Crear un slot disponible
      */
     private SlotDisponibleResponse crearSlot(LocalDate fecha, LocalTime horaInicio, 
-                                             Integer duracionServicio, Profesional profesional) {
+                                             Integer duracionServicio, PerfilProfesional profesional) {
         LocalDateTime inicio = LocalDateTime.of(fecha, horaInicio);
         LocalDateTime fin = inicio.plusMinutes(duracionServicio);
         
@@ -373,7 +372,7 @@ public class ServicioPublico {
                 inicio,
                 fin,
                 profesional.getId(),
-                profesional.getNombre() + " " + profesional.getApellido()
+                profesional.getUsuario().getNombre() + " " + profesional.getUsuario().getApellido()
         );
     }
 

@@ -11,10 +11,11 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 /**
  * Handler de login exitoso que retorna JSON con datos del usuario.
- * Se ejecuta después de una autenticación exitosa con form login.
+ * Incluye "rol" (compat) y "roles" (nuevo, multi-rol).
  */
 @Component
 @RequiredArgsConstructor
@@ -32,25 +33,31 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         Usuario usuario = repositorioUsuario.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Retornar JSON con datos del usuario
+        String rolPrimario = usuario.getRoles().isEmpty() ? "" : usuario.getRoles().iterator().next().name();
+        String rolesJson = usuario.getRoles().stream()
+                .map(r -> "\"" + r.name() + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
+
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpServletResponse.SC_OK);
-        
+
         String jsonResponse = String.format(
             "{\"exito\":true,\"mensaje\":\"Login exitoso\",\"datos\":{" +
             "\"id\":%d," +
             "\"nombre\":\"%s\"," +
             "\"apellido\":\"%s\"," +
             "\"email\":\"%s\"," +
-            "\"rol\":\"%s\"" +
+            "\"rol\":\"%s\"," +
+            "\"roles\":%s" +
             "}}",
             usuario.getId(),
             usuario.getNombre(),
             usuario.getApellido(),
             usuario.getEmail(),
-            usuario.getRol().name()
+            rolPrimario,
+            rolesJson
         );
-        
+
         response.getWriter().write(jsonResponse);
     }
 }

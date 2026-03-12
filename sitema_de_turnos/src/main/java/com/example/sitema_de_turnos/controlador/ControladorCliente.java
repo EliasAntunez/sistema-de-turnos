@@ -119,8 +119,8 @@ public class ControladorCliente {
         // Obtener cliente
         Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, telefono);
         
-        // Obtener todos los turnos del cliente
-        List<TurnoResponsePublico> turnos = servicioTurno.obtenerTurnosPorCliente(cliente.getId());
+        // Obtener todos los turnos del cliente autenticado (sin IDOR: se pasa el objeto, no el ID)
+        List<TurnoResponsePublico> turnos = servicioTurno.obtenerTurnosPorCliente(cliente);
 
         return ResponseEntity.ok(ApiResponse.exito(turnos, "Turnos obtenidos exitosamente"));
     }

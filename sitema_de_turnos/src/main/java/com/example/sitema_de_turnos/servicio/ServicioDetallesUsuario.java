@@ -10,13 +10,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Servicio auxiliar para cargar detalles de usuarios del sistema.
- * 
- * NO implementa UserDetailsService directamente para evitar conflictos de beans.
+ * Carga el SET COMPLETO de roles, habilitando el modelo multi-rol.
  */
 @Component
 @RequiredArgsConstructor
@@ -32,9 +31,10 @@ public class ServicioDetallesUsuario {
             throw new UsernameNotFoundException("Usuario inactivo: " + email);
         }
 
-        List<GrantedAuthority> authorities = Collections.singletonList(
-                new SimpleGrantedAuthority(usuario.getRol().name())
-        );
+        // Cargar TODOS los roles del usuario como authorities
+        List<GrantedAuthority> authorities = usuario.getRoles().stream()
+                .map(rol -> new SimpleGrantedAuthority(rol.name()))
+                .collect(Collectors.toList());
 
         return User.builder()
                 .username(usuario.getEmail())

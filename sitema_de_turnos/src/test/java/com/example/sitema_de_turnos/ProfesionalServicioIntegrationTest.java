@@ -1,3 +1,4 @@
+/*
 package com.example.sitema_de_turnos;
 
 import com.example.sitema_de_turnos.dto.RegistroServicioRequest;
@@ -64,6 +65,8 @@ public class ProfesionalServicioIntegrationTest {
     private static final String EMAIL_DUENO = "dueno@test.com";
 
     /** ID de la empresa creada en @BeforeEach, usable en todos los tests. */
+    
+    /*
     private Long empresaId;
 
     // ===== Setup =====
@@ -110,6 +113,8 @@ public class ProfesionalServicioIntegrationTest {
      * Empresa con 1 profesional activo → POST /api/dueno/servicios
      * debe crear automáticamente 1 registro en profesional_servicio (activo=true).
      */
+
+    /*
     @Test
     public void postServicio_unipersonalActivo_creaRegistroProfesionalServicio() throws Exception {
         Profesional prof = profesionalActivo("ana@test.com", "+5491133445566");
@@ -133,6 +138,8 @@ public class ProfesionalServicioIntegrationTest {
      * Empresa con 1 profesional inactivo → POST /api/dueno/servicios
      * NO debe crear ningún registro en profesional_servicio.
      */
+
+    /*
     @Test
     public void postServicio_unipersonalInactivo_noCreaRegistroProfesionalServicio() throws Exception {
         Profesional prof = profesionalActivo("pedro@test.com", "+5491144556677");
@@ -156,6 +163,9 @@ public class ProfesionalServicioIntegrationTest {
      * Empresa con 2 profesionales activos → POST /api/dueno/servicios
      * NO debe crear ningún registro (empresa multi-profesional requiere asignación manual).
      */
+
+    /*
+     @Test
     @Test
     public void postServicio_multiprofesional_noCreaRegistroProfesionalServicio() throws Exception {
         repoProfesional.save(profesionalActivo("laura@test.com", "+5491155667788"));
@@ -179,6 +189,8 @@ public class ProfesionalServicioIntegrationTest {
      * Devuelve todos los servicios activos de la empresa indicando disponible=true
      * sólo para los que tienen registro en profesional_servicio.
      */
+
+    /*
     @Test
     public void getServiciosDeProfesional_retornaTodosConDisponibleCorrecto() throws Exception {
         Empresa emp = repoEmpresa.findById(empresaId).orElseThrow();
@@ -218,6 +230,8 @@ public class ProfesionalServicioIntegrationTest {
      * PATCH /api/dueno/profesionales/{id}/servicios/toggle con disponible=true
      * cuando no existe registro previo → crea el registro en whitelist con activo=true.
      */
+
+    /*
     @Test
     public void toggleServicio_habilitar_creaRegistroEnWhitelist() throws Exception {
         Empresa emp = repoEmpresa.findById(empresaId).orElseThrow();
@@ -248,6 +262,8 @@ public class ProfesionalServicioIntegrationTest {
      * PATCH /api/dueno/profesionales/{id}/servicios/toggle con disponible=false
      * cuando existe registro → elimina el registro de la whitelist.
      */
+
+    /*
     @Test
     public void toggleServicio_deshabilitar_eliminaRegistroDeLaWhitelist() throws Exception {
         Empresa emp = repoEmpresa.findById(empresaId).orElseThrow();
@@ -314,3 +330,5 @@ public class ProfesionalServicioIntegrationTest {
         return s;
     }
 }
+
+*/

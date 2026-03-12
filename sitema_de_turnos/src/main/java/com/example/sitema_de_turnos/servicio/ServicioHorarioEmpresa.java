@@ -7,7 +7,7 @@ import com.example.sitema_de_turnos.excepcion.HorarioEnUsoException;
 import com.example.sitema_de_turnos.excepcion.OperacionBloqueadaPorTurnosException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.modelo.DisponibilidadProfesional;
-import com.example.sitema_de_turnos.modelo.Dueno;
+import com.example.sitema_de_turnos.modelo.PerfilDueno;
 import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.HorarioEmpresa;
@@ -48,7 +48,7 @@ public class ServicioHorarioEmpresa {
         }
 
         // Validar dueño y obtener empresa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
         Empresa empresa = dueno.getEmpresa();
 
         // Verificar solapamientos con horarios existentes del mismo día
@@ -79,7 +79,7 @@ public class ServicioHorarioEmpresa {
         }
 
         // Validar dueño y obtener empresa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
         Empresa empresa = dueno.getEmpresa();
 
         // Obtener horario y validar pertenencia
@@ -113,7 +113,7 @@ public class ServicioHorarioEmpresa {
 
         if (!conflictos.isEmpty()) {
             List<String> afectados = conflictos.stream()
-                    .map(d -> d.getProfesional().getNombre() + " " + d.getProfesional().getApellido()
+                    .map(d -> d.getProfesional().getUsuario().getNombre() + " " + d.getProfesional().getUsuario().getApellido()
                             + " (" + d.getDiaSemana() + " " + d.getHoraInicio() + "-" + d.getHoraFin() + ")")
                     .distinct()
                     .collect(Collectors.toList());
@@ -172,7 +172,7 @@ public class ServicioHorarioEmpresa {
     @Transactional(readOnly = true)
     public List<HorarioEmpresaResponse> obtenerHorariosPorEmpresa(String emailDueno) {
         // Validar dueño y obtener empresa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
         Empresa empresa = dueno.getEmpresa();
 
         List<HorarioEmpresa> horarios = repositorioHorarioEmpresa.findByEmpresaAndActivoTrue(empresa);
@@ -194,7 +194,7 @@ public class ServicioHorarioEmpresa {
     @Transactional
     public void eliminarHorario(String emailDueno, Long horarioId) {
         // Validar dueño y empresa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
         Empresa empresa = dueno.getEmpresa();
 
         // Obtener horario y validar pertenencia
@@ -213,7 +213,7 @@ public class ServicioHorarioEmpresa {
 
         if (!conflictos.isEmpty()) {
             List<String> afectados = conflictos.stream()
-                    .map(d -> d.getProfesional().getNombre() + " " + d.getProfesional().getApellido()
+                    .map(d -> d.getProfesional().getUsuario().getNombre() + " " + d.getProfesional().getUsuario().getApellido()
                             + " (" + d.getDiaSemana() + " " + d.getHoraInicio() + "-" + d.getHoraFin() + ")")
                     .distinct()
                     .collect(Collectors.toList());
@@ -302,7 +302,7 @@ public class ServicioHorarioEmpresa {
                                         List<com.example.sitema_de_turnos.modelo.DiaSemana> diasDestino,
                                         boolean reemplazar) {
         // Validar dueño y obtener empresa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
         Empresa empresa = dueno.getEmpresa();
 
         // Obtener horarios del día fuente
@@ -356,7 +356,7 @@ public class ServicioHorarioEmpresa {
      * Este método es de solo lectura y no debe usarse para cálculo de disponibilidad.
      */
     @Transactional(readOnly = true)
-    public List<HorarioEmpresaResponse> obtenerHorariosPorProfesional(com.example.sitema_de_turnos.modelo.Profesional profesional) {
+    public List<HorarioEmpresaResponse> obtenerHorariosPorProfesional(com.example.sitema_de_turnos.modelo.PerfilProfesional profesional) {
         Empresa empresa = profesional.getEmpresa();
         List<HorarioEmpresa> horarios = repositorioHorarioEmpresa.findByEmpresaAndActivoTrue(empresa);
         return horarios.stream()

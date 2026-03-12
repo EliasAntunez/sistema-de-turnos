@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,7 +15,9 @@ public class PerfilUsuarioResponse {
     private String apellido;
     private String email;
     private String telefono;
+    /** @deprecated Usar roles. Mantenido por compatibilidad con frontend v1. */
     private String rol;
+    private List<String> roles;
     private Boolean activo;
     private Long empresaId;
     private String empresaNombre;

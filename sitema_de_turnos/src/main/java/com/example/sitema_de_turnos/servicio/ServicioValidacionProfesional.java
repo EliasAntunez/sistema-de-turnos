@@ -1,59 +1,48 @@
 package com.example.sitema_de_turnos.servicio;
 
-import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
 import com.example.sitema_de_turnos.excepcion.CuentaDesactivadaException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
-import com.example.sitema_de_turnos.modelo.Profesional;
-import com.example.sitema_de_turnos.modelo.Usuario;
-import com.example.sitema_de_turnos.repositorio.RepositorioUsuario;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
- * Servicio centralizado para validar profesionales y sus empresas.
- * Análogo a ServicioValidacionDueno.
- * 
- * CORRECCIÓN DE SEGURIDAD:
- * Antes: ServicioDisponibilidad, ServicioBloqueoFecha validaban solo si usuario era Profesional
- * Ahora: Valida además que profesional esté activo y su empresa esté activa
+ * Servicio centralizado para validar perfiles de profesional y sus empresas.
+ * Composición: busca en repositorioPerfilProfesional en lugar de usar instanceof.
  */
 @Service
 @RequiredArgsConstructor
 public class ServicioValidacionProfesional {
 
-    private final RepositorioUsuario repositorioUsuario;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
 
     /**
-     * Valida y obtiene un profesional activo con empresa activa.
-     * 
-     * @param email Email del profesional
-     * @return Profesional validado
-     * @throws RecursoNoEncontradoException si el usuario no existe
-     * @throws AccesoDenegadoException si el usuario no es un profesional
-     * @throws CuentaDesactivadaException si el profesional o su empresa están desactivados
+     * Valida y obtiene un PerfilProfesional activo con empresa activa.
+     *
+     * @param email Email del usuario profesional
+     * @return PerfilProfesional validado
      */
-    public Profesional validarYObtenerProfesional(String email) {
-        Usuario usuario = repositorioUsuario.findByEmail(email)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-        
-        if (!(usuario instanceof Profesional)) {
-            throw new AccesoDenegadoException("El usuario no es un profesional");
-        }
-        
-        Profesional profesional = (Profesional) usuario;
-        
-        if (!profesional.getActivo()) {
+    public PerfilProfesional validarYObtenerProfesional(String email) {
+        PerfilProfesional perfil = repositorioPerfilProfesional.findByUsuarioEmail(email)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado o no tiene perfil de profesional"));
+
+        if (!perfil.getUsuario().getActivo()) {
             throw new CuentaDesactivadaException("Su cuenta ha sido desactivada. Contacte al administrador.");
         }
-        
-        if (profesional.getEmpresa() == null) {
+
+        if (!perfil.getActivo()) {
+            throw new CuentaDesactivadaException("Su perfil de profesional ha sido desactivado. Contacte al administrador.");
+        }
+
+        if (perfil.getEmpresa() == null) {
             throw new CuentaDesactivadaException("No tiene una empresa asignada");
         }
-        
-        if (!profesional.getEmpresa().getActiva()) {
+
+        if (!perfil.getEmpresa().getActiva()) {
             throw new CuentaDesactivadaException("Su empresa ha sido desactivada. Contacte al administrador.");
         }
-        
-        return profesional;
+
+        return perfil;
     }
 }

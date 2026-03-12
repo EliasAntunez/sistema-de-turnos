@@ -1,7 +1,7 @@
 package com.example.sitema_de_turnos.repositorio;
 
 import com.example.sitema_de_turnos.modelo.Notificacion;
-import com.example.sitema_de_turnos.modelo.Profesional;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,12 +20,12 @@ public interface RepositorioNotificacion extends JpaRepository<Notificacion, Lon
      * Ordenadas por fecha de creación descendente (más recientes primero)
      */
     @Query("SELECT n FROM Notificacion n WHERE n.profesional = :profesional AND n.leida = false ORDER BY n.fechaCreacion DESC")
-    List<Notificacion> findNoLeidasByProfesional(@Param("profesional") Profesional profesional);
+    List<Notificacion> findNoLeidasByProfesional(@Param("profesional") PerfilProfesional profesional);
 
     /**
      * Contar notificaciones no leídas de un profesional
      */
-    Long countByProfesionalAndLeidaFalse(Profesional profesional);
+    Long countByProfesionalAndLeidaFalse(PerfilProfesional profesional);
 
     /**
      * Obtener todas las notificaciones de un profesional con paginación
@@ -33,7 +33,7 @@ public interface RepositorioNotificacion extends JpaRepository<Notificacion, Lon
      */
     @Query("SELECT n FROM Notificacion n WHERE n.profesional = :profesional ORDER BY n.fechaCreacion DESC")
     Page<Notificacion> findByProfesionalOrderByFechaCreacionDesc(
-        @Param("profesional") Profesional profesional, 
+        @Param("profesional") PerfilProfesional profesional, 
         Pageable pageable
     );
 
@@ -41,7 +41,7 @@ public interface RepositorioNotificacion extends JpaRepository<Notificacion, Lon
      * Obtener las últimas N notificaciones de un profesional
      */
     @Query("SELECT n FROM Notificacion n WHERE n.profesional = :profesional ORDER BY n.fechaCreacion DESC")
-    List<Notificacion> findTopNByProfesional(@Param("profesional") Profesional profesional, Pageable pageable);
+    List<Notificacion> findTopNByProfesional(@Param("profesional") PerfilProfesional profesional, Pageable pageable);
 
     /**
      * ✅ U1 + M7: Eliminar notificaciones leídas antiguas (cleanup)

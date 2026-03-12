@@ -41,23 +41,23 @@ public class ControladorDueno {
     public ResponseEntity<?> obtenerEmpresaDelDueno(org.springframework.security.core.Authentication authentication) {
         String email = authentication.getName();
         logger.info("[EMPRESA] Email recibido del usuario autenticado: {}", email);
-        com.example.sitema_de_turnos.modelo.Dueno dueno = null;
+        com.example.sitema_de_turnos.modelo.PerfilDueno perfil = null;
         try {
-            dueno = servicioDueno.obtenerPorEmail(email);
-            logger.info("[EMPRESA] Dueño encontrado: {} (id: {})", dueno != null ? dueno.getEmail() : null, dueno != null ? dueno.getId() : null);
+            perfil = servicioDueno.obtenerPorEmail(email);
+            logger.info("[EMPRESA] Dueño encontrado: {} (id: {})", perfil != null ? perfil.getUsuario().getEmail() : null, perfil != null ? perfil.getId() : null);
         } catch (Exception e) {
             logger.error("[EMPRESA] Error al buscar dueño por email: {} - {}", email, e.getMessage());
             return ResponseEntity.status(500).body("Error al buscar dueño: " + e.getMessage());
         }
-        if (dueno == null) {
+        if (perfil == null) {
             logger.warn("[EMPRESA] No se encontró dueño para el email: {}", email);
             return ResponseEntity.status(404).body("No se encontró dueño para el email: " + email);
         }
-        if (dueno.getEmpresa() == null) {
+        if (perfil.getEmpresa() == null) {
             logger.warn("[EMPRESA] El dueño con email {} no tiene empresa asociada", email);
             return ResponseEntity.status(404).body("El dueño no tiene empresa asociada");
         }
-        var empresa = dueno.getEmpresa();
+        var empresa = perfil.getEmpresa();
         logger.info("[EMPRESA] Empresa encontrada para el dueño {}: id {}", email, empresa.getId());
         // Usar DTO plano para evitar referencias cíclicas
         com.example.sitema_de_turnos.dto.EmpresaDto dto = new com.example.sitema_de_turnos.dto.EmpresaDto(empresa.getId(), empresa.getNombre());

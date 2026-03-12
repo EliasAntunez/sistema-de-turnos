@@ -1,21 +1,30 @@
 package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.dto.*;
-import com.example.sitema_de_turnos.modelo.Dueno;
 import com.example.sitema_de_turnos.modelo.Empresa;
-import com.example.sitema_de_turnos.repositorio.RepositorioDueno;
+import com.example.sitema_de_turnos.modelo.PerfilDueno;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import com.example.sitema_de_turnos.modelo.RolUsuario;
+import com.example.sitema_de_turnos.modelo.Usuario;
 import com.example.sitema_de_turnos.repositorio.RepositorioEmpresa;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilDueno;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
+import com.example.sitema_de_turnos.repositorio.RepositorioUsuario;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class ServicioEmpresa {
     
     private final RepositorioEmpresa repositorioEmpresa;
-    private final RepositorioDueno repositorioDueno;
+    private final RepositorioPerfilDueno repositorioPerfilDueno;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
+    private final RepositorioUsuario repositorioUsuario;
     private final PasswordEncoder passwordEncoder;
     private final ServicioDueno servicioDueno;
 
@@ -33,25 +42,31 @@ public class ServicioEmpresa {
      */
     @Transactional
     public EmpresaResponse crearEmpresaConDueno(RegistroEmpresaConDuenoRequest request) {
-        // Validaciones de negocio
         validarDatosEmpresa(request.getEmpresa());
         validarDatosDueno(request.getDueno());
 
-        // 1. Crear el Dueño primero
-        Dueno dueno = new Dueno();
-        dueno.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getDueno().getNombre()));
-        dueno.setApellido(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getDueno().getApellido()));
-        dueno.setEmail(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(request.getDueno().getEmail()));
-        dueno.setContrasena(passwordEncoder.encode(request.getDueno().getContrasena()));
-        dueno.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(request.getDueno().getTelefono()));
-        dueno.setDocumento(request.getDueno().getDocumento());
-        dueno.setTipoDocumento(request.getDueno().getTipoDocumento());
-        dueno.setActivo(true);
-        
-        // El rol se asigna automáticamente en @PrePersist
-        dueno = repositorioDueno.save(dueno);
+        // 1. Crear el Usuario con rol DUENO
+        Usuario usuario = new Usuario();
+        usuario.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getDueno().getNombre()));
+        usuario.setApellido(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getDueno().getApellido()));
+        usuario.setEmail(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(request.getDueno().getEmail()));
+        usuario.setContrasena(passwordEncoder.encode(request.getDueno().getContrasena()));
+        usuario.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(request.getDueno().getTelefono()));
+        usuario.setActivo(true);
+        usuario.setFechaCreacion(LocalDateTime.now());
+        usuario.setFechaActualizacion(LocalDateTime.now());
+        usuario.getRoles().add(RolUsuario.DUENO);
+        usuario = repositorioUsuario.save(usuario);
 
-        // 2. Crear la Empresa asociada al Dueño
+        // 2. Crear el PerfilDueno
+        PerfilDueno perfilDueno = new PerfilDueno();
+        perfilDueno.setUsuario(usuario);
+        perfilDueno.setDocumento(request.getDueno().getDocumento());
+        perfilDueno.setTipoDocumento(request.getDueno().getTipoDocumento());
+        perfilDueno.setActivo(true);
+        perfilDueno = repositorioPerfilDueno.save(perfilDueno);
+
+        // 3. Crear la Empresa asociada al PerfilDueno
         Empresa empresa = new Empresa();
         empresa.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getEmpresa().getNombre()));
         empresa.setSlug(request.getEmpresa().getSlug());
@@ -62,15 +77,26 @@ public class ServicioEmpresa {
         empresa.setProvincia(request.getEmpresa().getProvincia());
         empresa.setTelefono(request.getEmpresa().getTelefono());
         empresa.setEmail(request.getEmpresa().getEmail());
-        empresa.setDiasMaximosReserva(request.getEmpresa().getDiasMaximosReserva() != null 
-                ? request.getEmpresa().getDiasMaximosReserva() 
-                : 30); // Default 30 días
+        empresa.setDiasMaximosReserva(request.getEmpresa().getDiasMaximosReserva() != null
+                ? request.getEmpresa().getDiasMaximosReserva()
+                : 30);
         empresa.setActiva(true);
-        empresa.setDueno(dueno);
+        empresa.setPerfilDueno(perfilDueno);
 
         empresa = repositorioEmpresa.save(empresa);
 
-        // 3. Mapear a Response
+        // 4. Opcionalmente crear PerfilProfesional para el dueño (doble rol)
+        if (request.isCrearPerfilProfesional()) {
+            usuario.getRoles().add(RolUsuario.PROFESIONAL);
+            repositorioUsuario.save(usuario);
+
+            PerfilProfesional perfilProfesional = new PerfilProfesional();
+            perfilProfesional.setUsuario(usuario);
+            perfilProfesional.setEmpresa(empresa);
+            perfilProfesional.setActivo(true);
+            repositorioPerfilProfesional.save(perfilProfesional);
+        }
+
         return mapearAEmpresaResponse(empresa);
     }
 
@@ -139,15 +165,14 @@ public class ServicioEmpresa {
     }
 
     // Agregá este método en tu servicio de Empresa
-    public Empresa obtenerPorDueno(Long duenoId) {
-        return repositorioEmpresa.findByDuenoId(duenoId).orElse(null);
+    public Empresa obtenerPorDueno(Long perfilDuenoId) {
+        return repositorioEmpresa.findByPerfilDuenoId(perfilDuenoId).orElse(null);
     }
 
     private void validarDatosDueno(RegistroDuenoRequest duenoRequest) {
-        // Verificar ambas condiciones sin revelar cuál falló (seguridad)
-        boolean emailExiste = repositorioDueno.existsByEmail(duenoRequest.getEmail());
-        boolean documentoExiste = repositorioDueno.existsByDocumento(duenoRequest.getDocumento());
-        
+        boolean emailExiste = repositorioUsuario.existsByEmail(duenoRequest.getEmail());
+        boolean documentoExiste = repositorioPerfilDueno.existsByDocumento(duenoRequest.getDocumento());
+
         if (emailExiste || documentoExiste) {
             throw new RuntimeException("Los datos del dueño proporcionados no son válidos o ya están registrados");
         }
@@ -168,56 +193,48 @@ public class ServicioEmpresa {
         response.setEmail(empresa.getEmail());
         response.setActiva(empresa.getActiva());
         response.setFechaCreacion(empresa.getFechaCreacion());
-        
-        // Mapear dueño
-        if (empresa.getDueno() != null) {
-            response.setDueno(mapearADuenoResponse(empresa.getDueno()));
+
+        if (empresa.getPerfilDueno() != null) {
+            response.setDueno(mapearADuenoResponse(empresa.getPerfilDueno()));
         }
-        
+
         return response;
     }
 
-    private DuenoResponse mapearADuenoResponse(Dueno dueno) {
+    private DuenoResponse mapearADuenoResponse(PerfilDueno perfil) {
         DuenoResponse response = new DuenoResponse();
-        response.setId(dueno.getId());
-        response.setNombre(dueno.getNombre());
-        response.setApellido(dueno.getApellido());
-        response.setEmail(dueno.getEmail());
-        response.setTelefono(dueno.getTelefono());
-        response.setDocumento(dueno.getDocumento());
-        response.setTipoDocumento(dueno.getTipoDocumento());
+        response.setId(perfil.getId());
+        response.setNombre(perfil.getUsuario().getNombre());
+        response.setApellido(perfil.getUsuario().getApellido());
+        response.setEmail(perfil.getUsuario().getEmail());
+        response.setTelefono(perfil.getUsuario().getTelefono());
+        response.setDocumento(perfil.getDocumento());
+        response.setTipoDocumento(perfil.getTipoDocumento());
         return response;
     }
 
     // ===================== GESTIÓN DE CONFIGURACIÓN =====================
 
-    /**
-     * Obtener configuración de la empresa del dueño autenticado
-     */
     @Transactional(readOnly = true)
     public ConfiguracionEmpresaResponse obtenerConfiguracion(String emailDueno) {
-        Dueno dueno = servicioDueno.obtenerPorEmail(emailDueno);
-        Empresa empresa = dueno.getEmpresa();
-        
+        PerfilDueno perfil = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = perfil.getEmpresa();
+
         if (empresa == null) {
             throw new RuntimeException("El dueño no tiene empresa asociada");
         }
-        
+
         return mapearAConfiguracionResponse(empresa);
     }
 
-    /**
-     * Actualizar configuración de la empresa del dueño autenticado
-     */
     @Transactional
     public ConfiguracionEmpresaResponse actualizarConfiguracion(
             String emailDueno,
             ActualizarConfiguracionEmpresaRequest request) {
-        
-        // Validar ownership
-        Dueno dueno = servicioDueno.obtenerPorEmail(emailDueno);
-        Empresa empresa = dueno.getEmpresa();
-        
+
+        PerfilDueno perfil = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = perfil.getEmpresa();
+
         if (empresa == null) {
             throw new RuntimeException("El dueño no tiene empresa asociada");
         }

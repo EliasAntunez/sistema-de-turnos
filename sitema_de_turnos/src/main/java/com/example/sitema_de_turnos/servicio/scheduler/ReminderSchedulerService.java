@@ -290,7 +290,7 @@ public class ReminderSchedulerService {
                 .horaFin(turno.getHoraFin())
                 .fechaHoraCompleta(fechaHoraTurno)
                 .servicioNombre(turno.getServicio().getNombre())
-                .profesionalNombre(turno.getProfesional().getNombre())
+                .profesionalNombre(turno.getProfesional().getUsuario().getNombre())
                 .empresaNombre(empresa.getNombre())
                 .empresaTelefono(empresa.getTelefono())
                 .empresaDireccion(empresa.getDireccion())

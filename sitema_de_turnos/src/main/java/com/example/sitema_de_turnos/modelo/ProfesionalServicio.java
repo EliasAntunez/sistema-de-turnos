@@ -30,7 +30,7 @@ public class ProfesionalServicio {
 
     @ManyToOne
     @JoinColumn(name = "profesional_id", nullable = false)
-    private Profesional profesional;
+    private PerfilProfesional profesional;
 
     @ManyToOne
     @JoinColumn(name = "servicio_id", nullable = false)

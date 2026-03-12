@@ -42,7 +42,7 @@ public class Notificacion {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profesional_id", nullable = false)
-    private Profesional profesional;
+    private PerfilProfesional profesional;
 
     /**
      * Tipo de notificación

@@ -23,7 +23,7 @@
     <main v-if="activeTab === 'empresas'" class="admin-content">
       <!-- Botón para crear empresa -->
       <div class="actions-bar">
-        <button @click="mostrarFormulario = true" class="btn-primary">
+        <button @click="router.push('/admin/registrar-empresa')" class="btn-primary">
           ➕ Nueva Empresa
         </button>
       </div>

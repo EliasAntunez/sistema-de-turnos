@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -129,15 +128,18 @@ public class Empresa {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToOne(optional = false)
-    @JoinColumn(name = "dueno_id", nullable = false, unique = true)
-    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.RESTRICT)
-    private Dueno dueno;
+    @OneToOne(optional = false, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
+    @JoinColumn(name = "perfil_dueno_id", nullable = false, unique = true)
+    private PerfilDueno perfilDueno;
 
+    /**
+     * Profesionales de la empresa. Cargados solo para guardia @PreRemove.
+     * No exponemos esta colección en la API — usar RepositorioPerfilProfesional.
+     */
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "empresa", cascade = CascadeType.ALL)
-    private List<Profesional> profesionales = new ArrayList<>();
+    @OneToMany(mappedBy = "empresa", fetch = FetchType.LAZY)
+    private List<PerfilProfesional> perfilesProfesionales;
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
@@ -154,5 +156,21 @@ public class Empresa {
     @PreUpdate
     protected void onUpdate() {
         fechaActualizacion = LocalDateTime.now();
+    }
+
+    /**
+     * Previene el borrado físico de una empresa si tiene perfiles profesionales
+     * asociados (FK empresa_id en perfil_profesionales). Fuerza el uso de
+     * cambiarEstadoEmpresa(false) como método de baja seguro.
+     */
+    @PreRemove
+    protected void antesDeEliminar() {
+        if (perfilesProfesionales != null && !perfilesProfesionales.isEmpty()) {
+            throw new IllegalStateException(
+                "No se puede eliminar la empresa '" + nombre + "' porque tiene " +
+                perfilesProfesionales.size() + " perfil(es) profesional(es) asociado(s). " +
+                "Desactive la empresa con cambiarEstadoEmpresa(false) en lugar de eliminarla."
+            );
+        }
     }
 }

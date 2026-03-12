@@ -85,12 +85,13 @@ async function handleLogin() {
         if (import.meta.env.DEV) console.warn('No se pudo cargar el perfil completo, pero continuando...', perfilError)
       }
 
-      // Redirigir según rol
-      if (response.data.datos.rol === 'SUPER_ADMIN') {
+      // Redirigir según roles (array). Prioridad: SUPER_ADMIN > DUENO > PROFESIONAL
+      const roles: string[] = response.data.datos.roles ?? []
+      if (roles.includes('SUPER_ADMIN')) {
         router.push('/admin')
-      } else if (response.data.datos.rol === 'DUENO') {
+      } else if (roles.includes('DUENO')) {
         router.push('/dueno')
-      } else if (response.data.datos.rol === 'PROFESIONAL') {
+      } else if (roles.includes('PROFESIONAL')) {
         router.push('/profesional')
       } else {
         error.value = 'No tienes permisos para acceder'

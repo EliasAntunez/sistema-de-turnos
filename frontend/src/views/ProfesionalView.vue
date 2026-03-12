@@ -8,6 +8,15 @@
         </div>
         <div class="header-right">
           <span class="user-name">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+          <!-- Acceso rápido al panel de dueño si el usuario tiene ambos roles -->
+          <button
+            v-if="authStore.isDueno"
+            @click="router.push('/dueno')"
+            class="btn-switch-rol"
+            title="Ir a gestión de empresa"
+          >
+            🏢 Mi Empresa
+          </button>
           <NotificationBell />
           <button @click="cerrarSesion" class="btn-logout">Cerrar Sesión</button>
         </div>
@@ -1142,10 +1151,22 @@ function cerrarSesion() {
   font-size: 1.75rem;
 }
 
-.btn-logout {
-  background-color: rgba(255, 255, 255, 0.2);
+.btn-switch-rol {
+  background-color: rgba(255, 255, 255, 0.15);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-switch-rol:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+.btn-logout {
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;

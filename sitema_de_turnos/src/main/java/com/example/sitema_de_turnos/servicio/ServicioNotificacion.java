@@ -4,10 +4,10 @@ import com.example.sitema_de_turnos.dto.NotificacionResponse;
 import com.example.sitema_de_turnos.dto.NotificacionWebSocketDTO;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.modelo.Notificacion;
-import com.example.sitema_de_turnos.modelo.Profesional;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.modelo.TipoNotificacion;
 import com.example.sitema_de_turnos.repositorio.RepositorioNotificacion;
-import com.example.sitema_de_turnos.repositorio.RepositorioProfesional;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class ServicioNotificacion {
 
     private final RepositorioNotificacion repositorioNotificacion;
-    private final RepositorioProfesional repositorioProfesional;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
     
@@ -56,7 +56,7 @@ public class ServicioNotificacion {
             Long turnoId) {
         
         // Obtener profesional
-        Profesional profesional = repositorioProfesional.findById(profesionalId)
+        PerfilProfesional profesional = repositorioPerfilProfesional.findById(profesionalId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         // Serializar datos adicionales a JSON
@@ -114,7 +114,7 @@ public class ServicioNotificacion {
             .orElseThrow(() -> new RecursoNoEncontradoException("Notificación no encontrada"));
 
         // Verificar que la notificación pertenece al profesional
-        if (!notificacion.getProfesional().getEmail().equals(emailProfesional)) {
+        if (!notificacion.getProfesional().getUsuario().getEmail().equals(emailProfesional)) {
             throw new RecursoNoEncontradoException("Notificación no encontrada");
         }
 
@@ -129,7 +129,7 @@ public class ServicioNotificacion {
      */
     @Transactional
     public void marcarTodasComoLeidas(String emailProfesional) {
-        Profesional profesional = obtenerProfesionalPorEmail(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesionalPorEmail(emailProfesional);
 
         List<Notificacion> noLeidas = repositorioNotificacion.findNoLeidasByProfesional(profesional);
         
@@ -149,7 +149,7 @@ public class ServicioNotificacion {
      */
     @Transactional(readOnly = true)
     public List<NotificacionResponse> obtenerNoLeidas(String emailProfesional) {
-        Profesional profesional = obtenerProfesionalPorEmail(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesionalPorEmail(emailProfesional);
 
         List<Notificacion> notificaciones = repositorioNotificacion.findNoLeidasByProfesional(profesional);
 
@@ -163,7 +163,7 @@ public class ServicioNotificacion {
      */
     @Transactional(readOnly = true)
     public Long contarNoLeidas(String emailProfesional) {
-        Profesional profesional = obtenerProfesionalPorEmail(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesionalPorEmail(emailProfesional);
 
         return repositorioNotificacion.countByProfesionalAndLeidaFalse(profesional);
     }
@@ -173,7 +173,7 @@ public class ServicioNotificacion {
      */
     @Transactional(readOnly = true)
     public Page<NotificacionResponse> obtenerHistorial(String emailProfesional, int pagina, int tamano) {
-        Profesional profesional = obtenerProfesionalPorEmail(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesionalPorEmail(emailProfesional);
 
         Pageable pageable = PageRequest.of(pagina, tamano);
         Page<Notificacion> notificaciones = repositorioNotificacion
@@ -187,7 +187,7 @@ public class ServicioNotificacion {
      */
     @Transactional(readOnly = true)
     public List<NotificacionResponse> obtenerUltimas(String emailProfesional, int limite) {
-        Profesional profesional = obtenerProfesionalPorEmail(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesionalPorEmail(emailProfesional);
 
         Pageable pageable = PageRequest.of(0, limite);
         List<Notificacion> notificaciones = repositorioNotificacion
@@ -248,8 +248,8 @@ public class ServicioNotificacion {
      * ✅ R2: Obtener profesional por email con validación
      * Extrae la lógica duplicada de findByEmail().orElseThrow()
      */
-    private Profesional obtenerProfesionalPorEmail(String email) {
-        return repositorioProfesional.findByEmail(email)
+    private PerfilProfesional obtenerProfesionalPorEmail(String email) {
+        return repositorioPerfilProfesional.findByUsuarioEmail(email)
             .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
     }
 

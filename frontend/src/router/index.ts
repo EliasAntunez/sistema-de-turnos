@@ -11,6 +11,7 @@ import ReservarView from '../views/ReservarView.vue'
 import RegistroClienteView from '../views/RegistroClienteView.vue'
 import LoginClienteView from '../views/LoginClienteView.vue'
 import MisTurnosView from '../views/MisTurnosView.vue'
+import RegistroEmpresaView from '../views/RegistroEmpresaView.vue'
 
 const routes = [
   {
@@ -58,6 +59,12 @@ const routes = [
     path: '/admin',
     name: 'Admin',
     component: AdminView,
+    meta: { requiresAuth: true, role: 'SUPER_ADMIN' }
+  },
+  {
+    path: '/admin/registrar-empresa',
+    name: 'RegistrarEmpresa',
+    component: RegistroEmpresaView,
     meta: { requiresAuth: true, role: 'SUPER_ADMIN' }
   },
   {
@@ -143,18 +150,18 @@ router.beforeEach(async (to, from, next) => {
   // Rutas protegidas de usuario (admin, dueño, profesional)
   if (to.meta.requiresAuth && !authStore.autenticado) {
     next('/login')
-  } else if (to.meta.role && authStore.usuario?.rol !== to.meta.role) {
+  } else if (to.meta.role && !authStore.hasRole(to.meta.role as string)) {
+    // El usuario autenticado no posee el rol requerido por la ruta
     next('/login')
   } else if (to.path === '/login' && authStore.autenticado) {
-    // Redirigir según el rol del usuario
-    if (authStore.usuario?.rol === 'SUPER_ADMIN') {
+    // Redirigir al panel correcto según roles (prioridad: SUPER_ADMIN > DUENO > PROFESIONAL)
+    if (authStore.isSuperAdmin) {
       next('/admin')
-    } else if (authStore.usuario?.rol === 'DUENO') {
+    } else if (authStore.isDueno) {
       next('/dueno')
-    } else if (authStore.usuario?.rol === 'PROFESIONAL') {
+    } else if (authStore.isProfesional) {
       next('/profesional')
     } else {
-      // Si el rol no es reconocido, cerrar sesión y permitir acceso a login
       authStore.logout()
       next()
     }

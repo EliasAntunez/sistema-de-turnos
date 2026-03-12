@@ -16,10 +16,10 @@ import java.util.List;
 public interface RepositorioTurno extends JpaRepository<Turno, Long> {
 
     /**
-     * Buscar turnos de un profesional en una fecha específica
+     * Buscar turnos de un perfil-profesional en una fecha específica
      */
     List<Turno> findByProfesionalAndFechaAndEstadoNotOrderByHoraInicio(
-        Profesional profesional, 
+        PerfilProfesional profesional, 
         LocalDate fecha, 
         EstadoTurno estado
     );
@@ -40,30 +40,25 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
 
     /**
      * Verificar si existe un turno en un horario específico para un profesional
-     * (excluyendo turnos cancelados)
      */
     @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
            "AND t.estado NOT IN ('CANCELADO') " +
            "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
     boolean existeSolapamiento(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fecha") LocalDate fecha,
         @Param("horaInicio") LocalTime horaInicio,
         @Param("horaFin") LocalTime horaFin
     );
 
-    /**
-     * Igual que existeSolapamiento pero excluye un turno específico por ID.
-     * Úsalo al reprogramar para no detectar como solapamiento el propio turno en su slot original.
-     */
     @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
            "AND t.id <> :turnoId " +
            "AND t.estado NOT IN ('CANCELADO') " +
            "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
     boolean existeSolapamientoExcluyendo(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fecha") LocalDate fecha,
         @Param("horaInicio") LocalTime horaInicio,
         @Param("horaFin") LocalTime horaFin,
@@ -78,7 +73,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "AND t.estado NOT IN ('CANCELADO') " +
            "ORDER BY t.horaInicio")
     List<Turno> findTurnosActivosByProfesionalAndFecha(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fecha") LocalDate fecha
     );
 
@@ -104,7 +99,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "AND t.estado NOT IN ('CANCELADO', 'ATENDIDO', 'NO_ASISTIO') " +
            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findConflictosBloqueo(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fechaInicio") LocalDate fechaInicio,
         @Param("fechaFin") LocalDate fechaFin
     );
@@ -181,7 +176,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "AND t.fecha BETWEEN :fechaInicio AND :fechaFin " +
            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findByProfesionalWithDetails(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fechaInicio") LocalDate fechaInicio,
         @Param("fechaFin") LocalDate fechaFin
     );
@@ -343,7 +338,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * @param estados Lista de estados a considerar como "activos"
      * @return Cantidad de turnos que el profesional tiene en los estados indicados
      */
-    long countByProfesionalAndEstadoIn(Profesional profesional, List<EstadoTurno> estados);
+    long countByProfesionalAndEstadoIn(PerfilProfesional profesional, List<EstadoTurno> estados);
 
     /**
      * Retorna turnos futuros activos de la empresa cuyo rango de horas se solapa
@@ -400,7 +395,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "AND t.horaFin > :horaInicio " +
            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findActivosFuturosEnRangoPorProfesional(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("hoy") LocalDate hoy,
         @Param("estados") List<EstadoTurno> estados,
         @Param("horaInicio") LocalTime horaInicio,

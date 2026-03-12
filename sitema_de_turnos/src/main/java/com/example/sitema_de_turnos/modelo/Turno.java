@@ -61,7 +61,7 @@ public class Turno {
 
     @ManyToOne
     @JoinColumn(name = "profesional_id", nullable = false)
-    private Profesional profesional;
+    private PerfilProfesional profesional;
 
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)

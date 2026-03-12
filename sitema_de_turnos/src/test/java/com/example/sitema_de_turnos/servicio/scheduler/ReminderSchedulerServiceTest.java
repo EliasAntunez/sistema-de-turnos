@@ -201,7 +201,7 @@ class ReminderSchedulerServiceTest {
         assertEquals(turnoConfirmado.getFecha(), reminder.getFecha());
         assertEquals(turnoConfirmado.getHoraInicio(), reminder.getHoraInicio());
         assertEquals(turnoConfirmado.getServicio().getNombre(), reminder.getServicioNombre());
-        assertEquals(turnoConfirmado.getProfesional().getNombre(), reminder.getProfesionalNombre());
+        assertEquals(turnoConfirmado.getProfesional().getUsuario().getNombre(), reminder.getProfesionalNombre());
         assertEquals(empresaActiva.getNombre(), reminder.getEmpresaNombre());
     }
 

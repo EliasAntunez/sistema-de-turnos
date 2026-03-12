@@ -30,7 +30,7 @@ public class DisponibilidadProfesional {
 
     @ManyToOne
     @JoinColumn(name = "profesional_id", nullable = false)
-    private Profesional profesional;
+    private PerfilProfesional profesional;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "dia_semana", nullable = false, length = 10)

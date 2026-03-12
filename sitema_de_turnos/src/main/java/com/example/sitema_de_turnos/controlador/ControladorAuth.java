@@ -5,7 +5,10 @@ import com.example.sitema_de_turnos.dto.ApiResponse;
 import com.example.sitema_de_turnos.dto.ClienteAutenticadoResponse;
 import com.example.sitema_de_turnos.dto.PerfilUsuarioResponse;
 import com.example.sitema_de_turnos.modelo.Cliente;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import com.example.sitema_de_turnos.modelo.RolUsuario;
 import com.example.sitema_de_turnos.modelo.Usuario;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioUsuario;
 import com.example.sitema_de_turnos.servicio.ServicioAutenticacionCliente;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class ControladorAuth {
 
     private final RepositorioUsuario repositorioUsuario;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final ServicioAutenticacionCliente servicioAutenticacionCliente;
 
     /**
@@ -106,17 +110,18 @@ public class ControladorAuth {
         perfilUsuario.setApellido(usuario.getApellido());
         perfilUsuario.setEmail(usuario.getEmail());
         perfilUsuario.setTelefono(usuario.getTelefono());
-        perfilUsuario.setRol(usuario.getRol().name());
+        String rolPrimario = usuario.getRoles().isEmpty() ? "" : usuario.getRoles().iterator().next().name();
+        perfilUsuario.setRol(rolPrimario);
+        perfilUsuario.setRoles(usuario.getRoles().stream()
+                .map(RolUsuario::name)
+                .collect(java.util.stream.Collectors.toList()));
         perfilUsuario.setActivo(usuario.getActivo());
-        
-        // Agregar información de la empresa si es profesional
-        if (usuario instanceof com.example.sitema_de_turnos.modelo.Profesional) {
-            com.example.sitema_de_turnos.modelo.Profesional profesional = 
-                    (com.example.sitema_de_turnos.modelo.Profesional) usuario;
-            if (profesional.getEmpresa() != null) {
-                perfilUsuario.setEmpresaId(profesional.getEmpresa().getId());
-                perfilUsuario.setEmpresaNombre(profesional.getEmpresa().getNombre());
-            }
+
+        // Agregar información de la empresa si tiene perfil profesional
+        PerfilProfesional perfilProfesional = repositorioPerfilProfesional.findByUsuarioEmail(username).orElse(null);
+        if (perfilProfesional != null && perfilProfesional.getEmpresa() != null) {
+            perfilUsuario.setEmpresaId(perfilProfesional.getEmpresa().getId());
+            perfilUsuario.setEmpresaNombre(perfilProfesional.getEmpresa().getNombre());
         }
 
         return ResponseEntity.ok(RespuestaApi.exitosa("Perfil obtenido", perfilUsuario));

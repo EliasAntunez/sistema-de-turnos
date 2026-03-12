@@ -3,7 +3,7 @@ package com.example.sitema_de_turnos.repositorio;
 import com.example.sitema_de_turnos.modelo.DiaSemana;
 import com.example.sitema_de_turnos.modelo.DisponibilidadProfesional;
 import com.example.sitema_de_turnos.modelo.Empresa;
-import com.example.sitema_de_turnos.modelo.Profesional;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,20 +15,14 @@ import java.util.List;
 @Repository
 public interface RepositorioDisponibilidadProfesional extends JpaRepository<DisponibilidadProfesional, Long> {
     
-    List<DisponibilidadProfesional> findByProfesional(Profesional profesional);
+    List<DisponibilidadProfesional> findByProfesional(PerfilProfesional profesional);
     
-    List<DisponibilidadProfesional> findByProfesionalAndActivoTrue(Profesional profesional);
+    List<DisponibilidadProfesional> findByProfesionalAndActivoTrue(PerfilProfesional profesional);
     
-    List<DisponibilidadProfesional> findByProfesionalAndDiaSemana(Profesional profesional, DiaSemana diaSemana);
+    List<DisponibilidadProfesional> findByProfesionalAndDiaSemana(PerfilProfesional profesional, DiaSemana diaSemana);
     
-    List<DisponibilidadProfesional> findByProfesionalAndDiaSemanaAndActivoTrue(Profesional profesional, DiaSemana diaSemana);
+    List<DisponibilidadProfesional> findByProfesionalAndDiaSemanaAndActivoTrue(PerfilProfesional profesional, DiaSemana diaSemana);
 
-    /**
-     * Retorna todas las disponibilidades activas de profesionales de la empresa,
-     * para el día dado, cuyo rango está completamente contenido dentro del rango
-     * [horaInicio, horaFin] del horario empresa.
-     * Se usa para detectar conflictos antes de eliminar un HorarioEmpresa.
-     */
     @Query("SELECT d FROM DisponibilidadProfesional d " +
            "WHERE d.profesional.empresa = :empresa " +
            "AND d.diaSemana = :diaSemana " +
@@ -41,11 +35,6 @@ public interface RepositorioDisponibilidadProfesional extends JpaRepository<Disp
             @Param("horaInicio") LocalTime horaInicio,
             @Param("horaFin") LocalTime horaFin);
 
-    /**
-     * Retorna disponibilidades activas dentro del rango anterior que quedan fuera del
-     * nuevo rango en el mismo día (caso de achicamiento de franjas).
-     * Solo aplica cuando el día no cambia; si el día cambia, usar findConflictosPorEliminacion.
-     */
     @Query("SELECT d FROM DisponibilidadProfesional d " +
            "WHERE d.profesional.empresa = :empresa " +
            "AND d.diaSemana = :dia " +

@@ -7,6 +7,15 @@
       <div class="user-info">
         <span>{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
         <span class="badge-dueno">Dueño</span>
+        <!-- Acceso rápido al panel de profesional si el usuario tiene ambos roles -->
+        <button
+          v-if="authStore.isProfesional"
+          @click="router.push('/profesional')"
+          class="btn-switch-rol"
+          title="Ir a mi agenda de profesional"
+        >
+          📅 Mi Agenda
+        </button>
         <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
       </div>
     </header>
@@ -1842,6 +1851,22 @@ async function submitConfiguracion() {
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.btn-switch-rol {
+  background: #4c51bf;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-switch-rol:hover {
+  background: #434190;
+  transform: translateY(-2px);
 }
 
 .btn-logout {
