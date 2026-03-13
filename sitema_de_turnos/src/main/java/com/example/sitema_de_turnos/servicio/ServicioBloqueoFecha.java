@@ -35,6 +35,10 @@ public class ServicioBloqueoFecha {
 
     private static final Logger log = LoggerFactory.getLogger(ServicioBloqueoFecha.class);
 
+    /** Estados terminales que no generan conflicto de bloqueo. */
+    private static final List<EstadoTurno> ESTADOS_TERMINALES =
+            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
+
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioTurno repositorioTurno;
     private final ServicioValidacionProfesional servicioValidacionProfesional;
@@ -109,7 +113,7 @@ public class ServicioBloqueoFecha {
 
         // 1. Buscar turnos conflictivos con JOIN FETCH (1 query en lugar de 1+3N)
         List<Turno> turnosConflictivos = repositorioTurno.findConflictosBloqueo(
-                profesional, fechaInicio, fechaFin);
+                profesional, fechaInicio, fechaFin, ESTADOS_TERMINALES);
 
         ConflictosBloqueoResponse response = new ConflictosBloqueoResponse();
         response.setTieneConflictos(!turnosConflictivos.isEmpty());

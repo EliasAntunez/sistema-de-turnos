@@ -1,0 +1,17 @@
+# Evita copiar node_modules y el dist local al contexto Docker
+node_modules/
+dist/
+*.log
+
+# IDEs / entorno
+.vscode/
+.idea/
+
+# Secretos / entorno local
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore

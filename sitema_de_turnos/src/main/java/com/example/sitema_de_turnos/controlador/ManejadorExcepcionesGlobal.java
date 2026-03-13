@@ -7,6 +7,9 @@ import com.example.sitema_de_turnos.excepcion.CuentaDesactivadaException;
 import com.example.sitema_de_turnos.excepcion.HorarioEnUsoException;
 import com.example.sitema_de_turnos.excepcion.OperacionBloqueadaPorTurnosException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
+import com.example.sitema_de_turnos.excepcion.SolapamientoException;
+import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -76,13 +79,49 @@ public class ManejadorExcepcionesGlobal {
     }
 
     /**
-     * Maneja conflictos de negocio (409)
+     * Maneja conflictos de negocio genéricos (409)
      */
     @ExceptionHandler(com.example.sitema_de_turnos.excepcion.ConflictoException.class)
     public ResponseEntity<RespuestaApi<Void>> manejarConflicto(com.example.sitema_de_turnos.excepcion.ConflictoException ex) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(RespuestaApi.error(ex.getMessage()));
+    }
+
+    /**
+     * Maneja solapamiento de turnos (409) — más específico que ConflictoException.
+     * Cubre tanto el check en memoria como las race conditions resueltas por el
+     * índice único parcial {@code idx_turno_no_overlap} de PostgreSQL.
+     * Al ser subclase de ConflictoException, Spring prioriza este handler.
+     */
+    @ExceptionHandler(SolapamientoException.class)
+    public ResponseEntity<RespuestaApi<Void>> manejarSolapamiento(SolapamientoException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(RespuestaApi.error(ex.getMessage()));
+    }
+
+    /**
+     * Red de seguridad para DataIntegrityViolationException no capturada en la capa de servicio.
+     * Ejemplos: unique constraint en otras entidades, FK violations inesperadas.
+     * Devuelve 409 en lugar del 400 genérico del catch-all de RuntimeException.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<RespuestaApi<Void>> manejarViolacionIntegridad(DataIntegrityViolationException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(RespuestaApi.error("El recurso ya existe o viola una regla de unicidad. Por favor, verifica los datos e intenta nuevamente."));
+    }
+
+    /**
+     * Maneja fallos de concurrencia en BD (incluye serialización y conflictos de escritura).
+     * Se traduce como conflicto de disponibilidad para mantener UX consistente en reservas.
+     */
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ResponseEntity<RespuestaApi<Void>> manejarFalloConcurrencia(ConcurrencyFailureException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(RespuestaApi.error("El horario seleccionado ya no está disponible. Por favor, selecciona otro horario."));
     }
 
     /**

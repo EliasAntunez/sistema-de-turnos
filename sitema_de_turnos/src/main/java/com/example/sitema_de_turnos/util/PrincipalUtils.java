@@ -1,5 +1,4 @@
 package com.example.sitema_de_turnos.util;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

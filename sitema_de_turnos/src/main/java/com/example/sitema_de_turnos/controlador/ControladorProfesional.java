@@ -151,6 +151,7 @@ public class ControladorProfesional {
         }
     }
 
+    @SuppressWarnings("deprecation") // setRol() retenido intencionalmente para backward compat
     private PerfilUsuarioResponse mapearAPerfilResponse(Usuario usuario) {
         PerfilUsuarioResponse response = new PerfilUsuarioResponse();
         response.setId(usuario.getId());
@@ -158,9 +159,13 @@ public class ControladorProfesional {
         response.setApellido(usuario.getApellido());
         response.setEmail(usuario.getEmail());
         response.setTelefono(usuario.getTelefono());
-        response.setRol(usuario.getRoles().stream()
-                .map(RolUsuario::getDescripcion)
-                .collect(java.util.stream.Collectors.joining(", ")));
+        // Usar .name() (ej: "PROFESIONAL") en lugar de getDescripcion() para
+        // mantener consistencia con ControladorAuth y el contrato del frontend.
+        String rolPrimario = usuario.getRoles().isEmpty() ? "" : usuario.getRoles().iterator().next().name();
+        response.setRol(rolPrimario); // backward compat — campo intencionalmente retenido
+        response.setRoles(usuario.getRoles().stream()
+                .map(RolUsuario::name)
+                .collect(java.util.stream.Collectors.toList()));
         response.setActivo(usuario.getActivo());
         
         // Agregar información de la empresa va perfil profesional

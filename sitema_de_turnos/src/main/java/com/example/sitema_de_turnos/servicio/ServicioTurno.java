@@ -6,6 +6,7 @@ import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
 import com.example.sitema_de_turnos.dto.publico.ReservaModificarRequest;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponseProfesional;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
+import com.example.sitema_de_turnos.excepcion.SolapamientoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.*;
 import com.example.sitema_de_turnos.repositorio.*;
@@ -22,6 +23,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
@@ -41,6 +43,10 @@ public class ServicioTurno {
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final ServicioNotificacion servicioNotificacion;
 
+        /** Estados terminales que no deben bloquear agenda ni participar en el índice parcial. */
+        private static final List<EstadoTurno> ESTADOS_TERMINALES =
+            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
+
     // ✅ M2: Constantes estáticas para formateo de fechas
     private static final DateTimeFormatter FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter FORMATTER_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -59,8 +65,12 @@ public class ServicioTurno {
 
     /**
      * Crear un turno desde la vista pública.
-     * ISOLATION.REPEATABLE_READ previene race conditions en la verificación de disponibilidad.
-     * El constraint único en BD (idx_turno_no_overlap) es la defensa definitiva.
+     * ISOLATION.REPEATABLE_READ: previene dirty reads y non-repeatable reads.
+     * La barrera atómica real contra race conditions es el índice único parcial
+     * idx_turno_no_overlap (PostgreSQL). Si dos threads pasan el check en memoria
+     * simultáneamente, el segundo INSERT viola el índice → DataIntegrityViolationException
+     * → capturada y relanzada como SolapamientoException → HTTP 409.
+     * SERIALIZABLE no es necesario y genera falsos positivos de "serialization failure".
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public TurnoResponsePublico crearTurnoPublico(String empresaSlug, Cliente clienteAutenticado, CrearTurnoRequest request) {
@@ -124,8 +134,8 @@ public class ServicioTurno {
         }
 
         // 7. Verificar disponibilidad (sin solapamiento)
-        if (repositorioTurno.existeSolapamiento(profesional, fecha, horaInicio, horaFin)) {
-            throw new ValidacionException("El horario seleccionado ya no está disponible");
+        if (repositorioTurno.existeSolapamiento(profesional, fecha, horaInicio, horaFin, ESTADOS_TERMINALES)) {
+            throw new SolapamientoException("El horario seleccionado ya no está disponible");
         }
 
         // 8. Obtener o crear cliente
@@ -158,8 +168,7 @@ public class ServicioTurno {
         try {
             turno = repositorioTurno.save(turno);
         } catch (DataIntegrityViolationException e) {
-            // Constraint único de BD detectó solapamiento (race condition perdida)
-            throw new ValidacionException("El horario seleccionado ya no está disponible. Por favor, seleccione otro horario.");
+            throw new SolapamientoException("El turno ya fue tomado por otro cliente. Por favor, selecciona otro horario.", e);
         }
 
         // 10. Enviar notificación al profesional
@@ -222,8 +231,8 @@ public class ServicioTurno {
 
     /**
      * Reprogramar (cambiar fecha/hora y opcionalmente profesional) una reserva por el cliente propietario.
-     * ISOLATION.REPEATABLE_READ: garantiza que los turnos leídos para validar solapamiento
-     * no cambien hasta el commit, previniendo race conditions en la ventana de validación → save.
+     * ISOLATION.REPEATABLE_READ: misma estrategia que crearTurnoPublico.
+     * La barrera atómica es el índice único parcial idx_turno_no_overlap en PostgreSQL.
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public TurnoResponsePublico reprogramarReservaPorCliente(Long turnoId, Cliente cliente, com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request) {
@@ -304,8 +313,8 @@ public class ServicioTurno {
         validarHorarioEnDisponibilidad(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getEmpresa());
 
         // Validar solapamiento atómicamente (excluyendo el propio turno en su slot original)
-        if (repositorioTurno.existeSolapamientoExcluyendo(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getId())) {
-            throw new ValidacionException("El horario seleccionado ya no está disponible");
+        if (repositorioTurno.existeSolapamientoExcluyendo(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getId(), ESTADOS_TERMINALES)) {
+            throw new SolapamientoException("El horario seleccionado ya no está disponible");
         }
 
         // Si todo OK, aplicar cambios
@@ -317,8 +326,7 @@ public class ServicioTurno {
         try {
             turno = repositorioTurno.save(turno);
         } catch (DataIntegrityViolationException e) {
-            // El constraint único de BD detectó solapamiento (race condition perdida)
-            throw new ValidacionException("El horario seleccionado ya no está disponible. Por favor, elija otro horario.");
+            throw new SolapamientoException("El turno ya fue tomado por otro cliente. Por favor, elija otro horario.", e);
         }
 
         log.info("Turno reprogramado: turnoId={}, profesional={}, nuevaFecha={}, nuevaHoraInicio={}, nuevaHoraFin={}",

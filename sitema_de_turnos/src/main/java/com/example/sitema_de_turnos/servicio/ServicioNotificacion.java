@@ -89,13 +89,17 @@ public class ServicioNotificacion {
     }
 
     /**
-     * Enviar notificación por WebSocket al canal del profesional
+     * Enviar notificación por WebSocket al canal del profesional.
+     * El topic usa Usuario.id (no PerfilProfesional.id) para coincidir con
+     * el ID que el frontend almacena en authStore.usuario.id.
      */
     private void enviarPorWebSocket(Notificacion notificacion) {
         try {
             NotificacionWebSocketDTO dto = convertirAWebSocketDTO(notificacion);
 
-            String destination = "/topic/notifications/" + notificacion.getProfesional().getId();
+            // ✅ Usar usuario.getId() — el frontend se suscribe por Usuario.id,
+            //    no por PerfilProfesional.id (que son valores distintos)
+            String destination = "/topic/notifications/" + notificacion.getProfesional().getUsuario().getId();
             messagingTemplate.convertAndSend(destination, dto);
             
             log.debug("Notificación enviada por WebSocket a: {}", destination);

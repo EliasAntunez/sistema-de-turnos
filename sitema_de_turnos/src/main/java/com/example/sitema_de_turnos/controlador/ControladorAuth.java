@@ -68,6 +68,7 @@ public class ControladorAuth {
      * pueda manejar el estado sin forzar redirect automático.
      */
     @GetMapping("/perfil")
+    @SuppressWarnings("deprecation") // setRol() retenido intencionalmente para backward compat
     public ResponseEntity<?> perfil(org.springframework.security.core.Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.ok(RespuestaApi.error("No autenticado"));
@@ -111,7 +112,7 @@ public class ControladorAuth {
         perfilUsuario.setEmail(usuario.getEmail());
         perfilUsuario.setTelefono(usuario.getTelefono());
         String rolPrimario = usuario.getRoles().isEmpty() ? "" : usuario.getRoles().iterator().next().name();
-        perfilUsuario.setRol(rolPrimario);
+        perfilUsuario.setRol(rolPrimario); // backward compat — campo intencionalmente retenido
         perfilUsuario.setRoles(usuario.getRoles().stream()
                 .map(RolUsuario::name)
                 .collect(java.util.stream.Collectors.toList()));

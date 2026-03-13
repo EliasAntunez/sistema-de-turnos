@@ -16,6 +16,7 @@ public class PerfilUsuarioResponse {
     private String email;
     private String telefono;
     /** @deprecated Usar roles. Mantenido por compatibilidad con frontend v1. */
+    @Deprecated(forRemoval = false)
     private String rol;
     private List<String> roles;
     private Boolean activo;

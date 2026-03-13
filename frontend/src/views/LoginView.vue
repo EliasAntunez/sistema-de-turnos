@@ -43,10 +43,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useClienteStore } from '../stores/cliente'
 import api from '../services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
+// Necesario para el aislamiento de sesión cruzada Cliente ↔ Staff
+const clienteStore = useClienteStore()
 
 const email = ref('')
 const contrasena = ref('')
@@ -64,6 +67,12 @@ async function handleLogin() {
     })
 
     if (response.data.exito) {
+      // Aislamiento de sesión cruzada: si hay una sesión de cliente activa,
+      // limpiarla antes de establecer la sesión de staff para evitar estados mixtos.
+      if (clienteStore.isAuthenticated) {
+        clienteStore.logout()
+      }
+
       // ACTUALIZADO: Solo guardar datos del usuario (NO credenciales)
       // Spring Security gestiona la sesión con cookies HttpOnly
       authStore.setUsuario(response.data.datos)

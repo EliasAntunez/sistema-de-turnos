@@ -4,6 +4,8 @@ import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.modelo.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,9 +14,20 @@ import java.util.Optional;
 @Repository
 public interface RepositorioPerfilProfesional extends JpaRepository<PerfilProfesional, Long> {
 
-    List<PerfilProfesional> findByEmpresa(Empresa empresa);
+    /**
+     * OPTIMIZADO: JOIN FETCH sobre usuario elimina N+1.
+     * Sin esto: 1 query (perfiles) + N queries (usuario por perfil).
+     * Con esto: 1 sola query con INNER JOIN.
+     */
+    @Query("SELECT pp FROM PerfilProfesional pp JOIN FETCH pp.usuario WHERE pp.empresa = :empresa")
+    List<PerfilProfesional> findByEmpresa(@Param("empresa") Empresa empresa);
 
-    List<PerfilProfesional> findByEmpresaAndActivoTrue(Empresa empresa);
+    /**
+     * OPTIMIZADO: JOIN FETCH sobre usuario elimina N+1.
+     * Usado en lista de profesionales activos por empresa (vista dueño y pública).
+     */
+    @Query("SELECT pp FROM PerfilProfesional pp JOIN FETCH pp.usuario WHERE pp.empresa = :empresa AND pp.activo = true")
+    List<PerfilProfesional> findByEmpresaAndActivoTrue(@Param("empresa") Empresa empresa);
 
     Optional<PerfilProfesional> findByUsuario(Usuario usuario);
 

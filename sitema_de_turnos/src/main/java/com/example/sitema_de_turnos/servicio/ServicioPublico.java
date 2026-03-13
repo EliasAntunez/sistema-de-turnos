@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -37,6 +38,10 @@ public class ServicioPublico {
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioTurno repositorioTurno;
+
+    /** Estados terminales que NO deben bloquear slots en el calendario. */
+    private static final List<EstadoTurno> ESTADOS_TERMINALES =
+            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
 
     /**
      * Obtener información pública de una empresa por slug
@@ -158,7 +163,9 @@ public class ServicioPublico {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada"));
 
         // Validar que la fecha esté dentro del rango permitido
-        LocalDate hoy = LocalDate.now();
+        // CORREGIDO: usar TZ de la empresa para evitar desfase UTC vs hora local
+        ZoneId zonaEmpresa = ZoneId.of(empresa.getTimezone());
+        LocalDate hoy = LocalDate.now(zonaEmpresa);
         LocalDate fechaMaxima = hoy.plusDays(empresa.getDiasMaximosReserva());
         if (fecha.isBefore(hoy)) {
             throw new ValidacionException("No se pueden reservar turnos en fechas pasadas");
@@ -277,9 +284,9 @@ public class ServicioPublico {
         List<SlotDisponibleResponse> slots = new ArrayList<>();
         Integer duracionTotal = duracionServicio + buffer;
 
-        // Obtener turnos activos ordenados por hora de inicio
+        // Obtener turnos que bloquean agenda (excluye cancelados, atendidos, no-asistió)
         List<Turno> turnosExistentes = repositorioTurno.findTurnosActivosByProfesionalAndFecha(
-                profesional, fecha);
+                profesional, fecha, ESTADOS_TERMINALES);
         
         turnosExistentes.sort(Comparator.comparing(Turno::getHoraInicio));
 
@@ -337,15 +344,17 @@ public class ServicioPublico {
                                      PerfilProfesional profesional, Empresa empresa) {
         LocalTime horaActual = inicioHueco;
         
-        // Verificar si es el día actual
-        boolean esHoy = fecha.isEqual(LocalDate.now());
+        // CORREGIDO: comparar contra la zona horaria de la empresa, no contra UTC del JVM (Docker)
+        ZoneId zonaEmpresa = ZoneId.of(empresa.getTimezone());
+        boolean esHoy = fecha.isEqual(LocalDate.now(zonaEmpresa));
         LocalTime horaLimite = null;
         
         if (esHoy) {
             // Obtener tiempo mínimo de anticipación de la empresa
             int tiempoMinimoAnticipacion = empresa.getTiempoMinimoAnticipacionMinutos() != null ?
                 empresa.getTiempoMinimoAnticipacionMinutos() : 30;
-            horaLimite = LocalTime.now().plusMinutes(tiempoMinimoAnticipacion);
+            // CORREGIDO: LocalTime.now(zonaEmpresa) en lugar de LocalTime.now() (UTC)
+            horaLimite = LocalTime.now(zonaEmpresa).plusMinutes(tiempoMinimoAnticipacion);
         }
         
         while (horaActual.plusMinutes(duracionTotal).compareTo(finHueco) <= 0) {

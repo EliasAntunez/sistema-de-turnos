@@ -53,9 +53,10 @@ export const bloqueosService = {
     return response.data.datos
   },
 
-  async crearBloqueoConResolucion(datos: ResolucionConflictoRequest): Promise<BloqueoResponse> {
+  async crearBloqueoConResolucion(datos: ResolucionConflictoRequest): Promise<{ datos: BloqueoResponse; mensaje: string }> {
     const response = await api.post('/profesional/bloqueos/con-resolucion', datos)
-    return response.data.datos
+    // Retorna tanto el bloqueo creado como el mensaje descriptivo del backend
+    return { datos: response.data.datos, mensaje: response.data.mensaje }
   },
 
   async crearBloqueo(datos: BloqueoRequest): Promise<BloqueoResponse> {

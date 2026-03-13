@@ -1,6 +1,6 @@
 import { reactive, readonly } from 'vue'
 
-export type ToastType = 'default' | 'success' | 'error'
+export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'default'
 
 export type Toast = {
   id: number
@@ -31,6 +31,14 @@ export function useToastStore() {
     return show(message, timeout, 'error')
   }
 
+  function showWarning(message: string, timeout = 4000) {
+    return show(message, timeout, 'warning')
+  }
+
+  function showInfo(message: string, timeout = 4000) {
+    return show(message, timeout, 'info')
+  }
+
   function showErrorConDetalles(message: string, detalles: string[]) {
     const id = nextId++
     // autoClose desactivado: timeout = 0
@@ -48,6 +56,8 @@ export function useToastStore() {
     show,
     showSuccess,
     showError,
+    showWarning,
+    showInfo,
     showErrorConDetalles,
     dismiss
   }

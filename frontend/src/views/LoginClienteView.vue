@@ -184,12 +184,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import { useClienteStore } from '@/stores/cliente'
+import { useAuthStore } from '@/stores/auth'
 import publicoService, { type EmpresaPublica } from '@/services/publico'
 import Footer from '@/components/Footer.vue'
 
 const route = useRoute()
 const router = useRouter()
 const clienteStore = useClienteStore()
+// Necesario para el aislamiento de sesión cruzada Staff ↔ Cliente
+const authStore = useAuthStore()
 
 const empresaSlug = ref(route.params.empresaSlug as string)
 const empresa = ref<EmpresaPublica | null>(null)
@@ -235,6 +238,14 @@ async function login() {
     const response = await api.loginCliente(empresaSlug.value, formData.value)
     
     if (response.data.exito) {
+      // Aislamiento de sesión cruzada: si hay una sesión de staff activa (DUEÑO/PROFESIONAL)
+      // en esta misma pestaña o en otra del mismo navegador, limpiarla antes de establecer
+      // la sesión de cliente. El watcher en App.vue detectará autenticado=false y
+      // desconectará el WebSocket del profesional automáticamente.
+      if (authStore.autenticado) {
+        authStore.logout()
+      }
+
       // Guardar datos del cliente en el store
       clienteStore.setCliente(response.data.datos)
       console.debug('[LoginClienteView] cliente seteado en store:', clienteStore.cliente)

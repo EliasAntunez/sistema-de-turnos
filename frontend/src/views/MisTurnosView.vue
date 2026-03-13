@@ -302,12 +302,12 @@ function openReprogramarModal(turno: Turno) {
   const diffMs = inicio.getTime() - ahora.getTime()
 
   if (inicio.getTime() < ahora.getTime()) {
-    toast.show('No se puede reprogramar un turno que ya pasó')
+    toast.showWarning('No se puede reprogramar un turno que ya pasó')
     return
   }
 
   if (diffMs < 60 * 60 * 1000) {
-    toast.show('No se puede reprogramar un turno con menos de 1 hora de anticipación')
+    toast.showWarning('No se puede reprogramar un turno con menos de 1 hora de anticipación')
     return
   }
 
@@ -334,7 +334,7 @@ async function cargarSlotsParaReprogramar() {
   
   const turno = selectedTurno.value
   if (!turno.servicioId || !turno.profesionalId) {
-    toast.show('Información del turno incompleta')
+    toast.showWarning('Información del turno incompleta')
     return
   }
   
@@ -351,7 +351,7 @@ async function cargarSlotsParaReprogramar() {
     slotSeleccionado.value = null
   } catch (error: any) {
     console.error('Error al cargar slots:', error)
-    toast.show('Error al cargar horarios disponibles')
+    toast.showError('Error al cargar horarios disponibles')
     slotsDisponibles.value = []
   } finally {
     cargandoSlots.value = false
@@ -376,8 +376,8 @@ function formatearHoraSlot(isoDateTime: string): string {
  * Deriva el valor directamente de horaFin - horaInicio, que ya los incluye ambos.
  */
 function calcularBloqueTotalMinutos(turno: Turno): number {
-  const [hInicio, mInicio] = turno.horaInicio.split(':').map(Number)
-  const [hFin, mFin] = turno.horaFin.split(':').map(Number)
+  const [hInicio, mInicio] = turno.horaInicio.split(':').map(Number) as [number, number]
+  const [hFin, mFin] = turno.horaFin.split(':').map(Number) as [number, number]
   return (hFin * 60 + mFin) - (hInicio * 60 + mInicio)
 }
 
@@ -401,7 +401,7 @@ watch(reprogramDate, () => {
 
 async function submitReprogram() {
   if (!selectedTurno.value || !slotSeleccionado.value) {
-    toast.show('Por favor selecciona un horario disponible')
+    toast.showWarning('Por favor selecciona un horario disponible')
     return
   }
   if (actionLoading.value) return
@@ -422,14 +422,14 @@ async function submitReprogram() {
     if (resp.status === 200) {
       await cargarTurnos()
       closeReprogramModal()
-      toast.show('Reserva reprogramada correctamente')
+      toast.showSuccess('Reserva reprogramada correctamente')
     } else {
       console.error('Reprogramar fallo', resp)
-      toast.show('No se pudo reprogramar: ' + (resp.data?.mensaje || resp.status))
+      toast.showError('No se pudo reprogramar: ' + (resp.data?.mensaje || resp.status))
     }
   } catch (e: any) {
     console.error(e)
-    toast.show('Error al reprogramar: ' + (e.response?.data?.mensaje || e.message || e))
+    toast.showError('Error al reprogramar: ' + (e.response?.data?.mensaje || e.message || e))
   } finally {
     actionLoading.value = false
   }
@@ -441,12 +441,12 @@ function openCancelarModal(turno: Turno) {
   const diffMs = inicio.getTime() - ahora.getTime()
 
   if (inicio.getTime() < ahora.getTime()) {
-    toast.show('No se puede cancelar un turno que ya pasó')
+    toast.showWarning('No se puede cancelar un turno que ya pasó')
     return
   }
 
   if (diffMs < 60 * 60 * 1000) {
-    toast.show('No se puede cancelar un turno con menos de 1 hora de anticipación')
+    toast.showWarning('No se puede cancelar un turno con menos de 1 hora de anticipación')
     return
   }
 
@@ -472,14 +472,14 @@ async function submitCancelar() {
     if (resp.status === 200) {
       await cargarTurnos()
       closeCancelarModal()
-      toast.show('Reserva cancelada correctamente')
+      toast.showSuccess('Reserva cancelada correctamente')
     } else {
       console.error('Cancelar fallo', resp)
-      toast.show('No se pudo cancelar: ' + (resp.data?.mensaje || resp.status))
+      toast.showError('No se pudo cancelar: ' + (resp.data?.mensaje || resp.status))
     }
   } catch (e: any) {
     console.error(e)
-    toast.show('Error al cancelar: ' + (e.response?.data?.mensaje || e.message || e))
+    toast.showError('Error al cancelar: ' + (e.response?.data?.mensaje || e.message || e))
   } finally {
     actionLoading.value = false
   }

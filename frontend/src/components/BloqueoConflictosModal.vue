@@ -98,11 +98,13 @@ async function cancelarEnRango() {
   errorCancelar.value = ''
   try {
     submitting.value = true
-    await bloqueosService.crearBloqueoConResolucion({
+    const result = await bloqueosService.crearBloqueoConResolucion({
       bloqueo: props.bloqueoPendiente,
       accion: 'CANCELAR_EN_RANGO'
     })
-    toastStore.show('Bloqueo creado. Los turnos en conflicto fueron cancelados.', 5000)
+    // Fuente única de verdad: mensaje que devuelve el backend.
+    // ProfesionalView.onBloqueoCreado() NO debe mostrar un segundo toast.
+    toastStore.showSuccess(result.mensaje || 'Bloqueo creado. Los turnos en conflicto fueron cancelados.', 5000)
     emit('bloqueoCreado')
   } catch (err: any) {
     errorCancelar.value = 'Error al crear el bloqueo: ' + (err.response?.data?.mensaje || err.message)
