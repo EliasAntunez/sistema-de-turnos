@@ -13,6 +13,11 @@ import com.example.sitema_de_turnos.repositorio.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +28,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -619,6 +625,47 @@ public class ServicioTurno {
     }
 
     /**
+     * Listar turnos del profesional autenticado de forma paginada con filtros dinámicos.
+     */
+    @Transactional(readOnly = true)
+    public Page<TurnoResponseProfesional> listarMisTurnosProfesional(
+        String emailProfesional,
+        String estado,
+        Long servicioId,
+        String fechaDesde,
+        String fechaHasta,
+        String clienteNombre,
+        Pageable pageable
+    ) {
+        PerfilProfesional profesional = repositorioPerfilProfesional.findByUsuarioEmail(emailProfesional)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
+
+        EstadoTurno estadoFiltro = parsearEstado(estado);
+        LocalDate fechaDesdeFiltro = parsearFecha(fechaDesde);
+        LocalDate fechaHastaFiltro = parsearFecha(fechaHasta);
+
+        if (fechaDesdeFiltro != null && fechaHastaFiltro != null && fechaDesdeFiltro.isAfter(fechaHastaFiltro)) {
+            throw new ValidacionException("fechaDesde no puede ser mayor que fechaHasta");
+        }
+
+        Specification<Turno> specification = TurnoSpecifications.paraProfesional(
+            profesional.getId(),
+            estadoFiltro,
+            servicioId,
+            fechaDesdeFiltro,
+            fechaHastaFiltro,
+            clienteNombre
+        );
+
+        Page<Turno> paginaTurnos = repositorioTurno.findAll(
+            specification,
+            aplicarOrdenPorDefecto(pageable)
+        );
+
+        return paginaTurnos.map(this::mapearATurnoResponseProfesional);
+    }
+
+    /**
      * Cambiar estado de un turno
      */
     @Transactional
@@ -781,6 +828,78 @@ public class ServicioTurno {
         return turnos.stream()
                 .map(this::mapearATurnoResponsePublico)
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Obtener turnos del cliente autenticado de forma paginada con filtros dinámicos.
+     */
+    @Transactional(readOnly = true)
+    public Page<TurnoResponsePublico> obtenerTurnosPorCliente(
+        Cliente clienteAutenticado,
+        String estado,
+        Long servicioId,
+        String fechaDesde,
+        String fechaHasta,
+        Pageable pageable
+    ) {
+        EstadoTurno estadoFiltro = parsearEstado(estado);
+        LocalDate fechaDesdeFiltro = parsearFecha(fechaDesde);
+        LocalDate fechaHastaFiltro = parsearFecha(fechaHasta);
+
+        if (fechaDesdeFiltro != null && fechaHastaFiltro != null && fechaDesdeFiltro.isAfter(fechaHastaFiltro)) {
+            throw new ValidacionException("fechaDesde no puede ser mayor que fechaHasta");
+        }
+
+        Specification<Turno> specification = TurnoSpecifications.paraCliente(
+            clienteAutenticado.getId(),
+            estadoFiltro,
+            servicioId,
+            fechaDesdeFiltro,
+            fechaHastaFiltro
+        );
+
+        Page<Turno> paginaTurnos = repositorioTurno.findAll(
+            specification,
+            aplicarOrdenPorDefecto(pageable)
+        );
+
+        return paginaTurnos.map(this::mapearATurnoResponsePublico);
+    }
+
+    private Pageable aplicarOrdenPorDefecto(Pageable pageable) {
+        if (pageable == null) {
+            return PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "fechaCreacion"));
+        }
+        if (pageable.getSort().isSorted()) {
+            return pageable;
+        }
+        return PageRequest.of(
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            Sort.by(Sort.Direction.DESC, "fechaCreacion")
+        );
+    }
+
+    private EstadoTurno parsearEstado(String estado) {
+        if (estado == null || estado.isBlank()) {
+            return null;
+        }
+        try {
+            return EstadoTurno.valueOf(estado.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ValidacionException("Estado inválido: " + estado);
+        }
+    }
+
+    private LocalDate parsearFecha(String fecha) {
+        if (fecha == null || fecha.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(fecha);
+        } catch (DateTimeParseException ex) {
+            throw new ValidacionException("Formato de fecha inválido. Use YYYY-MM-DD");
+        }
     }
 
     @Transactional(readOnly = true)

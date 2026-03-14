@@ -2,6 +2,7 @@ package com.example.sitema_de_turnos.repositorio;
 
 import com.example.sitema_de_turnos.modelo.*;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +14,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 @Repository
-public interface RepositorioTurno extends JpaRepository<Turno, Long> {
+public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecificationExecutor<Turno> {
 
     /**
      * Verificar si existe un turno en un horario específico para un profesional.

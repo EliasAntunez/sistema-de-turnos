@@ -140,31 +140,84 @@
       <section v-show="seccionActiva === 'turnos'" class="section">
         <div class="section-header">
           <h2>📋 Mis Turnos</h2>
-          <div class="filtros-turnos">
-            <button 
-              :class="['btn-filtro', { active: filtroTurnos === 'hoy' }]"
-              @click="cambiarFiltroTurnos('hoy')">
-              Hoy
-            </button>
-            <button 
-              :class="['btn-filtro', { active: filtroTurnos === 'semana' }]"
-              @click="cambiarFiltroTurnos('semana')">
-              Esta Semana
-            </button>
-            <button 
-              :class="['btn-filtro', { active: filtroTurnos === 'rango' }]"
-              @click="cambiarFiltroTurnos('rango')">
-              Rango
-            </button>
-          </div>
         </div>
 
-        <!-- Filtro de rango -->
-        <div v-if="filtroTurnos === 'rango'" class="rango-fechas">
-          <input v-model="fechaDesde" type="date" />
-          <span>a</span>
-          <input v-model="fechaHasta" type="date" />
-          <button @click="cargarTurnos" class="btn-primary-small">Buscar</button>
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Periodo</label>
+            <select
+              v-model="filtrosTurnos.periodo"
+              @change="onCambioPeriodo"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            >
+              <option value="todos">Todos</option>
+              <option value="hoy">Hoy</option>
+              <option value="semana">Esta semana</option>
+              <option value="rango">Rango</option>
+            </select>
+          </div>
+
+          <div v-if="filtrosTurnos.periodo === 'rango'" class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Desde</label>
+            <input
+              v-model="filtrosTurnos.fechaDesde"
+              @change="aplicarFiltrosTurnos"
+              type="date"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            />
+          </div>
+
+          <div v-if="filtrosTurnos.periodo === 'rango'" class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Hasta</label>
+            <input
+              v-model="filtrosTurnos.fechaHasta"
+              @change="aplicarFiltrosTurnos"
+              type="date"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Estado</label>
+            <select
+              v-model="filtrosTurnos.estado"
+              @change="aplicarFiltrosTurnos"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            >
+              <option value="">Todos los estados</option>
+              <option value="PENDIENTE_PAGO">Pendiente de pago</option>
+              <option value="PENDIENTE_CONFIRMACION">Pendiente de confirmación</option>
+              <option value="CONFIRMADO">Confirmado</option>
+              <option value="ATENDIDO">Atendido</option>
+              <option value="NO_ASISTIO">No asistió</option>
+              <option value="CANCELADO">Cancelado</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Servicio</label>
+            <select
+              v-model="filtrosTurnos.servicioId"
+              @change="aplicarFiltrosTurnos"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            >
+              <option value="">Todos los servicios</option>
+              <option v-for="servicio in servicioOpcionesTurnos" :key="servicio.id" :value="servicio.id">
+                {{ servicio.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Cliente</label>
+            <input
+              v-model="filtrosTurnos.clienteNombre"
+              @input="aplicarFiltrosTurnos"
+              type="text"
+              placeholder="Buscar cliente"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            />
+          </div>
         </div>
 
         <div v-if="cantidadTurnosSinResolver > 0" class="alerta-turnos-sin-resolver">
@@ -177,7 +230,7 @@
 
         <!-- Lista de turnos -->
         <div v-else-if="turnos.length > 0" class="turnos-list">
-          <div v-for="turno in turnosOrdenados" :key="turno.id" class="turno-card">
+          <div v-for="turno in turnos" :key="turno.id" class="turno-card">
             <div class="turno-header">
               <div class="turno-fecha">
                 <span class="fecha-dia">{{ formatearFechaLegible(turno.fecha) }}</span>
@@ -238,6 +291,24 @@
         <!-- Empty State -->
         <div v-else class="empty-state">
           <p>No hay turnos para el período seleccionado</p>
+        </div>
+
+        <div v-if="totalPagesTurnos > 0" class="flex justify-center items-center gap-4 mt-8">
+          <button
+            @click="paginaAnteriorTurnos"
+            :disabled="currentPageTurnos === 0 || loadingTurnos"
+            class="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+          >
+            Anterior
+          </button>
+          <span class="text-sm font-medium text-gray-700">Página {{ currentPageTurnos + 1 }} de {{ totalPagesTurnos }}</span>
+          <button
+            @click="paginaSiguienteTurnos"
+            :disabled="currentPageTurnos >= totalPagesTurnos - 1 || loadingTurnos"
+            class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+          >
+            Siguiente
+          </button>
         </div>
       </section>
 
@@ -625,9 +696,25 @@ const bloqueosOrdenados = computed(() => {
 // Estado para Turnos
 const turnos = ref<any[]>([])
 const loadingTurnos = ref(false)
-const filtroTurnos = ref<'hoy' | 'semana' | 'rango'>('semana')
-const fechaDesde = ref('')
-const fechaHasta = ref('')
+const filtrosTurnos = ref<{
+  periodo: 'todos' | 'hoy' | 'semana' | 'rango'
+  estado: string
+  servicioId: string
+  fechaDesde: string
+  fechaHasta: string
+  clienteNombre: string
+}>({
+  periodo: 'hoy',
+  estado: '',
+  servicioId: '',
+  fechaDesde: '',
+  fechaHasta: '',
+  clienteNombre: ''
+})
+const servicioOpcionesTurnos = ref<Array<{ id: number; nombre: string }>>([])
+const currentPageTurnos = ref(0)
+const totalPagesTurnos = ref(0)
+const pageSizeTurnos = ref(10)
 const showModalObservaciones = ref(false)
 const turnoSeleccionado = ref<any>(null)
 const nuevaObservacion = ref('')
@@ -648,15 +735,11 @@ function esTurnoPasado(turno: any): boolean {
   return obtenerTimestampInicioTurnoArgentina(turno) < Date.now()
 }
 
-const turnosOrdenados = computed(() => {
-  return [...turnos.value].sort((a, b) => {
-    const fechaA = new Date(a.fecha + 'T' + a.horaInicio).getTime()
-    const fechaB = new Date(b.fecha + 'T' + b.horaInicio).getTime()
-    return fechaA - fechaB
-  })
-})
-
 onMounted(async () => {
+  const hoy = toIsoDate(new Date())
+  filtrosTurnos.value.fechaDesde = hoy
+  filtrosTurnos.value.fechaHasta = hoy
+
   // Cargar datos iniciales
   await Promise.all([
     cargarDisponibilidad(),
@@ -976,23 +1059,23 @@ function formatearFecha(fecha: string): string {
 async function cargarTurnos() {
   try {
     loadingTurnos.value = true
-    const params: any = {}
-    
-    if (filtroTurnos.value === 'hoy') {
-      params.fecha = new Date().toISOString().split('T')[0]
-    } else if (filtroTurnos.value === 'semana') {
-      const hoy = new Date()
-      const enUnaSemana = new Date()
-      enUnaSemana.setDate(hoy.getDate() + 7)
-      params.fechaDesde = hoy.toISOString().split('T')[0]
-      params.fechaHasta = enUnaSemana.toISOString().split('T')[0]
-    } else if (filtroTurnos.value === 'rango' && fechaDesde.value && fechaHasta.value) {
-      params.fechaDesde = fechaDesde.value
-      params.fechaHasta = fechaHasta.value
+    const params: Record<string, any> = {
+      page: currentPageTurnos.value,
+      size: pageSizeTurnos.value
     }
 
+    if (filtrosTurnos.value.estado) params.estado = filtrosTurnos.value.estado
+    if (filtrosTurnos.value.servicioId) params.servicioId = Number(filtrosTurnos.value.servicioId)
+    if (filtrosTurnos.value.fechaDesde) params.fechaDesde = filtrosTurnos.value.fechaDesde
+    if (filtrosTurnos.value.fechaHasta) params.fechaHasta = filtrosTurnos.value.fechaHasta
+    if (filtrosTurnos.value.clienteNombre.trim()) params.clienteNombre = filtrosTurnos.value.clienteNombre.trim()
+
     const response = await (window as any).apiClient.obtenerTurnosProfesional(params)
-    turnos.value = response.data.datos
+    const pageData = response.data.datos
+    turnos.value = pageData.content || []
+    totalPagesTurnos.value = pageData.totalPages ?? 0
+    currentPageTurnos.value = pageData.number ?? currentPageTurnos.value
+    actualizarOpcionesServicioTurnos(turnos.value)
   } catch (error: any) {
     console.error('Error al cargar turnos:', error)
     toastStore.showError('Error al cargar turnos: ' + (error.response?.data?.mensaje || error.message))
@@ -1001,11 +1084,86 @@ async function cargarTurnos() {
   }
 }
 
-function cambiarFiltroTurnos(filtro: 'hoy' | 'semana' | 'rango') {
-  filtroTurnos.value = filtro
-  if (filtro !== 'rango') {
-    cargarTurnos()
+function actualizarOpcionesServicioTurnos(turnosPagina: any[]) {
+  const mapaServicios = new Map<number, string>()
+
+  for (const servicio of servicioOpcionesTurnos.value) {
+    mapaServicios.set(servicio.id, servicio.nombre)
   }
+
+  for (const turno of turnosPagina) {
+    if (turno.servicioId && turno.servicioNombre) {
+      mapaServicios.set(turno.servicioId, turno.servicioNombre)
+    }
+  }
+
+  servicioOpcionesTurnos.value = Array.from(mapaServicios.entries())
+    .map(([id, nombre]) => ({ id, nombre }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+}
+
+function aplicarFiltrosTurnos() {
+  currentPageTurnos.value = 0
+  cargarTurnos()
+}
+
+function toIsoDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function calcularRangoSemanaActual() {
+  const hoy = new Date()
+  const diaSemana = hoy.getDay() // 0 domingo, 1 lunes...
+  const diferenciaALunes = diaSemana === 0 ? -6 : 1 - diaSemana
+
+  const inicioSemana = new Date(hoy)
+  inicioSemana.setDate(hoy.getDate() + diferenciaALunes)
+
+  const finSemana = new Date(inicioSemana)
+  finSemana.setDate(inicioSemana.getDate() + 6)
+
+  return {
+    desde: toIsoDate(inicioSemana),
+    hasta: toIsoDate(finSemana)
+  }
+}
+
+function onCambioPeriodo() {
+  if (filtrosTurnos.value.periodo === 'todos') {
+    filtrosTurnos.value.fechaDesde = ''
+    filtrosTurnos.value.fechaHasta = ''
+  } else if (filtrosTurnos.value.periodo === 'hoy') {
+    const hoy = toIsoDate(new Date())
+    filtrosTurnos.value.fechaDesde = hoy
+    filtrosTurnos.value.fechaHasta = hoy
+  } else if (filtrosTurnos.value.periodo === 'semana') {
+    const rango = calcularRangoSemanaActual()
+    filtrosTurnos.value.fechaDesde = rango.desde
+    filtrosTurnos.value.fechaHasta = rango.hasta
+  } else if (filtrosTurnos.value.periodo === 'rango') {
+    if (!filtrosTurnos.value.fechaDesde && !filtrosTurnos.value.fechaHasta) {
+      const hoy = toIsoDate(new Date())
+      filtrosTurnos.value.fechaDesde = hoy
+      filtrosTurnos.value.fechaHasta = hoy
+    }
+  }
+
+  aplicarFiltrosTurnos()
+}
+
+function paginaAnteriorTurnos() {
+  if (currentPageTurnos.value <= 0) return
+  currentPageTurnos.value -= 1
+  cargarTurnos()
+}
+
+function paginaSiguienteTurnos() {
+  if (currentPageTurnos.value >= totalPagesTurnos.value - 1) return
+  currentPageTurnos.value += 1
+  cargarTurnos()
 }
 
 function puedesCambiarEstado(turno: any): boolean {

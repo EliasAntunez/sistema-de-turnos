@@ -13,6 +13,9 @@ import com.example.sitema_de_turnos.servicio.ServicioBloqueoFecha;
 import com.example.sitema_de_turnos.servicio.ServicioDisponibilidad;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +24,8 @@ import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import static org.springframework.data.domain.Sort.Direction.DESC;
 
 import java.util.List;
 
@@ -313,17 +318,27 @@ public class ControladorProfesional {
 
     /**
      * Listar turnos del profesional con filtros opcionales
-     * GET /api/profesional/turnos?fecha=2026-01-09&fechaDesde=2026-01-09&fechaHasta=2026-01-15
+     * GET /api/profesional/mis-turnos
      */
-    @GetMapping("/turnos")
-    public ResponseEntity<RespuestaApi<List<TurnoResponseProfesional>>> listarTurnos(
-            @RequestParam(required = false) String fecha,
+    @GetMapping({"/mis-turnos", "/turnos"})
+    public ResponseEntity<RespuestaApi<Page<TurnoResponseProfesional>>> listarTurnos(
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) Long servicioId,
             @RequestParam(required = false) String fechaDesde,
             @RequestParam(required = false) String fechaHasta,
+            @RequestParam(required = false) String clienteNombre,
+            @PageableDefault(size = 10, sort = "fechaCreacion", direction = DESC) Pageable pageable,
             Authentication authentication) {
         String emailProfesional = authentication.getName();
-        List<TurnoResponseProfesional> turnos = 
-            servicioTurno.listarTurnosProfesional(emailProfesional, fecha, fechaDesde, fechaHasta);
+        Page<TurnoResponseProfesional> turnos = servicioTurno.listarMisTurnosProfesional(
+            emailProfesional,
+            estado,
+            servicioId,
+            fechaDesde,
+            fechaHasta,
+            clienteNombre,
+            pageable
+        );
         return ResponseEntity.ok(
                 RespuestaApi.exitosa("Turnos obtenidos exitosamente", turnos)
         );
