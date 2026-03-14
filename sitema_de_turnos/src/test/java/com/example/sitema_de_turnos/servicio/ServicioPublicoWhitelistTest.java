@@ -115,7 +115,6 @@ class ServicioPublicoWhitelistTest {
     @DisplayName("Profesional inactivo (activo=false) con habilitación → NO aparece en la lista")
     void obtenerProfesionalesPorServicio_profesionalInactivo_noApareceEnLista() {
         PerfilProfesional profesionalInactivo = crearProfesional(2L, false);
-        ProfesionalServicio habilitacion = crearHabilitacion(profesionalInactivo, servicio);
 
         when(repositorioPerfilProfesional.findByEmpresaAndActivoTrue(empresa)).thenReturn(Collections.emptyList());
         // No se llama a findByProfesionalAndActivoTrue porque findByEmpresaAndActivoTrue ya filtra inactivos
