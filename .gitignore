@@ -143,3 +143,13 @@ Thumbs.db
 *.temp
 temp/
 tmp/
+
+# Entorno local y secretos
+.env
+.env.*
+!.env.example
+
+# Logs y artefactos comprimidos
+logs/
+**/logs/
+*.gz

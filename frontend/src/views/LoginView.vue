@@ -43,10 +43,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useClienteStore } from '../stores/cliente'
 import api from '../services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
+// Necesario para el aislamiento de sesión cruzada Cliente ↔ Staff
+const clienteStore = useClienteStore()
 
 const email = ref('')
 const contrasena = ref('')
@@ -64,6 +67,12 @@ async function handleLogin() {
     })
 
     if (response.data.exito) {
+      // Aislamiento de sesión cruzada: si hay una sesión de cliente activa,
+      // limpiarla antes de establecer la sesión de staff para evitar estados mixtos.
+      if (clienteStore.isAuthenticated) {
+        clienteStore.logout()
+      }
+
       // ACTUALIZADO: Solo guardar datos del usuario (NO credenciales)
       // Spring Security gestiona la sesión con cookies HttpOnly
       authStore.setUsuario(response.data.datos)
@@ -85,12 +94,13 @@ async function handleLogin() {
         if (import.meta.env.DEV) console.warn('No se pudo cargar el perfil completo, pero continuando...', perfilError)
       }
 
-      // Redirigir según rol
-      if (response.data.datos.rol === 'SUPER_ADMIN') {
+      // Redirigir según roles (array). Prioridad: SUPER_ADMIN > DUENO > PROFESIONAL
+      const roles: string[] = response.data.datos.roles ?? []
+      if (roles.includes('SUPER_ADMIN')) {
         router.push('/admin')
-      } else if (response.data.datos.rol === 'DUENO') {
+      } else if (roles.includes('DUENO')) {
         router.push('/dueno')
-      } else if (response.data.datos.rol === 'PROFESIONAL') {
+      } else if (roles.includes('PROFESIONAL')) {
         router.push('/profesional')
       } else {
         error.value = 'No tienes permisos para acceder'

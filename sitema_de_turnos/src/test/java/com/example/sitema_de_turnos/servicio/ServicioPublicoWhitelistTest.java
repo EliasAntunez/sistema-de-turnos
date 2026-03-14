@@ -2,14 +2,15 @@ package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.dto.publico.ProfesionalPublicoResponse;
 import com.example.sitema_de_turnos.modelo.Empresa;
-import com.example.sitema_de_turnos.modelo.Profesional;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.modelo.ProfesionalServicio;
 import com.example.sitema_de_turnos.modelo.Servicio;
+import com.example.sitema_de_turnos.modelo.Usuario;
 import com.example.sitema_de_turnos.repositorio.RepositorioBloqueoFecha;
 import com.example.sitema_de_turnos.repositorio.RepositorioDisponibilidadProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioEmpresa;
 import com.example.sitema_de_turnos.repositorio.RepositorioHorarioEmpresa;
-import com.example.sitema_de_turnos.repositorio.RepositorioProfesional;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioProfesionalServicio;
 import com.example.sitema_de_turnos.repositorio.RepositorioServicio;
 import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
@@ -40,7 +41,7 @@ class ServicioPublicoWhitelistTest {
     @Mock private ServicioPoliticaCancelacion servicioPoliticaCancelacion;
     @Mock private RepositorioEmpresa repositorioEmpresa;
     @Mock private RepositorioServicio repositorioServicio;
-    @Mock private RepositorioProfesional repositorioProfesional;
+    @Mock private RepositorioPerfilProfesional repositorioPerfilProfesional;
     @Mock private RepositorioProfesionalServicio repositorioProfesionalServicio;
     @Mock private RepositorioDisponibilidadProfesional repositorioDisponibilidad;
     @Mock private RepositorioHorarioEmpresa repositorioHorarioEmpresa;
@@ -72,17 +73,20 @@ class ServicioPublicoWhitelistTest {
         when(repositorioServicio.findById(10L)).thenReturn(Optional.of(servicio));
     }
 
-    private Profesional crearProfesional(Long id, boolean activo) {
-        Profesional p = new Profesional();
+    private PerfilProfesional crearProfesional(Long id, boolean activo) {
+        Usuario usuario = new Usuario();
+        usuario.setNombre("Profesional " + id);
+        usuario.setApellido("Apellido");
+
+        PerfilProfesional p = new PerfilProfesional();
         p.setId(id);
-        p.setNombre("Profesional " + id);
-        p.setApellido("Apellido");
+        p.setUsuario(usuario);
         p.setActivo(activo);
         p.setEmpresa(empresa);
         return p;
     }
 
-    private ProfesionalServicio crearHabilitacion(Profesional profesional, Servicio srv) {
+    private ProfesionalServicio crearHabilitacion(PerfilProfesional profesional, Servicio srv) {
         ProfesionalServicio ps = new ProfesionalServicio();
         ps.setId(100L + profesional.getId());
         ps.setProfesional(profesional);
@@ -94,10 +98,10 @@ class ServicioPublicoWhitelistTest {
     @Test
     @DisplayName("Profesional activo con habilitación → aparece en la lista")
     void obtenerProfesionalesPorServicio_profesionalActivoConHabilitacion_apareceEnLista() {
-        Profesional profesionalActivo = crearProfesional(1L, true);
+        PerfilProfesional profesionalActivo = crearProfesional(1L, true);
         ProfesionalServicio habilitacion = crearHabilitacion(profesionalActivo, servicio);
 
-        when(repositorioProfesional.findByEmpresa(empresa)).thenReturn(List.of(profesionalActivo));
+        when(repositorioPerfilProfesional.findByEmpresaAndActivoTrue(empresa)).thenReturn(List.of(profesionalActivo));
         when(repositorioProfesionalServicio.findByProfesionalAndActivoTrue(profesionalActivo))
                 .thenReturn(List.of(habilitacion));
 
@@ -110,11 +114,10 @@ class ServicioPublicoWhitelistTest {
     @Test
     @DisplayName("Profesional inactivo (activo=false) con habilitación → NO aparece en la lista")
     void obtenerProfesionalesPorServicio_profesionalInactivo_noApareceEnLista() {
-        Profesional profesionalInactivo = crearProfesional(2L, false);
-        ProfesionalServicio habilitacion = crearHabilitacion(profesionalInactivo, servicio);
+        PerfilProfesional profesionalInactivo = crearProfesional(2L, false);
 
-        when(repositorioProfesional.findByEmpresa(empresa)).thenReturn(List.of(profesionalInactivo));
-        // No se llama a findByProfesionalAndActivoTrue porque el filtro p.getActivo() lo descarta antes
+        when(repositorioPerfilProfesional.findByEmpresaAndActivoTrue(empresa)).thenReturn(Collections.emptyList());
+        // No se llama a findByProfesionalAndActivoTrue porque findByEmpresaAndActivoTrue ya filtra inactivos
 
         List<ProfesionalPublicoResponse> resultado = servicioPublico.obtenerProfesionalesPorServicio("test-slug", 10L);
 
@@ -125,9 +128,9 @@ class ServicioPublicoWhitelistTest {
     @Test
     @DisplayName("Profesional activo sin registro en profesional_servicio → NO aparece en la lista")
     void obtenerProfesionalesPorServicio_profesionalActivoSinHabilitacion_noApareceEnLista() {
-        Profesional profesionalSinHabilitacion = crearProfesional(3L, true);
+        PerfilProfesional profesionalSinHabilitacion = crearProfesional(3L, true);
 
-        when(repositorioProfesional.findByEmpresa(empresa)).thenReturn(List.of(profesionalSinHabilitacion));
+        when(repositorioPerfilProfesional.findByEmpresaAndActivoTrue(empresa)).thenReturn(List.of(profesionalSinHabilitacion));
         when(repositorioProfesionalServicio.findByProfesionalAndActivoTrue(profesionalSinHabilitacion))
                 .thenReturn(Collections.emptyList());
 
@@ -143,7 +146,7 @@ class ServicioPublicoWhitelistTest {
     @DisplayName("[C3] Profesional con habilitación para OTRO servicio → NO aparece para el servicio consultado")
     void obtenerProfesionalesPorServicio_profesionalConHabilitacionParaOtroServicio_noAparece() {
         // Profesional activo pero su PS record es para el servicio 99, no para el 10 que se consulta
-        Profesional profesional = crearProfesional(4L, true);
+        PerfilProfesional profesional = crearProfesional(4L, true);
 
         Servicio otroServicio = new Servicio();
         otroServicio.setId(99L);
@@ -154,7 +157,7 @@ class ServicioPublicoWhitelistTest {
         psParaOtroServicio.setServicio(otroServicio);
         psParaOtroServicio.setActivo(true);
 
-        when(repositorioProfesional.findByEmpresa(empresa)).thenReturn(List.of(profesional));
+        when(repositorioPerfilProfesional.findByEmpresaAndActivoTrue(empresa)).thenReturn(List.of(profesional));
         when(repositorioProfesionalServicio.findByProfesionalAndActivoTrue(profesional))
                 .thenReturn(List.of(psParaOtroServicio)); // список не пустой, но не совпадает с id=10
 

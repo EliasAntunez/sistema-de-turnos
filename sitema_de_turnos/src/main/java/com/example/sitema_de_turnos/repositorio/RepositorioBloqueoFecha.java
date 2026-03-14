@@ -1,7 +1,7 @@
 package com.example.sitema_de_turnos.repositorio;
 
 import com.example.sitema_de_turnos.modelo.BloqueoFecha;
-import com.example.sitema_de_turnos.modelo.Profesional;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,27 +13,12 @@ import java.util.List;
 @Repository
 public interface RepositorioBloqueoFecha extends JpaRepository<BloqueoFecha, Long> {
 
-    /**
-     * Obtiene todos los bloqueos activos de un profesional ordenados por fecha
-     */
-    List<BloqueoFecha> findByProfesionalAndActivoTrueOrderByFechaInicioAsc(Profesional profesional);
+    List<BloqueoFecha> findByProfesionalAndActivoTrueOrderByFechaInicioAsc(PerfilProfesional profesional);
 
-    /**
-     * Obtiene todos los bloqueos activos de un profesional (sin ordenar)
-     */
-    List<BloqueoFecha> findByProfesionalAndActivoTrue(Profesional profesional);
+    List<BloqueoFecha> findByProfesionalAndActivoTrue(PerfilProfesional profesional);
 
-    /**
-     * Obtiene todos los bloqueos de un profesional (activos e inactivos)
-     */
-    List<BloqueoFecha> findByProfesionalOrderByFechaInicioAsc(Profesional profesional);
+    List<BloqueoFecha> findByProfesionalOrderByFechaInicioAsc(PerfilProfesional profesional);
 
-    /**
-     * Verifica si un profesional tiene bloqueos activos en una fecha específica
-     * Considera:
-     * - Bloqueos de un solo día (fecha_fin es null y fecha_inicio = fecha)
-     * - Bloqueos de rango (fecha está entre fecha_inicio y fecha_fin)
-     */
     @Query("""
         SELECT b FROM BloqueoFecha b 
         WHERE b.profesional = :profesional 
@@ -45,13 +30,10 @@ public interface RepositorioBloqueoFecha extends JpaRepository<BloqueoFecha, Lon
         )
         """)
     List<BloqueoFecha> findBloqueoEnFecha(
-            @Param("profesional") Profesional profesional,
+            @Param("profesional") PerfilProfesional profesional,
             @Param("fecha") LocalDate fecha
     );
 
-    /**
-     * Obtiene bloqueos activos que se solapan con un rango de fechas
-     */
     @Query("""
         SELECT b FROM BloqueoFecha b 
         WHERE b.profesional = :profesional 
@@ -67,7 +49,7 @@ public interface RepositorioBloqueoFecha extends JpaRepository<BloqueoFecha, Lon
         )
         """)
     List<BloqueoFecha> findBloqueosEnRango(
-            @Param("profesional") Profesional profesional,
+            @Param("profesional") PerfilProfesional profesional,
             @Param("fechaInicio") LocalDate fechaInicio,
             @Param("fechaFin") LocalDate fechaFin
     );

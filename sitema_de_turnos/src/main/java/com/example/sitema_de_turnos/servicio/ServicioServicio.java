@@ -21,6 +21,7 @@ public class ServicioServicio {
 
     private final RepositorioServicio repositorioServicio;
     private final RepositorioProfesionalServicio repositorioProfesionalServicio;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final ServicioValidacionDueno servicioValidacionDueno;
 
     @Transactional
@@ -34,7 +35,7 @@ public class ServicioServicio {
         }
 
         // RIESGO-003: Validar dueño y empresa activa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
         // Crear servicio
         com.example.sitema_de_turnos.modelo.Servicio servicio = new com.example.sitema_de_turnos.modelo.Servicio();
@@ -56,10 +57,7 @@ public class ServicioServicio {
         servicio = repositorioServicio.save(servicio);
 
         // Auto-onboarding para empresas unipersonales (solo cuenta profesionales activos)
-        List<Profesional> profesionalesActivos = dueno.getEmpresa().getProfesionales()
-                .stream()
-                .filter(Profesional::getActivo)
-                .collect(java.util.stream.Collectors.toList());
+        List<PerfilProfesional> profesionalesActivos = repositorioPerfilProfesional.findByEmpresaAndActivoTrue(dueno.getEmpresa());
         if (profesionalesActivos.size() == 1) {
             ProfesionalServicio ps = new ProfesionalServicio();
             ps.setProfesional(profesionalesActivos.get(0));
@@ -82,7 +80,7 @@ public class ServicioServicio {
         }
 
         // RIESGO-003: Validar dueño y empresa activa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
         // Obtener servicio y validar pertenencia
         com.example.sitema_de_turnos.modelo.Servicio servicio = repositorioServicio.findById(servicioId)
@@ -112,7 +110,7 @@ public class ServicioServicio {
     @Transactional(readOnly = true)
     public List<ServicioResponse> obtenerServiciosPorEmpresa(String emailDueno) {
         // RIESGO-003: Validar dueño y empresa activa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
         List<com.example.sitema_de_turnos.modelo.Servicio> servicios = 
                 repositorioServicio.findByEmpresa(dueno.getEmpresa());
@@ -134,7 +132,7 @@ public class ServicioServicio {
 
     private void cambiarEstadoServicio(String emailDueno, Long servicioId, boolean activo) {
         // RIESGO-003: Validar dueño y empresa activa
-        Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
         // Obtener servicio y validar pertenencia
         com.example.sitema_de_turnos.modelo.Servicio servicio = repositorioServicio.findById(servicioId)

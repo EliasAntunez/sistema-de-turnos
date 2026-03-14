@@ -6,6 +6,7 @@ import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
 import com.example.sitema_de_turnos.dto.publico.ReservaModificarRequest;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponseProfesional;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
+import com.example.sitema_de_turnos.excepcion.SolapamientoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.*;
 import com.example.sitema_de_turnos.repositorio.*;
@@ -22,6 +23,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
@@ -34,12 +36,16 @@ public class ServicioTurno {
     private final RepositorioTurno repositorioTurno;
     private final RepositorioCliente repositorioCliente;
     private final RepositorioServicio repositorioServicio;
-    private final RepositorioProfesional repositorioProfesional;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final ServicioNotificacion servicioNotificacion;
+
+        /** Estados terminales que no deben bloquear agenda ni participar en el índice parcial. */
+        private static final List<EstadoTurno> ESTADOS_TERMINALES =
+            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
 
     // ✅ M2: Constantes estáticas para formateo de fechas
     private static final DateTimeFormatter FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm");
@@ -59,8 +65,12 @@ public class ServicioTurno {
 
     /**
      * Crear un turno desde la vista pública.
-     * ISOLATION.REPEATABLE_READ previene race conditions en la verificación de disponibilidad.
-     * El constraint único en BD (idx_turno_no_overlap) es la defensa definitiva.
+     * ISOLATION.REPEATABLE_READ: previene dirty reads y non-repeatable reads.
+     * La barrera atómica real contra race conditions es el índice único parcial
+     * idx_turno_no_overlap (PostgreSQL). Si dos threads pasan el check en memoria
+     * simultáneamente, el segundo INSERT viola el índice → DataIntegrityViolationException
+     * → capturada y relanzada como SolapamientoException → HTTP 409.
+     * SERIALIZABLE no es necesario y genera falsos positivos de "serialization failure".
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public TurnoResponsePublico crearTurnoPublico(String empresaSlug, Cliente clienteAutenticado, CrearTurnoRequest request) {
@@ -77,7 +87,7 @@ public class ServicioTurno {
         }
 
         // 3. Obtener profesional
-        Profesional profesional = repositorioProfesional.findById(request.getProfesionalId())
+        PerfilProfesional profesional = repositorioPerfilProfesional.findById(request.getProfesionalId())
             .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         if (!profesional.getActivo() || !profesional.getEmpresa().getId().equals(empresa.getId())) {
@@ -124,8 +134,8 @@ public class ServicioTurno {
         }
 
         // 7. Verificar disponibilidad (sin solapamiento)
-        if (repositorioTurno.existeSolapamiento(profesional, fecha, horaInicio, horaFin)) {
-            throw new ValidacionException("El horario seleccionado ya no está disponible");
+        if (repositorioTurno.existeSolapamiento(profesional, fecha, horaInicio, horaFin, ESTADOS_TERMINALES)) {
+            throw new SolapamientoException("El horario seleccionado ya no está disponible");
         }
 
         // 8. Obtener o crear cliente
@@ -158,8 +168,7 @@ public class ServicioTurno {
         try {
             turno = repositorioTurno.save(turno);
         } catch (DataIntegrityViolationException e) {
-            // Constraint único de BD detectó solapamiento (race condition perdida)
-            throw new ValidacionException("El horario seleccionado ya no está disponible. Por favor, seleccione otro horario.");
+            throw new SolapamientoException("El turno ya fue tomado por otro cliente. Por favor, selecciona otro horario.", e);
         }
 
         // 10. Enviar notificación al profesional
@@ -180,7 +189,7 @@ public class ServicioTurno {
         log.info("modificarReservaPorCliente called: turnoId={}, turnoClienteId={}, requesterClienteId={}", turnoId, turno.getCliente().getId(), cliente.getId());
 
         if (!turno.getCliente().getId().equals(cliente.getId())) {
-            throw new com.example.sitema_de_turnos.excepcion.AccesoDenegadoException("No tienes permiso para modificar este turno");
+            throw new AccesoDenegadoException("No tienes permiso para modificar este turno");
         }
 
         if (turno.getEstado() == EstadoTurno.CANCELADO || turno.getEstado() == EstadoTurno.ATENDIDO) {
@@ -222,8 +231,8 @@ public class ServicioTurno {
 
     /**
      * Reprogramar (cambiar fecha/hora y opcionalmente profesional) una reserva por el cliente propietario.
-     * ISOLATION.REPEATABLE_READ: garantiza que los turnos leídos para validar solapamiento
-     * no cambien hasta el commit, previniendo race conditions en la ventana de validación → save.
+     * ISOLATION.REPEATABLE_READ: misma estrategia que crearTurnoPublico.
+     * La barrera atómica es el índice único parcial idx_turno_no_overlap en PostgreSQL.
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public TurnoResponsePublico reprogramarReservaPorCliente(Long turnoId, Cliente cliente, com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request) {
@@ -233,7 +242,7 @@ public class ServicioTurno {
         log.info("reprogramarReservaPorCliente called: turnoId={}, turnoClienteId={}, requesterClienteId={}", turnoId, turno.getCliente().getId(), cliente.getId());
 
         if (!turno.getCliente().getId().equals(cliente.getId())) {
-            throw new com.example.sitema_de_turnos.excepcion.AccesoDenegadoException("No tienes permiso para reprogramar este turno");
+            throw new AccesoDenegadoException("No tienes permiso para reprogramar este turno");
         }
 
         if (turno.getEstado() == EstadoTurno.CANCELADO || turno.getEstado() == EstadoTurno.ATENDIDO) {
@@ -281,9 +290,9 @@ public class ServicioTurno {
         }
 
         // Determinar profesional objetivo
-        Profesional profesionalDestino;
+        PerfilProfesional profesionalDestino;
         if (nuevoProfesionalId != null) {
-            profesionalDestino = repositorioProfesional.findById(nuevoProfesionalId)
+            profesionalDestino = repositorioPerfilProfesional.findById(nuevoProfesionalId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
             if (!profesionalDestino.getActivo() || !profesionalDestino.getEmpresa().getId().equals(turno.getEmpresa().getId())) {
                 throw new ValidacionException("Profesional no disponible");
@@ -304,8 +313,8 @@ public class ServicioTurno {
         validarHorarioEnDisponibilidad(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getEmpresa());
 
         // Validar solapamiento atómicamente (excluyendo el propio turno en su slot original)
-        if (repositorioTurno.existeSolapamientoExcluyendo(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getId())) {
-            throw new ValidacionException("El horario seleccionado ya no está disponible");
+        if (repositorioTurno.existeSolapamientoExcluyendo(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getId(), ESTADOS_TERMINALES)) {
+            throw new SolapamientoException("El horario seleccionado ya no está disponible");
         }
 
         // Si todo OK, aplicar cambios
@@ -317,8 +326,7 @@ public class ServicioTurno {
         try {
             turno = repositorioTurno.save(turno);
         } catch (DataIntegrityViolationException e) {
-            // El constraint único de BD detectó solapamiento (race condition perdida)
-            throw new ValidacionException("El horario seleccionado ya no está disponible. Por favor, elija otro horario.");
+            throw new SolapamientoException("El turno ya fue tomado por otro cliente. Por favor, elija otro horario.", e);
         }
 
         log.info("Turno reprogramado: turnoId={}, profesional={}, nuevaFecha={}, nuevaHoraInicio={}, nuevaHoraFin={}",
@@ -339,7 +347,7 @@ public class ServicioTurno {
             .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
 
         if (!turno.getCliente().getId().equals(cliente.getId())) {
-            throw new com.example.sitema_de_turnos.excepcion.AccesoDenegadoException("No tienes permiso para cancelar este turno");
+            throw new AccesoDenegadoException("No tienes permiso para cancelar este turno");
         }
 
         // Delega en la lógica existente que valida tiempos y estados
@@ -400,10 +408,11 @@ public class ServicioTurno {
     }
 
     /**
-     * Cancelar turno con validación de anticipación mínima (1 hora)
+     * Cancelar turno con validación de anticipación mínima (1 hora).
+     * Privado: el acceso externo siempre pasa por cancelarTurnoPorCliente (que valida ownership).
      */
     @Transactional
-    public void cancelarTurno(Long turnoId, String motivo, String canceladoPor) {
+    private void cancelarTurno(Long turnoId, String motivo, String canceladoPor) {
         Turno turno = repositorioTurno.findById(turnoId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
 
@@ -452,8 +461,8 @@ public class ServicioTurno {
         response.setServicioId(turno.getServicio().getId());
         response.setServicioNombre(turno.getServicio().getNombre());
         response.setProfesionalId(turno.getProfesional().getId());
-        response.setProfesionalNombre(turno.getProfesional().getNombre());
-        response.setProfesionalApellido(turno.getProfesional().getApellido());
+        response.setProfesionalNombre(turno.getProfesional().getUsuario().getNombre());
+        response.setProfesionalApellido(turno.getProfesional().getUsuario().getApellido());
         response.setFecha(turno.getFecha().toString());
         response.setHoraInicio(turno.getHoraInicio().format(FORMATTER_HORA));
         response.setHoraFin(turno.getHoraFin().format(FORMATTER_HORA));
@@ -474,8 +483,8 @@ public class ServicioTurno {
         response.setServicioId(turno.getServicio().getId());
         response.setServicioNombre(turno.getServicio().getNombre());
         response.setProfesionalId(turno.getProfesional().getId());
-        response.setProfesionalNombre(turno.getProfesional().getNombre());
-        response.setProfesionalApellido(turno.getProfesional().getApellido());
+        response.setProfesionalNombre(turno.getProfesional().getUsuario().getNombre());
+        response.setProfesionalApellido(turno.getProfesional().getUsuario().getApellido());
         response.setFecha(turno.getFecha().toString());
         response.setHoraInicio(turno.getHoraInicio().format(FORMATTER_HORA));
         response.setHoraFin(turno.getHoraFin().format(FORMATTER_HORA));
@@ -496,7 +505,7 @@ public class ServicioTurno {
      * Primero consulta DisponibilidadProfesional; si no hay, usa HorarioEmpresa (fallback).
      * Lanza ValidacionException si el horario está fuera de la disponibilidad configurada.
      */
-    private void validarHorarioEnDisponibilidad(Profesional profesional, LocalDate fecha,
+    private void validarHorarioEnDisponibilidad(PerfilProfesional profesional, LocalDate fecha,
                                                 LocalTime horaInicio, LocalTime horaFin,
                                                 Empresa empresa) {
         DiaSemana dia = convertirDiaSemana(fecha.getDayOfWeek());
@@ -552,25 +561,24 @@ public class ServicioTurno {
             String fechaHasta) {
         
         // Obtener profesional
-        Profesional profesional = repositorioProfesional.findByEmail(emailProfesional)
+        PerfilProfesional profesional = repositorioPerfilProfesional.findByUsuarioEmail(emailProfesional)
             .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         java.util.List<Turno> turnos;
 
         if (fecha != null) {
             // Filtrar por fecha específica
+            // OPTIMIZADO: findByProfesionalWithDetails tiene JOIN FETCH → evita N+1
             LocalDate fechaFiltro = LocalDate.parse(fecha);
-            turnos = repositorioTurno.findTurnosActivosByProfesionalAndFecha(profesional, fechaFiltro);
+            turnos = repositorioTurno.findByProfesionalWithDetails(profesional, fechaFiltro, fechaFiltro);
         } else if (fechaDesde != null && fechaHasta != null) {
             // Filtrar por rango de fechas
-            // OPTIMIZADO: Una sola query con JOIN FETCH en lugar de 1 + 3N queries
             LocalDate desde = LocalDate.parse(fechaDesde);
             LocalDate hasta = LocalDate.parse(fechaHasta);
             turnos = repositorioTurno.findByProfesionalWithDetails(profesional, desde, hasta);
         } else {
-            // Por defecto, mostrar turnos de hoy en adelante
-            // OPTIMIZADO: Una sola query con JOIN FETCH
-            LocalDate hoy = LocalDate.now();
+            // Por defecto, semana actual — usa timezone de la empresa (no del servidor)
+            LocalDate hoy = obtenerAhoraEmpresa(profesional.getEmpresa()).toLocalDate();
             LocalDate enUnaSemana = hoy.plusDays(7);
             turnos = repositorioTurno.findByProfesionalWithDetails(profesional, hoy, enUnaSemana);
         }
@@ -590,7 +598,7 @@ public class ServicioTurno {
             com.example.sitema_de_turnos.dto.CambiarEstadoTurnoRequest request) {
         
         // Obtener profesional
-        Profesional profesional = repositorioProfesional.findByEmail(emailProfesional)
+        PerfilProfesional profesional = repositorioPerfilProfesional.findByUsuarioEmail(emailProfesional)
             .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         // Obtener turno
@@ -599,7 +607,7 @@ public class ServicioTurno {
 
         // Validar que el turno pertenece al profesional
         if (!turno.getProfesional().getId().equals(profesional.getId())) {
-            throw new ValidacionException("No tienes permiso para modificar este turno");
+            throw new AccesoDenegadoException("No tienes permiso para modificar este turno");
         }
 
         // Validar transiciones de estado permitidas
@@ -610,11 +618,7 @@ public class ServicioTurno {
         
         // Si se proporcionaron observaciones, agregarlas
         if (request.getObservaciones() != null && !request.getObservaciones().trim().isEmpty()) {
-            String observacionesActuales = turno.getObservaciones() != null ? turno.getObservaciones() : "";
-            String nuevasObservaciones = observacionesActuales.isEmpty() 
-                ? request.getObservaciones()
-                : observacionesActuales + "\n" + request.getObservaciones();
-            turno.setObservaciones(nuevasObservaciones);
+            appendObservaciones(turno, request.getObservaciones());
         }
 
         turno = repositorioTurno.save(turno);
@@ -631,7 +635,7 @@ public class ServicioTurno {
             com.example.sitema_de_turnos.dto.AgregarObservacionesRequest request) {
         
         // Obtener profesional
-        Profesional profesional = repositorioProfesional.findByEmail(emailProfesional)
+        PerfilProfesional profesional = repositorioPerfilProfesional.findByUsuarioEmail(emailProfesional)
             .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
 
         // Obtener turno
@@ -640,18 +644,22 @@ public class ServicioTurno {
 
         // Validar que el turno pertenece al profesional
         if (!turno.getProfesional().getId().equals(profesional.getId())) {
-            throw new ValidacionException("No tienes permiso para modificar este turno");
+            throw new AccesoDenegadoException("No tienes permiso para modificar este turno");
         }
 
         // Agregar observaciones
-        String observacionesActuales = turno.getObservaciones() != null ? turno.getObservaciones() : "";
-        String nuevasObservaciones = observacionesActuales.isEmpty() 
-            ? request.getObservaciones()
-            : observacionesActuales + "\n" + request.getObservaciones();
-        turno.setObservaciones(nuevasObservaciones);
+        appendObservaciones(turno, request.getObservaciones());
 
         turno = repositorioTurno.save(turno);
         return mapearATurnoResponseProfesional(turno);
+    }
+
+    /**
+     * Agrega texto a las observaciones existentes de un turno, separado por salto de línea.
+     */
+    private void appendObservaciones(Turno turno, String nueva) {
+        String actual = turno.getObservaciones() != null ? turno.getObservaciones() : "";
+        turno.setObservaciones(actual.isEmpty() ? nueva : actual + "\n" + nueva);
     }
 
     /**
@@ -733,17 +741,16 @@ public class ServicioTurno {
     // ==================== MÉTODOS PARA CLIENTE ====================
 
     /**
-     * Obtener todos los turnos de un cliente (su historial completo)
-     * OPTIMIZADO: Usa JOIN FETCH para evitar N+1 queries
+     * Obtener todos los turnos del cliente autenticado (su historial completo).
+     * Recibe el objeto Cliente ya validado por el SecurityContext → elimina el IDOR
+     * que ocurría cuando se aceptaba un clienteId arbitrario como parámetro.
+     * OPTIMIZADO: Usa JOIN FETCH para evitar N+1 queries.
      */
     @Transactional(readOnly = true)
-    public java.util.List<TurnoResponsePublico> obtenerTurnosPorCliente(Long clienteId) {
-        
-        Cliente cliente = repositorioCliente.findById(clienteId)
-            .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
+    public java.util.List<TurnoResponsePublico> obtenerTurnosPorCliente(Cliente clienteAutenticado) {
 
         // OPTIMIZADO: Una sola query con JOIN FETCH en lugar de 1 + 3N queries
-        java.util.List<Turno> turnos = repositorioTurno.findByClienteWithDetails(cliente);
+        java.util.List<Turno> turnos = repositorioTurno.findByClienteWithDetails(clienteAutenticado);
 
         return turnos.stream()
                 .map(this::mapearATurnoResponsePublico)
@@ -766,16 +773,10 @@ public class ServicioTurno {
                 turno.getHoraInicio().format(FORMATTER_HORA)
             );
 
-            // Datos adicionales para el frontend
-            java.util.Map<String, Object> datos = new java.util.HashMap<>();
-            datos.put("turnoId", turno.getId());
-            datos.put("clienteNombre", turno.getCliente().getNombre());
+            // ✅ Usa helper reutilizable en lugar de construir el mapa manualmente
+            java.util.Map<String, Object> datos = construirDatosNotificacionBase(turno);
             datos.put("clienteTelefono", turno.getCliente().getTelefono());
             datos.put("clienteEmail", turno.getCliente().getEmail());
-            datos.put("servicioNombre", turno.getServicio().getNombre());
-            datos.put("fecha", turno.getFecha().toString());
-            datos.put("horaInicio", turno.getHoraInicio().format(FORMATTER_HORA));
-            datos.put("horaFin", turno.getHoraFin().format(FORMATTER_HORA));
             datos.put("duracionMinutos", turno.getDuracionMinutos());
             datos.put("observaciones", turno.getObservaciones());
             datos.put("estado", turno.getEstado().name());
@@ -816,12 +817,8 @@ public class ServicioTurno {
                 turno.getMotivoCancelacion() != null ? turno.getMotivoCancelacion() : "No especificado"
             );
 
-            java.util.Map<String, Object> datos = new java.util.HashMap<>();
-            datos.put("turnoId", turno.getId());
-            datos.put("clienteNombre", turno.getCliente().getNombre());
-            datos.put("servicioNombre", turno.getServicio().getNombre());
-            datos.put("fecha", turno.getFecha().toString());
-            datos.put("horaInicio", turno.getHoraInicio().format(FORMATTER_HORA));
+            // ✅ Usa helper reutilizable
+            java.util.Map<String, Object> datos = construirDatosNotificacionBase(turno);
             datos.put("motivoCancelacion", turno.getMotivoCancelacion());
             datos.put("canceladoPor", canceladoPor);
             datos.put("fechaCancelacion", turno.getFechaCancelacion().format(FORMATTER_DATETIME));

@@ -4,8 +4,10 @@ import com.example.sitema_de_turnos.dto.*;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponseProfesional;
 import com.example.sitema_de_turnos.excepcion.CuentaDesactivadaException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
-import com.example.sitema_de_turnos.modelo.Profesional;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import com.example.sitema_de_turnos.modelo.RolUsuario;
 import com.example.sitema_de_turnos.modelo.Usuario;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioUsuario;
 import com.example.sitema_de_turnos.servicio.ServicioBloqueoFecha;
 import com.example.sitema_de_turnos.servicio.ServicioDisponibilidad;
@@ -34,6 +36,7 @@ import java.util.List;
 public class ControladorProfesional {
 
     private final RepositorioUsuario repositorioUsuario;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final PasswordEncoder passwordEncoder;
     private final ServicioDisponibilidad servicioDisponibilidad;
     private final ServicioBloqueoFecha servicioBloqueoFecha;
@@ -51,12 +54,10 @@ public class ControladorProfesional {
         Usuario usuario = repositorioUsuario.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
-        // VALIDACIÓN AGREGADA: Verificar empresa activa
-        if (usuario instanceof Profesional) {
-            Profesional profesional = (Profesional) usuario;
-            if (profesional.getEmpresa() != null && !profesional.getEmpresa().getActiva()) {
-                throw new CuentaDesactivadaException("Su empresa ha sido desactivada. Contacte al administrador.");
-            }
+        // VALIDACIÓN: Verificar empresa activa
+        PerfilProfesional perfilProfesional = repositorioPerfilProfesional.findByUsuarioEmail(email).orElse(null);
+        if (perfilProfesional != null && perfilProfesional.getEmpresa() != null && !perfilProfesional.getEmpresa().getActiva()) {
+            throw new CuentaDesactivadaException("Su empresa ha sido desactivada. Contacte al administrador.");
         }
 
         PerfilUsuarioResponse perfil = mapearAPerfilResponse(usuario);
@@ -79,12 +80,10 @@ public class ControladorProfesional {
         Usuario usuario = repositorioUsuario.findByEmail(email)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
 
-        // VALIDACIÓN AGREGADA: Verificar empresa activa
-        if (usuario instanceof Profesional) {
-            Profesional profesional = (Profesional) usuario;
-            if (profesional.getEmpresa() != null && !profesional.getEmpresa().getActiva()) {
-                throw new CuentaDesactivadaException("Su empresa ha sido desactivada. Contacte al administrador.");
-            }
+        // VALIDACIÓN: Verificar empresa activa
+        PerfilProfesional perfilProfesional = repositorioPerfilProfesional.findByUsuarioEmail(email).orElse(null);
+        if (perfilProfesional != null && perfilProfesional.getEmpresa() != null && !perfilProfesional.getEmpresa().getActiva()) {
+            throw new CuentaDesactivadaException("Su empresa ha sido desactivada. Contacte al administrador.");
         }
 
         boolean cambioContrasena = false;
@@ -152,6 +151,7 @@ public class ControladorProfesional {
         }
     }
 
+    @SuppressWarnings("deprecation") // setRol() retenido intencionalmente para backward compat
     private PerfilUsuarioResponse mapearAPerfilResponse(Usuario usuario) {
         PerfilUsuarioResponse response = new PerfilUsuarioResponse();
         response.setId(usuario.getId());
@@ -159,17 +159,20 @@ public class ControladorProfesional {
         response.setApellido(usuario.getApellido());
         response.setEmail(usuario.getEmail());
         response.setTelefono(usuario.getTelefono());
-        response.setRol(usuario.getRol().getDescripcion());
+        // Usar .name() (ej: "PROFESIONAL") en lugar de getDescripcion() para
+        // mantener consistencia con ControladorAuth y el contrato del frontend.
+        String rolPrimario = usuario.getRoles().isEmpty() ? "" : usuario.getRoles().iterator().next().name();
+        response.setRol(rolPrimario); // backward compat — campo intencionalmente retenido
+        response.setRoles(usuario.getRoles().stream()
+                .map(RolUsuario::name)
+                .collect(java.util.stream.Collectors.toList()));
         response.setActivo(usuario.getActivo());
         
-        // Agregar información de la empresa si es profesional
-        if (usuario instanceof com.example.sitema_de_turnos.modelo.Profesional) {
-            com.example.sitema_de_turnos.modelo.Profesional profesional = 
-                    (com.example.sitema_de_turnos.modelo.Profesional) usuario;
-            if (profesional.getEmpresa() != null) {
-                response.setEmpresaId(profesional.getEmpresa().getId());
-                response.setEmpresaNombre(profesional.getEmpresa().getNombre());
-            }
+        // Agregar información de la empresa va perfil profesional
+        PerfilProfesional pp = repositorioPerfilProfesional.findByUsuarioEmail(usuario.getEmail()).orElse(null);
+        if (pp != null && pp.getEmpresa() != null) {
+            response.setEmpresaId(pp.getEmpresa().getId());
+            response.setEmpresaNombre(pp.getEmpresa().getNombre());
         }
         
         return response;
@@ -180,18 +183,11 @@ public class ControladorProfesional {
     @GetMapping("/horarios-empresa")
     public ResponseEntity<List<com.example.sitema_de_turnos.dto.HorarioEmpresaResponse>> obtenerHorariosEmpresa(Authentication authentication) {
         String email = authentication.getName();
-        Usuario usuario = repositorioUsuario.findByEmail(email)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-
-        if (!(usuario instanceof com.example.sitema_de_turnos.modelo.Profesional)) {
-            throw new RecursoNoEncontradoException("Usuario no es un profesional");
-        }
-
-        com.example.sitema_de_turnos.modelo.Profesional profesional = 
-                (com.example.sitema_de_turnos.modelo.Profesional) usuario;
+        PerfilProfesional perfil = repositorioPerfilProfesional.findByUsuarioEmail(email)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Perfil profesional no encontrado"));
         
         List<com.example.sitema_de_turnos.dto.HorarioEmpresaResponse> horarios = 
-                servicioHorarioEmpresa.obtenerHorariosPorProfesional(profesional);
+                servicioHorarioEmpresa.obtenerHorariosPorProfesional(perfil);
         
         return ResponseEntity.ok(horarios);
     }

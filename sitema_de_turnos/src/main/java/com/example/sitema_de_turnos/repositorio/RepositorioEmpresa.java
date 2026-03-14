@@ -24,6 +24,6 @@ public interface RepositorioEmpresa extends JpaRepository<Empresa, Long> {
      */
     List<Empresa> findByActivaTrue();
 
-    // Agregá este método en tu repositorio de Empresa
-    Optional<Empresa> findByDuenoId(Long duenoId);
+    // Buscar empresa por el ID del perfil de dueño
+    Optional<Empresa> findByPerfilDuenoId(Long perfilDuenoId);
 }

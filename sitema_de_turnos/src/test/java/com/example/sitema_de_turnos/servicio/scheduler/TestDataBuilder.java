@@ -27,10 +27,13 @@ public class TestDataBuilder {
         cliente.setTelefono("+5491123456789");
         cliente.setEmpresa(empresa);
 
-        Profesional profesional = new Profesional();
+        Usuario usuarioProfesional = new Usuario();
+        usuarioProfesional.setNombre("Dr. López");
+        usuarioProfesional.setEmail("lopez@example.com");
+
+        PerfilProfesional profesional = new PerfilProfesional();
         profesional.setId(1L);
-        profesional.setNombre("Dr. López");
-        profesional.setEmail("lopez@example.com");
+        profesional.setUsuario(usuarioProfesional);
         profesional.setEmpresa(empresa);
 
         Servicio servicio = new Servicio();

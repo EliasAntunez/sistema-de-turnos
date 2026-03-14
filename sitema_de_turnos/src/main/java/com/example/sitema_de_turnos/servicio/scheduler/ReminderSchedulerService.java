@@ -59,12 +59,16 @@ public class ReminderSchedulerService {
     }
     
     /**
-     * Ejecuta el proceso de recordatorios según el cron configurado
-     * Por defecto: cada hora (0 0 * * * *)
+     * Ejecuta el proceso de recordatorios según el cron configurado.
+     * Por defecto: cada minuto (0 * * * * *) para no perder ninguna ventana horaria.
      */
-    @Scheduled(cron = "${app.reminder.cron:0 0 * * * *}")
+    @Scheduled(cron = "${app.reminder.cron:0 * * * * *}")
     public void procesarRecordatorios() {
+        // 🔍 LOG DE LATIDO: primer log, siempre visible, confirma que el cron dispara
+        log.info("⏰ Ejecutando Scheduler de Recordatorios...");
+
         if (!config.isEnabled()) {
+            log.info("⏰ Scheduler DESHABILITADO (app.reminder.enabled=false) - saltando");
             return;
         }
         
@@ -147,17 +151,27 @@ public class ReminderSchedulerService {
             // Buscar turnos pendientes de recordatorio (SOLO CONFIRMADOS)
             List<Turno> turnosPendientes = repositorioTurno.findTurnosPendientesRecordatorio(
                     empresa.getId(), fechaMin, horaMin, fechaMax, horaMax, EstadoTurno.CONFIRMADO);
-            
-            if (!turnosPendientes.isEmpty()) {
-                log.info("📧 Empresa '{}' - {} turnos pendientes (ventana: +{}min a +{}h)", 
-                        empresa.getNombre(), turnosPendientes.size(), 
-                        config.getMinMinutesBefore(), horasAntes);
-            }
+
+            // 🔍 LOG SIEMPRE VISIBLE: permite confirmar la consulta y el rango calculado
+            log.info("📧 Empresa '{}' (tz={}) - {} turnos pendientes | ventana: {} a {} (+{}min → +{}h)",
+                    empresa.getNombre(), timezone.getId(), turnosPendientes.size(),
+                    fechaHoraMin, fechaHoraMax,
+                    config.getMinMinutesBefore(), horasAntes);
             
             for (Turno turno : turnosPendientes) {
-                if (procesarTurno(turno)) {
-                    enviados++;
-                } else {
+                try {
+                    if (procesarTurno(turno)) {
+                        enviados++;
+                        // Anti-bloqueo: pausa entre envíos para no saturar SMTP de Gmail
+                        if (config.getThrottleDelayMs() > 0) {
+                            try { Thread.sleep(config.getThrottleDelayMs()); }
+                            catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                        }
+                    } else {
+                        errores++;
+                    }
+                } catch (Exception e) {
+                    log.error("❌ Error inesperado al procesar turno {}: {}", turno.getId(), e.getMessage(), e);
                     errores++;
                 }
             }
@@ -290,7 +304,7 @@ public class ReminderSchedulerService {
                 .horaFin(turno.getHoraFin())
                 .fechaHoraCompleta(fechaHoraTurno)
                 .servicioNombre(turno.getServicio().getNombre())
-                .profesionalNombre(turno.getProfesional().getNombre())
+                .profesionalNombre(turno.getProfesional().getUsuario().getNombre())
                 .empresaNombre(empresa.getNombre())
                 .empresaTelefono(empresa.getTelefono())
                 .empresaDireccion(empresa.getDireccion())

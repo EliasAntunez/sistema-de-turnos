@@ -16,70 +16,51 @@ import java.util.List;
 public interface RepositorioTurno extends JpaRepository<Turno, Long> {
 
     /**
-     * Buscar turnos de un profesional en una fecha específica
-     */
-    List<Turno> findByProfesionalAndFechaAndEstadoNotOrderByHoraInicio(
-        Profesional profesional, 
-        LocalDate fecha, 
-        EstadoTurno estado
-    );
-
-    /**
-     * Buscar turnos de un cliente en una empresa
-     */
-    List<Turno> findByClienteAndEmpresaOrderByFechaDescHoraInicioDesc(Cliente cliente, Empresa empresa);
-
-    /**
-     * Buscar turnos de una empresa en un rango de fechas
-     */
-    List<Turno> findByEmpresaAndFechaBetweenOrderByFechaAscHoraInicioAsc(
-        Empresa empresa, 
-        LocalDate fechaInicio, 
-        LocalDate fechaFin
-    );
-
-    /**
-     * Verificar si existe un turno en un horario específico para un profesional
-     * (excluyendo turnos cancelados)
+     * Verificar si existe un turno en un horario específico para un profesional.
+     * CORREGIDO: usa parámetro enum tipado en lugar de literal de cadena para
+     * garantizar compatibilidad con Hibernate 6 (Spring Boot 4).
      */
     @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
-           "AND t.estado NOT IN ('CANCELADO') " +
+           "AND t.estado NOT IN :estadosTerminales " +
            "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
     boolean existeSolapamiento(
-        @Param("profesional") Profesional profesional,
-        @Param("fecha") LocalDate fecha,
-        @Param("horaInicio") LocalTime horaInicio,
-        @Param("horaFin") LocalTime horaFin
-    );
-
-    /**
-     * Igual que existeSolapamiento pero excluye un turno específico por ID.
-     * Úsalo al reprogramar para no detectar como solapamiento el propio turno en su slot original.
-     */
-    @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
-           "AND t.fecha = :fecha " +
-           "AND t.id <> :turnoId " +
-           "AND t.estado NOT IN ('CANCELADO') " +
-           "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
-    boolean existeSolapamientoExcluyendo(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fecha") LocalDate fecha,
         @Param("horaInicio") LocalTime horaInicio,
         @Param("horaFin") LocalTime horaFin,
-        @Param("turnoId") Long turnoId
+        @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
+    );
+
+    @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
+           "AND t.fecha = :fecha " +
+           "AND t.id <> :turnoId " +
+           "AND t.estado NOT IN :estadosTerminales " +
+           "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
+    boolean existeSolapamientoExcluyendo(
+        @Param("profesional") PerfilProfesional profesional,
+        @Param("fecha") LocalDate fecha,
+        @Param("horaInicio") LocalTime horaInicio,
+        @Param("horaFin") LocalTime horaFin,
+        @Param("turnoId") Long turnoId,
+        @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
     );
 
     /**
-     * Buscar turnos activos de un profesional en una fecha
+     * Buscar turnos que bloquean agenda para un profesional en una fecha.
+     * Excluye TODOS los estados terminales (CANCELADO, ATENDIDO, NO_ASISTIO)
+     * para que los turnos finalizados o cancelados no ocupen slots en el calendario.
+     *
+     * CORREGIDO: usa parámetro enum tipado para compatibilidad con Hibernate 6.
      */
     @Query("SELECT t FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
-           "AND t.estado NOT IN ('CANCELADO') " +
+           "AND t.estado NOT IN :estadosTerminales " +
            "ORDER BY t.horaInicio")
     List<Turno> findTurnosActivosByProfesionalAndFecha(
-        @Param("profesional") Profesional profesional,
-        @Param("fecha") LocalDate fecha
+        @Param("profesional") PerfilProfesional profesional,
+        @Param("fecha") LocalDate fecha,
+        @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
     );
 
     /**
@@ -101,12 +82,13 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "LEFT JOIN FETCH t.servicio " +
            "WHERE t.profesional = :profesional " +
            "AND t.fecha BETWEEN :fechaInicio AND :fechaFin " +
-           "AND t.estado NOT IN ('CANCELADO', 'ATENDIDO', 'NO_ASISTIO') " +
+           "AND t.estado NOT IN :estadosTerminales " +
            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findConflictosBloqueo(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fechaInicio") LocalDate fechaInicio,
-        @Param("fechaFin") LocalDate fechaFin
+        @Param("fechaFin") LocalDate fechaFin,
+        @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
     );
 
     /**
@@ -181,18 +163,11 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "AND t.fecha BETWEEN :fechaInicio AND :fechaFin " +
            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findByProfesionalWithDetails(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("fechaInicio") LocalDate fechaInicio,
         @Param("fechaFin") LocalDate fechaFin
     );
 
-    /**
-     * Buscar todos los turnos de un cliente (historial completo)
-     * Ordenados por fecha descendente (más recientes primero)
-     * 
-     * ⚠️ DEPRECADO: Causa N+1 queries. Usar findByClienteWithDetails() en su lugar.
-     */
-    List<Turno> findByClienteOrderByFechaDescHoraInicioDesc(Cliente cliente);
 
     /**
      * Buscar todos los turnos de un cliente con todas las relaciones cargadas (historial completo).
@@ -303,7 +278,12 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * @return Lista de turnos ordenados por fecha y hora
      */
     @Query("SELECT DISTINCT t FROM Turno t " +
-           "WHERE t.empresa.id = :empresaId " +
+           "LEFT JOIN FETCH t.empresa e " +
+           "LEFT JOIN FETCH t.profesional p " +
+           "LEFT JOIN FETCH p.usuario " +
+           "LEFT JOIN FETCH t.cliente " +
+           "LEFT JOIN FETCH t.servicio " +
+           "WHERE e.id = :empresaId " +
            "AND t.estado = :estado " +
            "AND (t.recordatorioEnviado = false OR t.recordatorioEnviado IS NULL) " +
            "AND t.recordatorioPrimerIntento IS NULL " +  // ✅ A4: Previene duplicados
@@ -343,7 +323,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * @param estados Lista de estados a considerar como "activos"
      * @return Cantidad de turnos que el profesional tiene en los estados indicados
      */
-    long countByProfesionalAndEstadoIn(Profesional profesional, List<EstadoTurno> estados);
+    long countByProfesionalAndEstadoIn(PerfilProfesional profesional, List<EstadoTurno> estados);
 
     /**
      * Retorna turnos futuros activos de la empresa cuyo rango de horas se solapa
@@ -400,7 +380,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "AND t.horaFin > :horaInicio " +
            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findActivosFuturosEnRangoPorProfesional(
-        @Param("profesional") Profesional profesional,
+        @Param("profesional") PerfilProfesional profesional,
         @Param("hoy") LocalDate hoy,
         @Param("estados") List<EstadoTurno> estados,
         @Param("horaInicio") LocalTime horaInicio,

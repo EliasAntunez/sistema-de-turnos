@@ -1,0 +1,18 @@
+# Evita copiar artefactos locales de compilación al contexto Docker
+target/
+*.log
+logs/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Secretos / entorno local — NUNCA en la imagen
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore

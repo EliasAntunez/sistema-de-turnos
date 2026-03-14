@@ -34,4 +34,12 @@ public class ReminderConfig {
     
     @Value("${app.reminder.retry-delay-ms:2000}")
     private long retryDelayMs;
+
+    /**
+     * Pausa entre emails sucesivos (ms) para no saturar el SMTP de Gmail.
+     * Gmail tiene límite de ~100 mails/segundo en cuentas estándar.
+     * 1500 ms = ~40 emails/minuto — margen seguro para recordatorios masivos.
+     */
+    @Value("${app.reminder.throttle-delay-ms:1500}")
+    private long throttleDelayMs;
 }

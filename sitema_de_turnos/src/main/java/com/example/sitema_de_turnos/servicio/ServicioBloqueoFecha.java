@@ -35,6 +35,10 @@ public class ServicioBloqueoFecha {
 
     private static final Logger log = LoggerFactory.getLogger(ServicioBloqueoFecha.class);
 
+    /** Estados terminales que no generan conflicto de bloqueo. */
+    private static final List<EstadoTurno> ESTADOS_TERMINALES =
+            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
+
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioTurno repositorioTurno;
     private final ServicioValidacionProfesional servicioValidacionProfesional;
@@ -49,7 +53,7 @@ public class ServicioBloqueoFecha {
         }
 
         // Obtener profesional
-        Profesional profesional = obtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesional(emailProfesional);
 
         // Verificar solapamientos con bloqueos existentes
         List<BloqueoFecha> bloqueosExistentes;
@@ -91,7 +95,7 @@ public class ServicioBloqueoFecha {
      */
     @Transactional(readOnly = true)
     public ConflictosBloqueoResponse verificarConflictosConTurnos(String emailProfesional, BloqueoFechaRequest request) {
-        Profesional profesional = obtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesional(emailProfesional);
         return verificarConflictosConTurnos(profesional, request);
     }
 
@@ -103,13 +107,13 @@ public class ServicioBloqueoFecha {
      * y enriquece cada ConflictoTurnoDTO con el flag violaPolitica (solo informativo).
      */
     @Transactional(readOnly = true)
-    public ConflictosBloqueoResponse verificarConflictosConTurnos(Profesional profesional, BloqueoFechaRequest request) {
+    public ConflictosBloqueoResponse verificarConflictosConTurnos(PerfilProfesional profesional, BloqueoFechaRequest request) {
         LocalDate fechaInicio = request.getFechaInicio();
         LocalDate fechaFin = request.getFechaFin() != null ? request.getFechaFin() : request.getFechaInicio();
 
         // 1. Buscar turnos conflictivos con JOIN FETCH (1 query en lugar de 1+3N)
         List<Turno> turnosConflictivos = repositorioTurno.findConflictosBloqueo(
-                profesional, fechaInicio, fechaFin);
+                profesional, fechaInicio, fechaFin, ESTADOS_TERMINALES);
 
         ConflictosBloqueoResponse response = new ConflictosBloqueoResponse();
         response.setTieneConflictos(!turnosConflictivos.isEmpty());
@@ -162,7 +166,7 @@ public class ServicioBloqueoFecha {
      */
     @Transactional
     public BloqueoFechaResponse crearBloqueoConResolucion(String emailProfesional, ResolucionConflictoRequest request) {
-        Profesional profesional = obtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesional(emailProfesional);
 
         // Verificar conflictos nuevamente
         ConflictosBloqueoResponse conflictos = verificarConflictosConTurnos(profesional, request.getBloqueo());
@@ -204,7 +208,7 @@ public class ServicioBloqueoFecha {
         }
     }
 
-    private BloqueoFechaResponse crearBloqueoSinValidacionConflictos(Profesional profesional, BloqueoFechaRequest request) {
+    private BloqueoFechaResponse crearBloqueoSinValidacionConflictos(PerfilProfesional profesional, BloqueoFechaRequest request) {
         BloqueoFecha bloqueo = new BloqueoFecha();
         bloqueo.setProfesional(profesional);
         bloqueo.setFechaInicio(request.getFechaInicio());
@@ -216,14 +220,14 @@ public class ServicioBloqueoFecha {
     }
 
     private CancelacionBloqueoData construirDatoNotificacion(Turno turno) {
-        Profesional p = turno.getProfesional();
+        PerfilProfesional p = turno.getProfesional();
         return CancelacionBloqueoData.builder()
                 .clienteEmail(turno.getCliente().getEmail())
                 .clienteNombre(turno.getCliente().getNombre())
                 .fecha(turno.getFecha())
                 .horaInicio(turno.getHoraInicio())
                 .servicioNombre(turno.getServicio().getNombre())
-                .profesionalNombre(p.getNombre() + " " + p.getApellido())
+                .profesionalNombre(p.getUsuario().getNombre() + " " + p.getUsuario().getApellido())
                 .empresaNombre(p.getEmpresa().getNombre())
                 .empresaSlug(p.getEmpresa().getSlug())
                 .build();
@@ -270,7 +274,7 @@ public class ServicioBloqueoFecha {
         }
 
         // Obtener profesional
-        Profesional profesional = obtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesional(emailProfesional);
 
         // Obtener bloqueo y validar pertenencia
         BloqueoFecha bloqueo = repositorioBloqueoFecha.findById(bloqueoId)
@@ -312,7 +316,7 @@ public class ServicioBloqueoFecha {
 
     @Transactional(readOnly = true)
     public List<BloqueoFechaResponse> obtenerBloqueosPropios(String emailProfesional) {
-        Profesional profesional = obtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesional(emailProfesional);
 
         List<BloqueoFecha> bloqueos = 
                 repositorioBloqueoFecha.findByProfesionalAndActivoTrueOrderByFechaInicioAsc(profesional);
@@ -325,7 +329,7 @@ public class ServicioBloqueoFecha {
     @Transactional
     public void eliminarBloqueo(String emailProfesional, Long bloqueoId) {
         // Obtener profesional
-        Profesional profesional = obtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = obtenerProfesional(emailProfesional);
 
         // Obtener bloqueo y validar pertenencia
         BloqueoFecha bloqueo = repositorioBloqueoFecha.findById(bloqueoId)
@@ -343,7 +347,7 @@ public class ServicioBloqueoFecha {
     /**
      * CORREGIDO: Ahora valida profesional activo + empresa activa
      */
-    private Profesional obtenerProfesional(String email) {
+    private PerfilProfesional obtenerProfesional(String email) {
         return servicioValidacionProfesional.validarYObtenerProfesional(email);
     }
 

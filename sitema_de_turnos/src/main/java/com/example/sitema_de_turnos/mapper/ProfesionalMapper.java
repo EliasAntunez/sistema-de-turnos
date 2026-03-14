@@ -1,11 +1,10 @@
 package com.example.sitema_de_turnos.mapper;
 
 import com.example.sitema_de_turnos.dto.ProfesionalResponse;
-import com.example.sitema_de_turnos.modelo.Profesional;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 
 /**
- * Mapper estático para convertir entidades Profesional a DTOs.
- * MEJORA-002: Centraliza la lógica de conversión para evitar duplicación.
+ * Mapper estático para convertir entidades PerfilProfesional a DTOs.
  */
 public class ProfesionalMapper {
 
@@ -13,29 +12,23 @@ public class ProfesionalMapper {
         // Constructor privado para evitar instanciación
     }
 
-    /**
-     * Convierte una entidad Profesional a ProfesionalResponse DTO.
-     * 
-     * @param profesional Entidad a convertir
-     * @return DTO con los datos del profesional
-     */
-    public static ProfesionalResponse toResponse(Profesional profesional) {
-        if (profesional == null) {
+    public static ProfesionalResponse toResponse(PerfilProfesional perfil) {
+        if (perfil == null) {
             return null;
         }
 
         ProfesionalResponse response = new ProfesionalResponse();
-        response.setId(profesional.getId());
-        response.setNombre(profesional.getNombre());
-        response.setApellido(profesional.getApellido());
-        response.setEmail(profesional.getEmail());
-        response.setTelefono(profesional.getTelefono());
-        response.setDescripcion(profesional.getDescripcion());
-        response.setEmpresaId(profesional.getEmpresa().getId());
-        response.setEmpresaNombre(profesional.getEmpresa().getNombre());
-        response.setActivo(profesional.getActivo());
-        response.setFechaCreacion(profesional.getFechaCreacion());
-        response.setFechaActualizacion(profesional.getFechaActualizacion());
+        response.setId(perfil.getId());
+        response.setNombre(perfil.getUsuario().getNombre());
+        response.setApellido(perfil.getUsuario().getApellido());
+        response.setEmail(perfil.getUsuario().getEmail());
+        response.setTelefono(perfil.getUsuario().getTelefono());
+        response.setDescripcion(perfil.getDescripcion());
+        response.setEmpresaId(perfil.getEmpresa().getId());
+        response.setEmpresaNombre(perfil.getEmpresa().getNombre());
+        response.setActivo(perfil.getActivo());
+        response.setFechaCreacion(perfil.getUsuario().getFechaCreacion());
+        response.setFechaActualizacion(perfil.getUsuario().getFechaActualizacion());
         
         return response;
     }

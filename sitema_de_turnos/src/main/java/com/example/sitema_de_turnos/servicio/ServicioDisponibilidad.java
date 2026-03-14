@@ -43,7 +43,7 @@ public class ServicioDisponibilidad {
         }
 
         // CORREGIDO: Validar profesional activo + empresa activa
-        Profesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
 
         // Validar que la disponibilidad esté dentro de los horarios de la empresa
         validarDentroHorarioEmpresa(profesional.getEmpresa(), request.getDiaSemana(), 
@@ -99,7 +99,7 @@ public class ServicioDisponibilidad {
         }
 
         // CORREGIDO: Validar profesional activo + empresa activa
-        Profesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
 
         // Obtener disponibilidad y validar pertenencia
         DisponibilidadProfesional disponibilidad = repositorioDisponibilidad.findById(disponibilidadId)
@@ -185,7 +185,7 @@ public class ServicioDisponibilidad {
     @Transactional(readOnly = true)
     public List<DisponibilidadResponse> obtenerDisponibilidadPropia(String emailProfesional) {
         // CORREGIDO: Validar profesional activo + empresa activa
-        Profesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
 
         List<DisponibilidadProfesional> disponibilidades = 
                 repositorioDisponibilidad.findByProfesionalAndActivoTrue(profesional);
@@ -207,7 +207,7 @@ public class ServicioDisponibilidad {
     @Transactional
     public void eliminarDisponibilidad(String emailProfesional, Long disponibilidadId) {
         // CORREGIDO: Validar profesional activo + empresa activa
-        Profesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
 
         // Obtener disponibilidad y validar pertenencia
         DisponibilidadProfesional disponibilidad = repositorioDisponibilidad.findById(disponibilidadId)
@@ -285,7 +285,7 @@ public class ServicioDisponibilidad {
      * @return Lista de rangos horarios efectivos para el día (puede estar vacía si la empresa tampoco tiene horarios)
      */
     @Transactional(readOnly = true)
-    public List<DisponibilidadResponse> obtenerDisponibilidadEfectiva(Profesional profesional, DiaSemana diaSemana) {
+    public List<DisponibilidadResponse> obtenerDisponibilidadEfectiva(PerfilProfesional profesional, DiaSemana diaSemana) {
         // Primero, buscar disponibilidad explícita del profesional
         List<DisponibilidadProfesional> disponibilidadesPropias = 
                 repositorioDisponibilidad.findByProfesionalAndDiaSemanaAndActivoTrue(profesional, diaSemana);
@@ -327,7 +327,7 @@ public class ServicioDisponibilidad {
     @Transactional
     public int inicializarDesdeEmpresa(String emailProfesional) {
         // CORREGIDO: Validar profesional activo + empresa activa
-        Profesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
+        PerfilProfesional profesional = servicioValidacionProfesional.validarYObtenerProfesional(emailProfesional);
 
         // Verificar que no tenga disponibilidad previa
         List<DisponibilidadProfesional> disponibilidadesExistentes = 

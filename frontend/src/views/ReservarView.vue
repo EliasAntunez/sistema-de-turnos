@@ -584,6 +584,11 @@ const mostrarModal409Email = ref(false)
 const mensaje409Email = ref('')
 const empresaSlug409 = ref('')
 
+function esConflictoEmailRegistrado(mensaje: string) {
+  const texto = mensaje.toLowerCase()
+  return texto.includes('cuenta registrada') || texto.includes('iniciá sesión') || texto.includes('inicia sesión')
+}
+
 function confirmarIrAlLogin409() {
   mostrarModal409Email.value = false
   router.push({
@@ -691,10 +696,12 @@ onMounted(async () => {
         if (data && (data.id !== undefined || data.empresaId !== undefined || data.telefono !== undefined)) {
           try {
             // Verificar que NO es un usuario del sistema (profesional, dueño, admin)
-            // Los usuarios del sistema tienen campo 'rol', los clientes no
-            if (data.rol && data.rol !== 'CLIENTE') {
+            // Usamos 'roles' (array) en lugar del campo deprecated 'rol' (string singular):
+            // - ClienteAutenticadoResponse NO tiene campo 'roles' → undefined → es cliente
+            // - PerfilUsuarioResponse SÍ tiene 'roles' (ej: ['PROFESIONAL']) → es usuario del sistema
+            if (data.roles && Array.isArray(data.roles) && !data.roles.includes('CLIENTE')) {
               // Es un usuario del sistema (PROFESIONAL, DUENO, ADMIN), no setear como cliente
-              if (import.meta.env.DEV) console.debug('[ReservarView] Sesión de usuario del sistema detectada, no setear como cliente:', data.rol)
+              if (import.meta.env.DEV) console.debug('[ReservarView] Sesión de usuario del sistema detectada, no setear como cliente:', data.roles)
               clienteStore.logout()
             } else if (data.empresaId === empresa.value.id || data.empresaSlug === empresa.value.slug) {
               // Verificar que el perfil recuperado corresponde a la empresa actual
@@ -874,6 +881,8 @@ async function confirmarReserva() {
 async function procesarReserva() {
   try {
     cargando.value = true
+    mostrarModal409Email.value = false
+    mensaje409Email.value = ''
     
     if (!servicioSeleccionado.value || !profesionalSeleccionado.value || 
         !fechaSeleccionada.value || !slotSeleccionado.value) {
@@ -918,17 +927,34 @@ async function procesarReserva() {
   } catch (err: any) {
     console.error('Error al crear turno:', err)
 
-    // Manejar el error específico de email conflictivo con cuenta registrada
-    if (err.response?.status === 409) {
-      const mensaje = err.response?.data?.mensaje || 'El email proporcionado pertenece a una cuenta registrada. Por favor, inicia sesión para continuar.'
-      mensaje409Email.value = mensaje
+    const status = err.response?.status
+    const mensajeBackend = err.response?.data?.mensaje || ''
+
+    // El modal de login solo aplica al conflicto de cuenta existente por email.
+    if (status === 409 && esConflictoEmailRegistrado(mensajeBackend)) {
+      mensaje409Email.value = mensajeBackend || 'El email proporcionado pertenece a una cuenta registrada. Por favor, inicia sesión para continuar.'
       empresaSlug409.value = empresaSlug.value
       mostrarModal409Email.value = true
       return
     }
 
-    // Para otros errores, mostrar mensaje genérico o específico del backend
-    mensajeError.value = err.response?.data?.mensaje || 'Error al crear la reserva. Por favor intenta nuevamente.'
+    // Para conflictos de agenda o cualquier otro error de reserva:
+    // - nunca abrir el modal de cuenta registrada
+    // - mostrar toast visible
+    // - refrescar slots cuando el backend indica que el horario dejó de estar disponible
+    mostrarModal409Email.value = false
+    const msgError = status === 409
+      ? 'El horario ya no está disponible'
+      : (mensajeBackend || 'Error al crear la reserva. Por favor intenta nuevamente.')
+
+    mensajeError.value = msgError
+    toastStore.showError(msgError)
+
+    // Si fue un conflicto de slot (409) o una validación de disponibilidad (400),
+    // recargar slots para reflejar el estado actual de la agenda.
+    if (status === 409 || status === 400) {
+      await cargarSlots()
+    }
   } finally {
     cargando.value = false
   }

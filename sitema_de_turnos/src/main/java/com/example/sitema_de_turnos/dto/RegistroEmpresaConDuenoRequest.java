@@ -18,4 +18,11 @@ public class RegistroEmpresaConDuenoRequest {
     @NotNull(message = "Los datos de la empresa son obligatorios")
     @Valid
     private RegistroEmpresaRequest empresa;
+
+    /**
+     * Si es {@code true}, el dueño también recibirá el rol PROFESIONAL
+     * y se le creará un PerfilProfesional en la misma empresa.
+     * Permite que el dueño gestione su propia agenda de turnos.
+     */
+    private boolean crearPerfilProfesional = false;
 }

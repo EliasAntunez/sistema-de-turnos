@@ -24,7 +24,7 @@ public class ControladorPoliticaCancelacion {
     public ResponseEntity<List<PoliticaCancelacionResponse>> listarPorEmpresa() {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
-        com.example.sitema_de_turnos.modelo.Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
+        com.example.sitema_de_turnos.modelo.PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
         com.example.sitema_de_turnos.modelo.Empresa empresa = dueno.getEmpresa();
         List<PoliticaCancelacionResponse> respuesta = servicio.obtenerPorEmpresaDTO(empresa);
         return ResponseEntity.ok(respuesta);
@@ -34,7 +34,7 @@ public class ControladorPoliticaCancelacion {
     public ResponseEntity<List<PoliticaCancelacionResponse>> listarActivasPorEmpresa() {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
-        com.example.sitema_de_turnos.modelo.Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
+        com.example.sitema_de_turnos.modelo.PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
         com.example.sitema_de_turnos.modelo.Empresa empresa = dueno.getEmpresa();
         List<PoliticaCancelacionResponse> respuesta = servicio.obtenerActivasPorEmpresaDTO(empresa);
         return ResponseEntity.ok(respuesta);
@@ -47,7 +47,7 @@ public class ControladorPoliticaCancelacion {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
         // Validar y obtener el dueño real y su empresa
-        com.example.sitema_de_turnos.modelo.Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
+        com.example.sitema_de_turnos.modelo.PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
         com.example.sitema_de_turnos.modelo.Empresa empresa = dueno.getEmpresa();
         // Ignorar el empresaId del request, siempre usar la empresa del dueño autenticado
         PoliticaCancelacionResponse respuesta = servicio.crearDesdeDTO(request, empresa);
@@ -76,7 +76,7 @@ public class ControladorPoliticaCancelacion {
         // Obtener la empresa del dueño autenticado
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
-        com.example.sitema_de_turnos.modelo.Dueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
+        com.example.sitema_de_turnos.modelo.PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(email);
         com.example.sitema_de_turnos.modelo.Empresa empresa = dueno.getEmpresa();
         PoliticaCancelacionResponse respuesta = servicio.actualizarDesdeDTO(id, request, empresa);
         return ResponseEntity.ok(respuesta);

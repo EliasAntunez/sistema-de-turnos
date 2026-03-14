@@ -35,7 +35,7 @@ public class BloqueoFecha {
 
     @ManyToOne
     @JoinColumn(name = "profesional_id", nullable = false)
-    private Profesional profesional;
+    private PerfilProfesional profesional;
 
     /**
      * Fecha de inicio del bloqueo (inclusive)

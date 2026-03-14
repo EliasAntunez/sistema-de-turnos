@@ -8,6 +8,15 @@
         </div>
         <div class="header-right">
           <span class="user-name">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+          <!-- Acceso rápido al panel de dueño si el usuario tiene ambos roles -->
+          <button
+            v-if="authStore.isDueno"
+            @click="router.push('/dueno')"
+            class="btn-switch-rol"
+            title="Ir a gestión de empresa"
+          >
+            🏢 Mi Empresa
+          </button>
           <NotificationBell />
           <button @click="cerrarSesion" class="btn-logout">Cerrar Sesión</button>
         </div>
@@ -598,34 +607,17 @@ onMounted(async () => {
     cargarBloqueos(),
     cargarTurnos()
   ])
-  
-  // Inicializar sistema de notificaciones
-  await notificacionesStore.inicializar()
-  
-  // Listener para mostrar toast cuando llega una nueva notificación
-  window.addEventListener('nueva-notificacion', onNuevaNotificacion as EventListener)
-})
 
-onUnmounted(() => {
-  // Desconectar WebSocket al salir de la vista
-  notificacionesStore.desconectar()
-  
-  // Remover listener
-  window.removeEventListener('nueva-notificacion', onNuevaNotificacion as EventListener)
+  // Refrescar notificaciones al entrar a la vista.
+  // El WebSocket es inicializado/destruido globalmente en App.vue para que
+  // permanezca activo incluso cuando el usuario multi-rol navega a otra vista.
+  await Promise.all([
+    notificacionesStore.cargarRecientes(),
+    notificacionesStore.actualizarContador()
+  ])
+  // El toast de WS ('nueva-notificacion') es manejado globalmente en App.vue.
+  // No registrar listener local aquí: evita duplicados si ambas vistas estuvieran activas.
 })
-
-/**
- * Handler para nuevas notificaciones - muestra toast
- */
-function onNuevaNotificacion(event: Event) {
-  const customEvent = event as CustomEvent
-  const notificacion = customEvent.detail
-  
-  toastStore.show(
-    `${notificacion.titulo}: ${notificacion.mensaje}`,
-    4000
-  )
-}
 
 // ==================== FUNCIONES DISPONIBILIDAD ====================
 
@@ -878,7 +870,7 @@ async function onBloqueoCreado() {
   bloqueoPendiente.value = null
   conflictosData.value = null
   await cargarBloqueos()
-  toastStore.showSuccess('Bloqueo creado exitosamente')
+  // Toast eliminado: el modal ya muestra el mensaje del backend (fuente única de verdad).
 }
 
 // Estado para confirmación de eliminación de bloqueo
@@ -1142,10 +1134,22 @@ function cerrarSesion() {
   font-size: 1.75rem;
 }
 
-.btn-logout {
-  background-color: rgba(255, 255, 255, 0.2);
+.btn-switch-rol {
+  background-color: rgba(255, 255, 255, 0.15);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-switch-rol:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+.btn-logout {
   padding: 0.5rem 1rem;
   border-radius: 6px;
   cursor: pointer;
