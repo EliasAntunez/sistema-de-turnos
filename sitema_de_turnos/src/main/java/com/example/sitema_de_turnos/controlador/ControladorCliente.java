@@ -8,11 +8,15 @@ import com.example.sitema_de_turnos.servicio.ServicioAutenticacionCliente;
 import com.example.sitema_de_turnos.servicio.ServicioTurno;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import static org.springframework.data.domain.Sort.Direction.DESC;
+
 
 @RestController
 @RequestMapping("/api/cliente")
@@ -99,7 +103,13 @@ public class ControladorCliente {
      * GET /api/cliente/mis-turnos
      */
     @GetMapping("/mis-turnos")
-    public ResponseEntity<ApiResponse<List<TurnoResponsePublico>>> obtenerMisTurnos(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Page<TurnoResponsePublico>>> obtenerMisTurnos(
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) Long servicioId,
+            @RequestParam(required = false) String fechaDesde,
+            @RequestParam(required = false) String fechaHasta,
+            @PageableDefault(size = 10, sort = "fechaCreacion", direction = DESC) Pageable pageable,
+            Authentication authentication) {
         
         // El username tiene formato: "cliente:{empresaSlug}:{telefono}"
         String username = authentication.getName();
@@ -119,8 +129,14 @@ public class ControladorCliente {
         // Obtener cliente
         Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, telefono);
         
-        // Obtener todos los turnos del cliente autenticado (sin IDOR: se pasa el objeto, no el ID)
-        List<TurnoResponsePublico> turnos = servicioTurno.obtenerTurnosPorCliente(cliente);
+        Page<TurnoResponsePublico> turnos = servicioTurno.obtenerTurnosPorCliente(
+            cliente,
+            estado,
+            servicioId,
+            fechaDesde,
+            fechaHasta,
+            pageable
+        );
 
         return ResponseEntity.ok(ApiResponse.exito(turnos, "Turnos obtenidos exitosamente"));
     }

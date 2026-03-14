@@ -15,6 +15,73 @@
       </div>
 
       <div v-else>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Periodo</label>
+            <select
+              v-model="filtros.periodo"
+              @change="onCambioPeriodo"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            >
+              <option value="todos">Todos</option>
+              <option value="hoy">Hoy</option>
+              <option value="semana">Esta semana</option>
+              <option value="rango">Rango</option>
+            </select>
+          </div>
+
+          <div v-if="filtros.periodo === 'rango'" class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Desde</label>
+            <input
+              type="date"
+              v-model="filtros.fechaDesde"
+              @change="aplicarFiltros"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            />
+          </div>
+
+          <div v-if="filtros.periodo === 'rango'" class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Hasta</label>
+            <input
+              type="date"
+              v-model="filtros.fechaHasta"
+              @change="aplicarFiltros"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Estado</label>
+            <select
+              v-model="filtros.estado"
+              @change="aplicarFiltros"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            >
+              <option value="">Todos los estados</option>
+              <option value="PENDIENTE_PAGO">Pendiente de pago</option>
+              <option value="PENDIENTE_CONFIRMACION">Pendiente de confirmación</option>
+              <option value="CONFIRMADO">Confirmado</option>
+              <option value="ATENDIDO">Atendido</option>
+              <option value="NO_ASISTIO">No asistió</option>
+              <option value="CANCELADO">Cancelado</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-medium text-gray-600">Servicio</label>
+            <select
+              v-model="filtros.servicioId"
+              @change="aplicarFiltros"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+            >
+              <option value="">Todos los servicios</option>
+              <option v-for="servicio in serviciosFiltro" :key="servicio.id" :value="servicio.id">
+                {{ servicio.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+
         <div v-if="turnos.length === 0" class="text-center py-12">
           <p class="text-gray-500 text-lg">No tienes turnos registrados</p>
           <router-link :to="`/empresa/${empresaSlug}`" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Reservar un turno</router-link>
@@ -75,6 +142,24 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div v-if="totalPages > 0" class="flex justify-center items-center gap-4 mt-8">
+          <button
+            @click="irPaginaAnterior"
+            :disabled="currentPage === 0 || loading"
+            class="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+          >
+            Anterior
+          </button>
+          <span class="text-sm font-medium text-gray-700">Página {{ currentPage + 1 }} de {{ totalPages }}</span>
+          <button
+            @click="irPaginaSiguiente"
+            :disabled="currentPage >= totalPages - 1 || loading"
+            class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+          >
+            Siguiente
+          </button>
         </div>
       </div>
     </div>
@@ -211,6 +296,7 @@ const clienteStore = useClienteStore()
 const empresaSlug = ref(route.params.empresaSlug as string)
 const empresa = ref<EmpresaPublica | null>(null)
 const turnos = ref<Turno[]>([])
+const serviciosFiltro = ref<Array<{ id: number; nombre: string }>>([])
 const loading = ref(false)
 const errorMessage = ref('')
 const actionLoading = ref(false)
@@ -224,6 +310,22 @@ const toast = useToastStore()
 const selectedTurno = ref<Turno | null>(null)
 // removed nombreClienteForm and observacionesForm: editing of nombre no longer allowed
 const motivoCancelForm = ref('')
+const filtros = ref<{
+  periodo: 'todos' | 'hoy' | 'semana' | 'rango'
+  estado: string
+  servicioId: string
+  fechaDesde: string | null
+  fechaHasta: string | null
+}>({
+  periodo: 'todos',
+  estado: '',
+  servicioId: '',
+  fechaDesde: null,
+  fechaHasta: null
+})
+const currentPage = ref(0)
+const totalPages = ref(0)
+const pageSize = ref(10)
 const OFFSET_ARGENTINA = '-03:00'
 
 function obtenerTimestampInicioTurnoArgentina(turno: Turno): number {
@@ -250,19 +352,51 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error al cargar empresa:', error)
   }
-  
+
+  await cargarServiciosFiltro()
+
   cargarTurnos()
 })
 
-async function cargarTurnos() {
+async function cargarServiciosFiltro() {
+  try {
+    const servicios = await publicoService.obtenerServicios(empresaSlug.value)
+    serviciosFiltro.value = servicios.map(s => ({ id: s.id, nombre: s.nombre }))
+  } catch (error) {
+    console.error('Error al cargar servicios para filtro:', error)
+    serviciosFiltro.value = []
+  }
+}
+
+async function cargarTurnos(page = currentPage.value) {
   loading.value = true
   errorMessage.value = ''
 
   try {
-    const response = await api.obtenerMisTurnos()
+    const params: Record<string, any> = {
+      page,
+      size: pageSize.value
+    }
+
+    if (filtros.value.estado) {
+      params.estado = filtros.value.estado
+    }
+    if (filtros.value.servicioId) {
+      params.servicioId = Number(filtros.value.servicioId)
+    }
+    if (filtros.value.fechaDesde) {
+      params.fechaDesde = filtros.value.fechaDesde
+    }
+    if (filtros.value.fechaHasta) {
+      params.fechaHasta = filtros.value.fechaHasta
+    }
+    const response = await api.obtenerMisTurnos(params)
     
     if (response.data.exito) {
-      turnos.value = response.data.datos
+      const pageData = response.data.datos
+      turnos.value = pageData.content || []
+      totalPages.value = pageData.totalPages ?? 0
+      currentPage.value = pageData.number ?? page
     } else {
       errorMessage.value = response.data.mensaje || 'Error al cargar turnos'
     }
@@ -278,6 +412,69 @@ async function cargarTurnos() {
     }
   } finally {
     loading.value = false
+  }
+}
+
+function aplicarFiltros() {
+  cargarTurnos(0)
+}
+
+function toIsoDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function calcularRangoSemanaActual() {
+  const hoy = new Date()
+  const diaSemana = hoy.getDay()
+  const diferenciaALunes = diaSemana === 0 ? -6 : 1 - diaSemana
+
+  const inicioSemana = new Date(hoy)
+  inicioSemana.setDate(hoy.getDate() + diferenciaALunes)
+
+  const finSemana = new Date(inicioSemana)
+  finSemana.setDate(inicioSemana.getDate() + 6)
+
+  return {
+    desde: toIsoDate(inicioSemana),
+    hasta: toIsoDate(finSemana)
+  }
+}
+
+function onCambioPeriodo() {
+  if (filtros.value.periodo === 'todos') {
+    filtros.value.fechaDesde = null
+    filtros.value.fechaHasta = null
+  } else if (filtros.value.periodo === 'hoy') {
+    const hoy = toIsoDate(new Date())
+    filtros.value.fechaDesde = hoy
+    filtros.value.fechaHasta = hoy
+  } else if (filtros.value.periodo === 'semana') {
+    const rango = calcularRangoSemanaActual()
+    filtros.value.fechaDesde = rango.desde
+    filtros.value.fechaHasta = rango.hasta
+  } else if (filtros.value.periodo === 'rango') {
+    if (!filtros.value.fechaDesde && !filtros.value.fechaHasta) {
+      const hoy = toIsoDate(new Date())
+      filtros.value.fechaDesde = hoy
+      filtros.value.fechaHasta = hoy
+    }
+  }
+
+  aplicarFiltros()
+}
+
+function irPaginaAnterior() {
+  if (currentPage.value > 0) {
+    cargarTurnos(currentPage.value - 1)
+  }
+}
+
+function irPaginaSiguiente() {
+  if (currentPage.value < totalPages.value - 1) {
+    cargarTurnos(currentPage.value + 1)
   }
 }
 

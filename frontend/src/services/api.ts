@@ -5,6 +5,25 @@ interface AuthCredentials {
   contrasena: string
 }
 
+export interface TurnosQueryParams {
+  estado?: string
+  servicioId?: number
+  fechaDesde?: string
+  fechaHasta?: string
+  clienteNombre?: string
+  page?: number
+  size?: number
+  sort?: string
+}
+
+export interface SpringPage<T> {
+  content: T[]
+  totalPages: number
+  totalElements: number
+  size: number
+  number: number
+}
+
 const apiClient: AxiosInstance = axios.create({
   baseURL: 'http://localhost:8080/api',
   headers: {
@@ -192,8 +211,8 @@ export default {
   },
 
   // Turnos (Profesional)
-  obtenerTurnosProfesional(params?: { fecha?: string; fechaDesde?: string; fechaHasta?: string }) {
-    return apiClient.get('/profesional/turnos', { params })
+  obtenerTurnosProfesional(params?: TurnosQueryParams) {
+    return apiClient.get('/profesional/mis-turnos', { params })
   },
 
   obtenerCantidadTurnosSinResolver() {
@@ -222,8 +241,8 @@ export default {
   },
 
   // Cliente - Endpoints protegidos
-  obtenerMisTurnos() {
-    return apiClient.get('/cliente/mis-turnos')
+  obtenerMisTurnos(params?: TurnosQueryParams) {
+    return apiClient.get('/cliente/mis-turnos', { params })
   },
 
   // Modificar reserva como cliente autenticado
