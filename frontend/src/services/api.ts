@@ -196,6 +196,10 @@ export default {
     return apiClient.get('/profesional/turnos', { params })
   },
 
+  obtenerCantidadTurnosSinResolver() {
+    return apiClient.get('/profesional/turnos-sin-resolver/cantidad')
+  },
+
   cambiarEstadoTurno(turnoId: number, datos: { nuevoEstado: string; observaciones?: string }) {
     return apiClient.put(`/profesional/turnos/${turnoId}/estado`, datos)
   },

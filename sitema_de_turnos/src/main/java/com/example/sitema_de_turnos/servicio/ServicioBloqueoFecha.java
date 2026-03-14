@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +41,7 @@ public class ServicioBloqueoFecha {
     /** Estados terminales que no generan conflicto de bloqueo. */
     private static final List<EstadoTurno> ESTADOS_TERMINALES =
             List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
+    private static final ZoneId ZONA_ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
 
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioTurno repositorioTurno;
@@ -110,10 +114,13 @@ public class ServicioBloqueoFecha {
     public ConflictosBloqueoResponse verificarConflictosConTurnos(PerfilProfesional profesional, BloqueoFechaRequest request) {
         LocalDate fechaInicio = request.getFechaInicio();
         LocalDate fechaFin = request.getFechaFin() != null ? request.getFechaFin() : request.getFechaInicio();
+        ZonedDateTime ahoraArgentina = ZonedDateTime.now(ZONA_ARGENTINA);
+        LocalDate fechaActual = ahoraArgentina.toLocalDate();
+        LocalTime horaActual = ahoraArgentina.toLocalTime();
 
         // 1. Buscar turnos conflictivos con JOIN FETCH (1 query en lugar de 1+3N)
         List<Turno> turnosConflictivos = repositorioTurno.findConflictosBloqueo(
-                profesional, fechaInicio, fechaFin, ESTADOS_TERMINALES);
+            profesional, fechaInicio, fechaFin, fechaActual, horaActual, ESTADOS_TERMINALES);
 
         ConflictosBloqueoResponse response = new ConflictosBloqueoResponse();
         response.setTieneConflictos(!turnosConflictivos.isEmpty());
@@ -128,7 +135,7 @@ public class ServicioBloqueoFecha {
                               || p.getTipo() == TipoPoliticaCancelacion.AMBOS)
                     .findFirst();
 
-            LocalDateTime ahora = LocalDateTime.now();
+            LocalDateTime ahora = ahoraArgentina.toLocalDateTime();
 
             // 3. Mapear a DTO enriquecido con flag de política
             List<ConflictoTurnoDTO> conflictos = turnosConflictivos.stream()
@@ -235,6 +242,10 @@ public class ServicioBloqueoFecha {
 
     private void cancelarEnRango(List<ConflictoTurnoDTO> conflictos) {
         if (conflictos.isEmpty()) return;
+        ZonedDateTime ahoraArgentina = ZonedDateTime.now(ZONA_ARGENTINA);
+        LocalDateTime ahoraLocal = ahoraArgentina.toLocalDateTime();
+        LocalDate fechaActual = ahoraArgentina.toLocalDate();
+        LocalTime horaActual = ahoraArgentina.toLocalTime();
         List<Long> ids = conflictos.stream()
                 .map(ConflictoTurnoDTO::getTurnoId)
                 .collect(Collectors.toList());
@@ -243,7 +254,9 @@ public class ServicioBloqueoFecha {
                 EstadoTurno.CANCELADO,
                 "Cancelado por creación de bloqueo de fecha",
                 "PROFESIONAL",
-                LocalDateTime.now()
+            ahoraLocal,
+            fechaActual,
+            horaActual
         );
         if (actualizados != ids.size()) {
             log.warn("cancelarEnRango: se esperaba cancelar {} turno(s) pero se actualizaron {}. "

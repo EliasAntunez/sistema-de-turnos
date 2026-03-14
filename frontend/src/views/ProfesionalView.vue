@@ -167,6 +167,11 @@
           <button @click="cargarTurnos" class="btn-primary-small">Buscar</button>
         </div>
 
+        <div v-if="cantidadTurnosSinResolver > 0" class="alerta-turnos-sin-resolver">
+          ⚠️ Atención: Tienes {{ cantidadTurnosSinResolver }} turnos en el pasado sin resolver.
+          Actualiza su estado para mantener consistencia.
+        </div>
+
         <!-- Loading State -->
         <div v-if="loadingTurnos" class="loading">Cargando turnos...</div>
 
@@ -511,7 +516,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificacionesStore } from '../stores/notificaciones'
@@ -632,6 +637,16 @@ const showModalPago = ref(false)
 const turnoPagoSeleccionado = ref<any>(null)
 const metodoPagoManual = ref<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO')
 const submittingPagoManual = ref(false)
+const cantidadTurnosSinResolver = ref(0)
+const OFFSET_ARGENTINA = '-03:00'
+
+function obtenerTimestampInicioTurnoArgentina(turno: any): number {
+  return new Date(`${turno.fecha}T${turno.horaInicio}:00${OFFSET_ARGENTINA}`).getTime()
+}
+
+function esTurnoPasado(turno: any): boolean {
+  return obtenerTimestampInicioTurnoArgentina(turno) < Date.now()
+}
 
 const turnosOrdenados = computed(() => {
   return [...turnos.value].sort((a, b) => {
@@ -647,7 +662,8 @@ onMounted(async () => {
     cargarDisponibilidad(),
     cargarHorariosEmpresa(),
     cargarBloqueos(),
-    cargarTurnos()
+    cargarTurnos(),
+    cargarCantidadTurnosSinResolver()
   ])
 
   // Refrescar notificaciones al entrar a la vista.
@@ -657,9 +673,16 @@ onMounted(async () => {
     notificacionesStore.cargarRecientes(),
     notificacionesStore.actualizarContador()
   ])
-  // El toast de WS ('nueva-notificacion') es manejado globalmente en App.vue.
-  // No registrar listener local aquí: evita duplicados si ambas vistas estuvieran activas.
 })
+
+async function cargarCantidadTurnosSinResolver() {
+  try {
+    const response = await (window as any).apiClient.obtenerCantidadTurnosSinResolver()
+    cantidadTurnosSinResolver.value = response.data?.datos ?? 0
+  } catch (error: any) {
+    console.error('Error al cargar cantidad de turnos sin resolver:', error)
+  }
+}
 
 // ==================== FUNCIONES DISPONIBILIDAD ====================
 
@@ -991,16 +1014,23 @@ function puedesCambiarEstado(turno: any): boolean {
 
 function estadosDisponibles(turno: any) {
   const estados = []
+  const esPasado = esTurnoPasado(turno)
   
   if (turno.estado === 'PENDIENTE_CONFIRMACION') {
     estados.push({ valor: 'CONFIRMADO', label: 'Confirmar' })
-    estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
+    if (!esPasado) {
+      estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
+    }
   } else if (turno.estado === 'PENDIENTE_PAGO') {
-    estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
+    if (!esPasado) {
+      estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
+    }
   } else if (turno.estado === 'CONFIRMADO') {
     estados.push({ valor: 'ATENDIDO', label: 'Atendido' })
     estados.push({ valor: 'NO_ASISTIO', label: 'No Asistió' })
-    estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
+    if (!esPasado) {
+      estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
+    }
   }
   
   return estados
@@ -1039,6 +1069,10 @@ async function submitPagoManual() {
 
 async function cambiarEstado(turno: any, nuevoEstado: string) {
   if (!nuevoEstado) return
+  if (nuevoEstado === 'CANCELADO' && esTurnoPasado(turno)) {
+    toastStore.showWarning('No se puede cancelar un turno que ya ha pasado. Debe marcarse como Atendido o No Asistió.')
+    return
+  }
   
   try {
     const response = await (window as any).apiClient.cambiarEstadoTurno(turno.id, {
@@ -1051,6 +1085,8 @@ async function cambiarEstado(turno: any, nuevoEstado: string) {
     if (index !== -1) {
       turnos.value[index] = response.data.datos
     }
+
+    await cargarCantidadTurnosSinResolver()
     
     toastStore.showSuccess('Estado actualizado exitosamente')
   } catch (error: any) {
@@ -1196,6 +1232,16 @@ function cerrarSesion() {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.alerta-turnos-sin-resolver {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #f6ad55;
+  background: #fffaf0;
+  color: #975a16;
+  font-weight: 600;
 }
 
 .user-name {

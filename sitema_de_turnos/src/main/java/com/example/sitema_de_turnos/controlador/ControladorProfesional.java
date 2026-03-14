@@ -329,6 +329,15 @@ public class ControladorProfesional {
         );
     }
 
+    @GetMapping("/turnos-sin-resolver/cantidad")
+    public ResponseEntity<RespuestaApi<Long>> obtenerCantidadTurnosSinResolver(Authentication authentication) {
+        String emailProfesional = authentication.getName();
+        long cantidad = servicioTurno.contarTurnosSinResolverProfesional(emailProfesional);
+        return ResponseEntity.ok(
+                RespuestaApi.exitosa("Cantidad obtenida exitosamente", cantidad)
+        );
+    }
+
     /**
      * Cambiar estado de un turno
      * PUT /api/profesional/turnos/{id}/estado

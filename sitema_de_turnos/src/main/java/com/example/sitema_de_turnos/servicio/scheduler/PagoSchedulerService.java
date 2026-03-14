@@ -12,7 +12,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -23,6 +27,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PagoSchedulerService {
 
+    private static final ZoneId ZONA_ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
+    private static final String MOTIVO_CANCELACION_EXPIRACION = "Sistema: Liberado por falta de pago de seña";
+
     private final RepositorioTurno repositorioTurno;
     private final RepositorioPago repositorioPago;
     private final PagoSchedulerConfig pagoSchedulerConfig;
@@ -30,10 +37,19 @@ public class PagoSchedulerService {
     @Scheduled(cron = "0 */15 * * * *")
     @Transactional
     public void expirarPagosPendientes() {
-        LocalDateTime limiteCreacion = LocalDateTime.now().minusHours(pagoSchedulerConfig.getExpiracionHoras());
+        ZonedDateTime ahoraArgentina = ZonedDateTime.now(ZONA_ARGENTINA);
+        LocalDateTime ahoraLocal = ahoraArgentina.toLocalDateTime();
+        LocalDate fechaActual = ahoraArgentina.toLocalDate();
+        LocalTime horaActual = ahoraArgentina.toLocalTime();
+        LocalDateTime limiteCreacion = ahoraLocal.minusHours(pagoSchedulerConfig.getExpiracionHoras());
 
         List<Turno> turnosExpirados = repositorioTurno
-            .findByEstadoAndFechaCreacionBefore(EstadoTurno.PENDIENTE_PAGO, limiteCreacion);
+            .findTurnosPendientesPagoExpirados(
+                EstadoTurno.PENDIENTE_PAGO,
+                limiteCreacion,
+                fechaActual,
+                horaActual
+            );
 
         if (turnosExpirados.isEmpty()) {
             return;
@@ -46,9 +62,9 @@ public class PagoSchedulerService {
 
         for (Turno turno : turnosExpirados) {
             turno.setEstado(EstadoTurno.CANCELADO);
-            turno.setMotivoCancelacion("Turno cancelado automáticamente por vencimiento del plazo de pago de seña");
+            turno.setMotivoCancelacion(MOTIVO_CANCELACION_EXPIRACION);
             turno.setCanceladoPor("SISTEMA");
-            turno.setFechaCancelacion(LocalDateTime.now());
+            turno.setFechaCancelacion(ahoraLocal);
 
             Pago pago = pagosPorTurno.get(turno.getId());
             if (pago != null && pago.getEstado() == EstadoPago.PENDIENTE) {
