@@ -68,6 +68,9 @@ public class Empresa {
     @Column(length = 150)
     private String email;
 
+    @Column(name = "datos_bancarios", columnDefinition = "TEXT")
+    private String datosBancarios;
+
     /**
      * Buffer por defecto entre turnos en minutos.
      * Usado cuando el profesional no tiene buffer personalizado.

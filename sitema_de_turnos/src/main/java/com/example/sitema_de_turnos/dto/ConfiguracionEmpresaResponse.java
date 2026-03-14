@@ -38,4 +38,9 @@ public class ConfiguracionEmpresaResponse {
      * Indica si la empresa tiene habilitado el envío de recordatorios
      */
     private Boolean enviarRecordatorios;
+
+    /**
+     * Datos bancarios para pagos por transferencia (CBU/Alias/etc.)
+     */
+    private String datosBancarios;
 }

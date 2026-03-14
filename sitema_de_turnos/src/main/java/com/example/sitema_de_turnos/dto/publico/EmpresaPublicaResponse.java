@@ -17,5 +17,6 @@ public class EmpresaPublicaResponse {
     private String provincia;
     private String telefono;
     private String email;
+    private String datosBancarios;
     private Integer diasMaximosReserva;
 }

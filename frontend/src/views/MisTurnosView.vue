@@ -49,6 +49,21 @@
                 <div v-if="turno.observaciones" class="mt-3 p-3 bg-yellow-50 rounded-md">
                   <p class="text-sm text-gray-700"><span class="font-medium">Observaciones:</span> {{ turno.observaciones }}</p>
                 </div>
+
+                <div
+                  v-if="turno.estado === 'PENDIENTE_PAGO'"
+                  class="mt-3 p-3 rounded-md border border-amber-200 bg-amber-50"
+                >
+                  <p class="text-sm font-semibold text-amber-800">Tu turno está pendiente de pago de seña.</p>
+                  <p class="text-sm text-amber-900 mt-1 whitespace-pre-line">{{ obtenerDatosBancariosTurno(turno) }}</p>
+                  <button
+                    v-if="obtenerTelefonoEmpresaTurno(turno)"
+                    @click="abrirWhatsApp(turno)"
+                    class="mt-3 inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700"
+                  >
+                    Enviar Comprobante
+                  </button>
+                </div>
               </div>
 
               <div class="ml-4 flex flex-col items-end gap-3">
@@ -185,6 +200,8 @@ interface Turno {
   profesionalNombre: string
   estado: string
   observaciones: string | null
+  empresaTelefono?: string | null
+  empresaDatosBancarios?: string | null
 }
 
 const route = useRoute()
@@ -272,6 +289,8 @@ function formatearFecha(fecha: string): string {
 
 function getEstadoTexto(estado: string): string {
   const estados: { [key: string]: string } = {
+    'PENDIENTE_PAGO': 'Pendiente de pago',
+    'PENDIENTE_CONFIRMACION': 'Pendiente de confirmación',
     'RESERVADO': 'Reservado',
     'CONFIRMADO': 'Confirmado',
     'EN_ATENCION': 'En Atención',
@@ -283,6 +302,8 @@ function getEstadoTexto(estado: string): string {
 
 function getEstadoClass(estado: string): string {
   const clases: { [key: string]: string } = {
+    'PENDIENTE_PAGO': 'bg-amber-100 text-amber-800',
+    'PENDIENTE_CONFIRMACION': 'bg-orange-100 text-orange-800',
     'RESERVADO': 'bg-blue-100 text-blue-800',
     'CONFIRMADO': 'bg-green-100 text-green-800',
     'EN_ATENCION': 'bg-yellow-100 text-yellow-800',
@@ -290,6 +311,26 @@ function getEstadoClass(estado: string): string {
     'CANCELADO': 'bg-red-100 text-red-800'
   }
   return clases[estado] || 'bg-gray-100 text-gray-800'
+}
+
+function obtenerDatosBancariosTurno(turno: Turno): string {
+  const desdeTurno = turno.empresaDatosBancarios?.trim()
+  const desdeEmpresa = empresa.value?.datosBancarios?.trim()
+  return desdeTurno || desdeEmpresa || 'Aún no hay datos bancarios configurados. Contacta al local para coordinar el pago de la seña.'
+}
+
+function obtenerTelefonoEmpresaTurno(turno: Turno): string {
+  const telefono = turno.empresaTelefono || empresa.value?.telefono || ''
+  return telefono.replace(/\D/g, '')
+}
+
+function abrirWhatsApp(turno: Turno) {
+  const telefono = obtenerTelefonoEmpresaTurno(turno)
+  if (!telefono) {
+    toast.showWarning('No hay teléfono de WhatsApp configurado para esta empresa')
+    return
+  }
+  window.open(`https://wa.me/${telefono}`, '_blank')
 }
 
 async function onCancelar(turno: Turno) {

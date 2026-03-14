@@ -41,6 +41,7 @@ public class ServicioTurno {
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
+    private final RepositorioPago repositorioPago;
     private final ServicioNotificacion servicioNotificacion;
 
         /** Estados terminales que no deben bloquear agenda ni participar en el índice parcial. */
@@ -162,13 +163,28 @@ public class ServicioTurno {
         turno.setDuracionMinutos(servicio.getDuracionMinutos()); // Solo duración del servicio
         turno.setBufferMinutos(buffer); // Buffer aplicado en este turno
         turno.setPrecio(servicio.getPrecio());
-        turno.setEstado(EstadoTurno.CREADO);
+        boolean requiereSena = Boolean.TRUE.equals(servicio.getRequiereSena());
+        turno.setEstado(requiereSena ? EstadoTurno.PENDIENTE_PAGO : EstadoTurno.CONFIRMADO);
         turno.setObservaciones(request.getObservaciones());
 
         try {
             turno = repositorioTurno.save(turno);
         } catch (DataIntegrityViolationException e) {
             throw new SolapamientoException("El turno ya fue tomado por otro cliente. Por favor, selecciona otro horario.", e);
+        }
+
+        if (requiereSena) {
+            if (servicio.getMontoSena() == null || servicio.getMontoSena().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new ValidacionException("El servicio requiere seña, pero no tiene un monto de seña válido configurado");
+            }
+
+            Pago pago = new Pago();
+            pago.setTurno(turno);
+            pago.setMonto(servicio.getMontoSena());
+            pago.setMetodoPago(MetodoPago.MERCADO_PAGO);
+            pago.setEstado(EstadoPago.PENDIENTE);
+            pago.setReferenciaExterna(null);
+            repositorioPago.save(pago);
         }
 
         // 10. Enviar notificación al profesional
@@ -471,6 +487,8 @@ public class ServicioTurno {
         response.setPrecio(turno.getPrecio());
         response.setEstado(turno.getEstado().name());
         response.setObservaciones(turno.getObservaciones());
+        response.setEmpresaTelefono(turno.getEmpresa().getTelefono());
+        response.setEmpresaDatosBancarios(turno.getEmpresa().getDatosBancarios());
         return response;
     }
 
@@ -678,19 +696,14 @@ public class ServicioTurno {
 
         // Validar transiciones específicas
         switch (nuevoEstado) {
-            case CREADO:
-                // No tiene sentido cambiar a CREADO (es el estado inicial)
-                throw new ValidacionException("No se puede cambiar el estado a CREADO");
             case PENDIENTE_CONFIRMACION:
-                // Se puede marcar como pendiente de confirmación desde CREADO
-                if (estadoActual != EstadoTurno.CREADO) {
-                    throw new ValidacionException("Solo se puede marcar como pendiente de confirmación turnos en estado CREADO");
-                }
-                break;
+                throw new ValidacionException("El estado PENDIENTE_CONFIRMACION no forma parte del flujo vigente de reservas");
+            case PENDIENTE_PAGO:
+                throw new ValidacionException("El estado PENDIENTE_PAGO se asigna automáticamente al crear reservas con seña");
             case CONFIRMADO:
-                // Se puede confirmar desde CREADO o PENDIENTE_CONFIRMACION
-                if (estadoActual != EstadoTurno.CREADO && estadoActual != EstadoTurno.PENDIENTE_CONFIRMACION) {
-                    throw new ValidacionException("Solo se puede confirmar turnos en estado CREADO o PENDIENTE_CONFIRMACION");
+                // Se puede confirmar desde PENDIENTE_PAGO
+                if (estadoActual != EstadoTurno.PENDIENTE_PAGO) {
+                    throw new ValidacionException("Solo se puede confirmar turnos en estado PENDIENTE_PAGO");
                 }
                 break;
             case ATENDIDO:

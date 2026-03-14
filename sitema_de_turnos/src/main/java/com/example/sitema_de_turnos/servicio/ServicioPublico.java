@@ -61,6 +61,7 @@ public class ServicioPublico {
                 empresa.getProvincia(),
                 empresa.getTelefono(),
                 empresa.getEmail(),
+                empresa.getDatosBancarios(),
                 empresa.getDiasMaximosReserva()
         );
     }
@@ -81,7 +82,9 @@ public class ServicioPublico {
                         s.getNombre(),
                         s.getDescripcion(),
                         s.getDuracionMinutos(),
-                        s.getPrecio()
+                    s.getPrecio(),
+                    s.getRequiereSena(),
+                    s.getMontoSena()
                 ))
                 .collect(Collectors.toList());
     }

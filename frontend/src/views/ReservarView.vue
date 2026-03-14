@@ -221,6 +221,10 @@
         </div>
       </div>
 
+      <div v-if="servicioSeleccionado?.requiereSena" class="info-text">
+        Este servicio requiere una seña de ${{ formatearMontoSena(servicioSeleccionado?.montoSena) }} para confirmar la reserva. Una vez reservado, coordina el pago con el local.
+      </div>
+
       <!-- Cliente autenticado: datos pre-llenados -->
       <div v-if="clienteAutenticado" class="cliente-autenticado-box">
         <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-6 mb-6">
@@ -1075,6 +1079,11 @@ function formatearHora(isoString: string): string {
     console.error("Error formateando hora:", isoString, e);
     return isoString; // Devolver el string original si hay error
   }
+}
+
+function formatearMontoSena(monto: number | null | undefined): string {
+  const valor = typeof monto === 'number' ? monto : 0
+  return valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 // Computed para verificar si el cliente está autenticado Y pertenece a la empresa actual

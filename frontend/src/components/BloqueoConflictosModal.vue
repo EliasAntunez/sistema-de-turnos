@@ -276,8 +276,8 @@ async function cancelarEnRango() {
   text-transform: uppercase;
 }
 
-.estado-creado                 { background: #e3f2fd; color: #1976d2; }
 .estado-pendiente_confirmacion { background: #fff3e0; color: #f57c00; }
+.estado-pendiente_pago         { background: #fff9c4; color: #8a6d00; }
 .estado-confirmado             { background: #e8f5e9; color: #388e3c; }
 .estado-cancelado              { background: #ffebee; color: #d32f2f; }
 .estado-atendido               { background: #f3e5f5; color: #7b1fa2; }

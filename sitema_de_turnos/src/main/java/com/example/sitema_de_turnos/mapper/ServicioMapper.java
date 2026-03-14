@@ -31,6 +31,8 @@ public class ServicioMapper {
         response.setDuracionMinutos(servicio.getDuracionMinutos());
         response.setBufferMinutos(servicio.getBufferMinutos());
         response.setPrecio(servicio.getPrecio());
+        response.setRequiereSena(servicio.getRequiereSena());
+        response.setMontoSena(servicio.getMontoSena());
         response.setActivo(servicio.getActivo());
         response.setFechaCreacion(servicio.getFechaCreacion());
         

@@ -34,6 +34,8 @@ public class ServicioServicio {
             throw new IllegalArgumentException("El precio debe ser mayor a 0");
         }
 
+        validarConfiguracionSena(request);
+
         // RIESGO-003: Validar dueño y empresa activa
         PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
@@ -50,6 +52,8 @@ public class ServicioServicio {
                 : 10);
         servicio.setBufferMinutos(bufferCreacion);
         servicio.setPrecio(request.getPrecio());
+        servicio.setRequiereSena(Boolean.TRUE.equals(request.getRequiereSena()));
+        servicio.setMontoSena(Boolean.TRUE.equals(request.getRequiereSena()) ? request.getMontoSena() : null);
         servicio.setEmpresa(dueno.getEmpresa());
         servicio.setActivo(true);
         servicio.setFechaCreacion(LocalDateTime.now());
@@ -79,6 +83,8 @@ public class ServicioServicio {
             throw new IllegalArgumentException("El precio debe ser mayor a 0");
         }
 
+        validarConfiguracionSena(request);
+
         // RIESGO-003: Validar dueño y empresa activa
         PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
 
@@ -101,6 +107,8 @@ public class ServicioServicio {
             servicio.setBufferMinutos(request.getBufferMinutos());
         }
         servicio.setPrecio(request.getPrecio());
+        servicio.setRequiereSena(Boolean.TRUE.equals(request.getRequiereSena()));
+        servicio.setMontoSena(Boolean.TRUE.equals(request.getRequiereSena()) ? request.getMontoSena() : null);
 
         servicio = repositorioServicio.save(servicio);
 
@@ -146,5 +154,20 @@ public class ServicioServicio {
         // reservas, pero todos los turnos existentes conservan su snapshot de datos.
         servicio.setActivo(activo);
         repositorioServicio.save(servicio);
+    }
+
+    private void validarConfiguracionSena(RegistroServicioRequest request) {
+        boolean requiereSena = Boolean.TRUE.equals(request.getRequiereSena());
+        if (!requiereSena) {
+            return;
+        }
+
+        if (request.getMontoSena() == null) {
+            throw new IllegalArgumentException("Debe indicar el monto de la seña cuando el servicio la requiere");
+        }
+
+        if (request.getMontoSena().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("El monto de la seña debe ser mayor a 0");
+        }
     }
 }

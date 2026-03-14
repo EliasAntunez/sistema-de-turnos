@@ -172,8 +172,8 @@ public class ServicioProfesional {
 
     private void validarSinTurnosActivos(PerfilProfesional perfil) {
         List<EstadoTurno> estadosActivos = Arrays.asList(
-            EstadoTurno.CREADO,
             EstadoTurno.PENDIENTE_CONFIRMACION,
+            EstadoTurno.PENDIENTE_PAGO,
             EstadoTurno.CONFIRMADO
         );
 
@@ -182,7 +182,7 @@ public class ServicioProfesional {
         if (cantidadTurnosActivos > 0) {
             throw new ConflictoException(
                 String.format("No se puede desactivar el profesional %s %s porque tiene %d turno(s) activo(s) " +
-                             "(en estado CREADO, PENDIENTE_CONFIRMACION o CONFIRMADO). " +
+                             "(en estado PENDIENTE_CONFIRMACION, PENDIENTE_PAGO o CONFIRMADO). " +
                              "Debe cancelar o completar estos turnos antes de desactivar al profesional.",
                              perfil.getUsuario().getNombre(), perfil.getUsuario().getApellido(), cantidadTurnosActivos)
             );

@@ -142,7 +142,7 @@ public class ManejadorExcepcionesGlobal {
 
     /**
      * Maneja el intento de eliminar/modificar un horario que tiene turnos activos
-     * (CREADO, PENDIENTE_CONFIRMACION o CONFIRMADO) dentro del rango afectado (409).
+        * (PENDIENTE_CONFIRMACION, PENDIENTE_PAGO o CONFIRMADO) dentro del rango afectado (409).
      * El cuerpo incluye "turnosAfectados" con la descripción de cada turno bloqueante.
      */
     @ExceptionHandler(OperacionBloqueadaPorTurnosException.class)

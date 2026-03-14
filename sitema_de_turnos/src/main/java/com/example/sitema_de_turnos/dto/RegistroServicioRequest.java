@@ -3,6 +3,7 @@ package com.example.sitema_de_turnos.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -33,4 +34,9 @@ public class RegistroServicioRequest {
     @NotNull(message = "El precio es obligatorio")
     @Positive(message = "El precio debe ser un número positivo")
     private BigDecimal precio;
+
+    private Boolean requiereSena;
+
+    @DecimalMin(value = "0.0", inclusive = true, message = "El monto de seña no puede ser negativo")
+    private BigDecimal montoSena;
 }

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class ServicioHorarioEmpresa {
 
     private static final List<EstadoTurno> ESTADOS_ACTIVOS =
-            List.of(EstadoTurno.CREADO, EstadoTurno.PENDIENTE_CONFIRMACION, EstadoTurno.CONFIRMADO);
+            List.of(EstadoTurno.PENDIENTE_CONFIRMACION, EstadoTurno.PENDIENTE_PAGO, EstadoTurno.CONFIRMADO);
 
     private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;

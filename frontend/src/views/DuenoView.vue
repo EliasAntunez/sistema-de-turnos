@@ -132,6 +132,12 @@
             <div class="info-item">
               <strong>Precio:</strong> ${{ servicio.precio }}
             </div>
+            <div class="info-item">
+              <strong>Requiere seña:</strong> {{ servicio.requiereSena ? 'Sí' : 'No' }}
+            </div>
+            <div v-if="servicio.requiereSena && servicio.montoSena !== null" class="info-item">
+              <strong>Monto seña:</strong> ${{ servicio.montoSena }}
+            </div>
           </div>
           <div class="card-actions">
             <button @click="openModalServicio(servicio)" class="btn-edit">Editar</button>
@@ -369,6 +375,21 @@
                   </span>
                 </label>
                 <small>Habilita o deshabilita el envío de recordatorios automáticos</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-section">
+            <h3 class="section-title">💳 Datos para Señas por Transferencia</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Datos bancarios (opcional)</label>
+                <textarea
+                  v-model="formDataConfiguracion.datosBancarios"
+                  rows="4"
+                  placeholder="Ej: Alias: mi.negocio.cobros\nCBU: 0000003100012345678901\nTitular: Mi Empresa SRL"
+                ></textarea>
+                <small>Este texto se mostrará al cliente en Mis Turnos cuando tenga una reserva en pendiente de pago.</small>
               </div>
             </div>
           </div>
@@ -655,6 +676,30 @@
             <span v-if="fieldErrorsServicio.bufferMinutos" class="field-error">{{ fieldErrorsServicio.bufferMinutos }}</span>
           </div>
 
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                v-model="formDataServicio.requiereSena"
+                type="checkbox"
+              />
+              <span>Requiere seña para confirmar la reserva</span>
+            </label>
+          </div>
+
+          <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.montoSena }">
+            <label>Monto de seña ($)</label>
+            <input
+              v-model.number="formDataServicio.montoSena"
+              type="number"
+              min="0"
+              step="0.01"
+              :disabled="!formDataServicio.requiereSena"
+              placeholder="Ej: 3000"
+            />
+            <small class="field-hint">Solo se habilita si el servicio requiere seña</small>
+            <span v-if="fieldErrorsServicio.montoSena" class="field-error">{{ fieldErrorsServicio.montoSena }}</span>
+          </div>
+
           <div v-if="errorServicio" class="error-message">{{ errorServicio }}</div>
 
           <div class="modal-actions">
@@ -921,7 +966,9 @@ const formDataServicio = ref<ServicioRequest>({
   descripcion: '',
   duracionMinutos: 0,
   bufferMinutos: undefined,
-  precio: 0
+  precio: 0,
+  requiereSena: false,
+  montoSena: null
 })
 
 // Estado para Horarios
@@ -987,7 +1034,8 @@ const formDataConfiguracion = ref({
   diasMaximosReserva: 30,
   horasAntesRecordatorio: 24,
   enviarRecordatorios: true,
-  timezone: 'America/Argentina/Buenos_Aires'
+  timezone: 'America/Argentina/Buenos_Aires',
+  datosBancarios: '' as string | null
 })
 
 function agruparHorariosPorDia() {
@@ -1440,7 +1488,9 @@ function openModalServicio(servicio: ServicioResponse | null = null) {
       descripcion: servicio.descripcion,
       duracionMinutos: servicio.duracionMinutos,
       precio: servicio.precio,
-      bufferMinutos: servicio.bufferMinutos
+      bufferMinutos: servicio.bufferMinutos,
+      requiereSena: servicio.requiereSena,
+      montoSena: servicio.montoSena
     }
   } else {
     formDataServicio.value = {
@@ -1448,7 +1498,9 @@ function openModalServicio(servicio: ServicioResponse | null = null) {
       descripcion: '',
       duracionMinutos: 0,
       precio: 0,
-      bufferMinutos: undefined
+      bufferMinutos: undefined,
+      requiereSena: false,
+      montoSena: null
     }
   }
   errorServicio.value = ''
@@ -1464,7 +1516,9 @@ function closeModalServicio() {
     descripcion: '',
     duracionMinutos: 0,
     precio: 0,
-    bufferMinutos: undefined
+    bufferMinutos: undefined,
+    requiereSena: false,
+    montoSena: null
   }
   errorServicio.value = ''
   fieldErrorsServicio.value = {}
@@ -1476,6 +1530,15 @@ async function submitFormServicio() {
   fieldErrorsServicio.value = {}
   
   try {
+    if (formDataServicio.value.requiereSena && (!formDataServicio.value.montoSena || formDataServicio.value.montoSena <= 0)) {
+      errorServicio.value = 'Debe ingresar un monto de seña mayor a 0 cuando el servicio requiere seña'
+      return
+    }
+
+    if (!formDataServicio.value.requiereSena) {
+      formDataServicio.value.montoSena = null
+    }
+
     if (editingServicio.value) {
       await servicioService.actualizarServicio(editingServicio.value.id, formDataServicio.value)
     } else {
@@ -1727,7 +1790,8 @@ async function cargarConfiguracion() {
       diasMaximosReserva: data.diasMaximosReserva ?? 30,
       horasAntesRecordatorio: data.horasAntesRecordatorio ?? 24,
       enviarRecordatorios: data.enviarRecordatorios ?? true,
-      timezone: data.timezone ?? 'America/Argentina/Buenos_Aires'
+      timezone: data.timezone ?? 'America/Argentina/Buenos_Aires',
+      datosBancarios: data.datosBancarios ?? ''
     }
   } catch (err: any) {
     console.error('Error al cargar configuración:', err)

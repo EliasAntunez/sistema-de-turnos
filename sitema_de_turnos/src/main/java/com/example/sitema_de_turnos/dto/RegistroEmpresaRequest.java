@@ -47,6 +47,9 @@ public class RegistroEmpresaRequest {
     @Size(max = 150, message = "El email no puede exceder 150 caracteres")
     private String email;
 
+    @Size(max = 5000, message = "Los datos bancarios no pueden exceder 5000 caracteres")
+    private String datosBancarios;
+
     @Min(value = 1, message = "Los días máximos de reserva deben ser al menos 1")
     @Max(value = 365, message = "Los días máximos de reserva no pueden exceder 365")
     private Integer diasMaximosReserva;

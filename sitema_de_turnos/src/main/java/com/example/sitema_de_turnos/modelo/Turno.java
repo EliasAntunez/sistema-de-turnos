@@ -25,7 +25,7 @@ import java.time.LocalTime;
                columnList = "empresa_id, fecha_creacion"),
         
         // Índice optimizado para job batch de recordatorios
-        // Query típica: WHERE empresa_id = ? AND fecha = ? AND estado IN ('CONFIRMADO', 'CREADO') ORDER BY hora_inicio
+        // Query típica: WHERE empresa_id = ? AND fecha = ? AND estado = 'CONFIRMADO' ORDER BY hora_inicio
         // Beneficios:
         // - Filtrado rápido por empresa (multi-tenant)
         // - Búsqueda eficiente de turnos de una fecha específica (ej: mañana)
@@ -100,7 +100,7 @@ public class Turno {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    private EstadoTurno estado = EstadoTurno.CREADO;
+    private EstadoTurno estado;
 
     @Column(name = "motivo_cancelacion", length = 500)
     private String motivoCancelacion;

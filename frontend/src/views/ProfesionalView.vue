@@ -206,6 +206,12 @@
               </div>
             </div>
             <div class="turno-actions">
+              <button
+                v-if="turno.estado === 'PENDIENTE_PAGO'"
+                @click="abrirModalPago(turno)"
+                class="btn-warning-small">
+                Registrar Pago
+              </button>
               <select 
                 v-if="puedesCambiarEstado(turno)"
                 @change="cambiarEstado(turno, ($event.target as HTMLSelectElement).value)"
@@ -297,6 +303,38 @@
             <button type="button" @click="cerrarModalObservaciones" class="btn-cancel">Cancelar</button>
             <button type="submit" class="btn-submit" :disabled="submittingObservaciones">
               {{ submittingObservaciones ? 'Guardando...' : 'Agregar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Registrar Pago Manual -->
+    <div v-if="showModalPago" class="modal-overlay" @click="cerrarModalPago">
+      <div class="modal modal-small" @click.stop>
+        <div class="modal-header">
+          <h2>Registrar Pago</h2>
+          <button @click="cerrarModalPago" class="btn-close">&times;</button>
+        </div>
+        <form @submit.prevent="submitPagoManual" class="modal-form">
+          <div v-if="turnoPagoSeleccionado" class="turno-info-modal">
+            <p><strong>Cliente:</strong> {{ turnoPagoSeleccionado.clienteNombre }}</p>
+            <p><strong>Servicio:</strong> {{ turnoPagoSeleccionado.servicioNombre }}</p>
+            <p><strong>Fecha:</strong> {{ formatearFechaLegible(turnoPagoSeleccionado.fecha) }} - {{ turnoPagoSeleccionado.horaInicio }}</p>
+          </div>
+
+          <div class="form-group">
+            <label>Método de pago</label>
+            <select v-model="metodoPagoManual" required>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+            </select>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" @click="cerrarModalPago" class="btn-cancel">Cancelar</button>
+            <button type="submit" class="btn-submit" :disabled="submittingPagoManual">
+              {{ submittingPagoManual ? 'Registrando...' : 'Confirmar pago' }}
             </button>
           </div>
         </form>
@@ -590,6 +628,10 @@ const turnoSeleccionado = ref<any>(null)
 const nuevaObservacion = ref('')
 const errorObservaciones = ref('')
 const submittingObservaciones = ref(false)
+const showModalPago = ref(false)
+const turnoPagoSeleccionado = ref<any>(null)
+const metodoPagoManual = ref<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO')
+const submittingPagoManual = ref(false)
 
 const turnosOrdenados = computed(() => {
   return [...turnos.value].sort((a, b) => {
@@ -950,8 +992,10 @@ function puedesCambiarEstado(turno: any): boolean {
 function estadosDisponibles(turno: any) {
   const estados = []
   
-  if (turno.estado === 'CREADO' || turno.estado === 'PENDIENTE_CONFIRMACION') {
+  if (turno.estado === 'PENDIENTE_CONFIRMACION') {
     estados.push({ valor: 'CONFIRMADO', label: 'Confirmar' })
+    estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
+  } else if (turno.estado === 'PENDIENTE_PAGO') {
     estados.push({ valor: 'CANCELADO', label: 'Cancelar' })
   } else if (turno.estado === 'CONFIRMADO') {
     estados.push({ valor: 'ATENDIDO', label: 'Atendido' })
@@ -960,6 +1004,37 @@ function estadosDisponibles(turno: any) {
   }
   
   return estados
+}
+
+function abrirModalPago(turno: any) {
+  turnoPagoSeleccionado.value = turno
+  metodoPagoManual.value = 'EFECTIVO'
+  showModalPago.value = true
+}
+
+function cerrarModalPago() {
+  showModalPago.value = false
+  turnoPagoSeleccionado.value = null
+  metodoPagoManual.value = 'EFECTIVO'
+}
+
+async function submitPagoManual() {
+  if (!turnoPagoSeleccionado.value) return
+
+  try {
+    submittingPagoManual.value = true
+    await (window as any).apiClient.confirmarPagoManual(turnoPagoSeleccionado.value.id, {
+      metodoPago: metodoPagoManual.value
+    })
+    cerrarModalPago()
+    await cargarTurnos()
+    toastStore.showSuccess('Pago registrado y turno confirmado correctamente')
+  } catch (error: any) {
+    console.error('Error al registrar pago manual:', error)
+    toastStore.showError('Error al registrar pago: ' + (error.response?.data?.mensaje || error.message))
+  } finally {
+    submittingPagoManual.value = false
+  }
 }
 
 async function cambiarEstado(turno: any, nuevoEstado: string) {
@@ -1866,14 +1941,14 @@ function cerrarSesion() {
   text-transform: uppercase;
 }
 
-.estado-creado {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
 .estado-pendiente_confirmacion {
   background: #fff3e0;
   color: #f57c00;
+}
+
+.estado-pendiente_pago {
+  background: #fff9c4;
+  color: #8a6d00;
 }
 
 .estado-confirmado {
@@ -1965,6 +2040,22 @@ function cerrarSesion() {
 
 .btn-secondary-small:hover {
   background: #38a169;
+}
+
+.btn-warning-small {
+  padding: 8px 16px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-warning-small:hover {
+  background: #fde68a;
 }
 
 .turno-info-modal {

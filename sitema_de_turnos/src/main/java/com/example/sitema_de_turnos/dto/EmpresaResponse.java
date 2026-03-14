@@ -20,6 +20,7 @@ public class EmpresaResponse {
     private String provincia;
     private String telefono;
     private String email;
+    private String datosBancarios;
     private Boolean activa;
     private DuenoResponse dueno;
     private LocalDateTime fechaCreacion;
