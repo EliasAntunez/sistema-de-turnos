@@ -302,10 +302,6 @@
             <span v-if="!cargando">Confirmar Turno</span>
             <span v-else>Procesando...</span>
           </button>
-
-          <div v-if="mensajeError" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-            {{ mensajeError }}
-          </div>
         </form>
       </div>
     </div>
@@ -581,7 +577,6 @@ const datosCliente = ref({
 const mostrarModalFinal = ref(false)
 const turnoCreado = ref<TurnoResponse | null>(null)
 const cargando = ref(false)
-const mensajeError = ref<string | null>(null)
 
 // Modal de decisión 409 (email registrado)
 const mostrarModal409Email = ref(false)
@@ -865,15 +860,12 @@ function seleccionarSlot(slot: SlotDisponible) {
 }
 
 async function confirmarReserva() {
-  // Resetear el mensaje de error
-  mensajeError.value = null
-
   // Si el cliente no está autenticado, realizamos la validación de datos
   if (!clienteAutenticado.value) {
     // Validar datos del cliente (email es obligatorio, teléfono es opcional)
     if (!datosCliente.value.nombre || !datosCliente.value.email || 
         !datosCliente.value.aceptaCondiciones) {
-      mensajeError.value = 'Por favor completa todos los campos obligatorios para continuar.'
+      toastStore.showError('Por favor completa todos los campos obligatorios para continuar.')
       return
     }
   }
@@ -890,7 +882,7 @@ async function procesarReserva() {
     
     if (!servicioSeleccionado.value || !profesionalSeleccionado.value || 
         !fechaSeleccionada.value || !slotSeleccionado.value) {
-      mensajeError.value = 'Error interno: Faltan datos de reserva.'
+      toastStore.showError('Error interno: Faltan datos de reserva.')
       return
     }
 
@@ -951,7 +943,6 @@ async function procesarReserva() {
       ? 'El horario ya no está disponible'
       : (mensajeBackend || 'Error al crear la reserva. Por favor intenta nuevamente.')
 
-    mensajeError.value = msgError
     toastStore.showError(msgError)
 
     // Si fue un conflicto de slot (409) o una validación de disponibilidad (400),
