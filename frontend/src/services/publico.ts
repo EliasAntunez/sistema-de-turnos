@@ -19,6 +19,7 @@ export interface EmpresaPublica {
   provincia: string | null
   telefono: string | null
   email: string | null
+  datosBancarios: string | null
   diasMaximosReserva: number
 }
 
@@ -28,6 +29,8 @@ export interface ServicioPublico {
   descripcion: string | null
   duracionMinutos: number
   precio: number
+  requiereSena: boolean
+  montoSena: number | null
 }
 
 export interface ProfesionalPublico {

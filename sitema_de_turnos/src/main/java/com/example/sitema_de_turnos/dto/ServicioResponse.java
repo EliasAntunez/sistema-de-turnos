@@ -14,6 +14,8 @@ public class ServicioResponse {
     private Integer duracionMinutos;
     private Integer bufferMinutos;
     private BigDecimal precio;
+    private Boolean requiereSena;
+    private BigDecimal montoSena;
     private Boolean activo;
     private LocalDateTime fechaCreacion;
 }

@@ -200,6 +200,10 @@ export default {
     return apiClient.put(`/profesional/turnos/${turnoId}/estado`, datos)
   },
 
+  confirmarPagoManual(turnoId: number, datos: { metodoPago: 'EFECTIVO' | 'TRANSFERENCIA' }) {
+    return apiClient.post(`/pagos/${turnoId}/confirmar-manual`, datos)
+  },
+
   agregarObservacionesTurno(turnoId: number, datos: { observaciones: string }) {
     return apiClient.put(`/profesional/turnos/${turnoId}/observaciones`, datos)
   },

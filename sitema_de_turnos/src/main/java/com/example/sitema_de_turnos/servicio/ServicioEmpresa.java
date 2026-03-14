@@ -77,6 +77,7 @@ public class ServicioEmpresa {
         empresa.setProvincia(request.getEmpresa().getProvincia());
         empresa.setTelefono(request.getEmpresa().getTelefono());
         empresa.setEmail(request.getEmpresa().getEmail());
+        empresa.setDatosBancarios(request.getEmpresa().getDatosBancarios());
         empresa.setDiasMaximosReserva(request.getEmpresa().getDiasMaximosReserva() != null
                 ? request.getEmpresa().getDiasMaximosReserva()
                 : 30);
@@ -191,6 +192,7 @@ public class ServicioEmpresa {
         response.setProvincia(empresa.getProvincia());
         response.setTelefono(empresa.getTelefono());
         response.setEmail(empresa.getEmail());
+        response.setDatosBancarios(empresa.getDatosBancarios());
         response.setActiva(empresa.getActiva());
         response.setFechaCreacion(empresa.getFechaCreacion());
 
@@ -243,6 +245,7 @@ public class ServicioEmpresa {
         empresa.setBufferPorDefecto(request.getBufferPorDefecto());
         empresa.setTiempoMinimoAnticipacionMinutos(request.getTiempoMinimoAnticipacionMinutos());
         empresa.setDiasMaximosReserva(request.getDiasMaximosReserva());
+        empresa.setDatosBancarios(request.getDatosBancarios());
         
         // Actualizar configuración de recordatorios
         empresa.setHorasAntesRecordatorio(request.getHorasAntesRecordatorio());
@@ -264,6 +267,7 @@ public class ServicioEmpresa {
         response.setTimezone(empresa.getTimezone());
         response.setHorasAntesRecordatorio(empresa.getHorasAntesRecordatorio());
         response.setEnviarRecordatorios(empresa.getEnviarRecordatorios());
+        response.setDatosBancarios(empresa.getDatosBancarios());
         return response;
     }
 }

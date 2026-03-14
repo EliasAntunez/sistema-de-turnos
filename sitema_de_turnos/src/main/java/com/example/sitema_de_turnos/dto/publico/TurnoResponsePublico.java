@@ -29,4 +29,6 @@ public class TurnoResponsePublico {
     private BigDecimal precio;
     private String estado;
     private String observaciones;
+    private String empresaTelefono;
+    private String empresaDatosBancarios;
 }

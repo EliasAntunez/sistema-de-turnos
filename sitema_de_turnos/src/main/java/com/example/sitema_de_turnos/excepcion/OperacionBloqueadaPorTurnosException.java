@@ -4,8 +4,8 @@ import java.util.List;
 
 /**
  * Excepción lanzada cuando se intenta eliminar o modificar un horario
- * (de empresa o de profesional) y existen Turnos activos (CREADO,
- * PENDIENTE_CONFIRMACION o CONFIRMADO) que quedarían sin cobertura.
+ * (de empresa o de profesional) y existen Turnos activos
+ * (PENDIENTE_CONFIRMACION, PENDIENTE_PAGO o CONFIRMADO) que quedarían sin cobertura.
  *
  * El campo {@code turnosAfectados} contiene una descripción legible de cada
  * turno conflictivo para que el dueño o profesional sepa qué debe cancelar

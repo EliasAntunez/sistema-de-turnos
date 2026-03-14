@@ -15,4 +15,6 @@ public class ServicioPublicoResponse {
     private String descripcion;
     private Integer duracionMinutos;
     private BigDecimal precio;
+    private Boolean requiereSena;
+    private BigDecimal montoSena;
 }

@@ -210,7 +210,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * Query típica de job batch de recordatorios:
      * - Filtrar por empresa (multi-tenant)
      * - Filtrar por fecha específica (ej: turnos de mañana)
-     * - Solo turnos en estado activo (CREADO, CONFIRMADO)
+    * - Solo turnos en estado activo (CONFIRMADO)
      * - Ordenados por hora para envío escalonado
      * - Carga Cliente, Profesional, Servicio para generar mensajes
      * 
@@ -228,7 +228,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * 
      * @param empresa Empresa a filtrar (multi-tenant isolation)
      * @param fecha Fecha de los turnos (ej: mañana para recordatorio 24h)
-     * @param estados Estados válidos para recordatorio (CREADO, CONFIRMADO)
+    * @param estados Estados válidos para recordatorio (CONFIRMADO)
      * @return Lista ordenada por hora_inicio con todas las relaciones cargadas
      */
     @Query("SELECT DISTINCT t FROM Turno t " +
@@ -315,8 +315,8 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      * 
      * Usado para validar si un profesional puede ser dado de baja.
      * Se consideran estados que representan turnos pendientes o comprometidos:
-     * - CREADO: Turno creado, esperando confirmación
      * - PENDIENTE_CONFIRMACION: Esperando confirmación del profesional/empresa
+    * - PENDIENTE_PAGO: Esperando pago de seña
      * - CONFIRMADO: Turno confirmado y comprometido
      * 
      * @param profesional Profesional a validar
@@ -338,7 +338,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
      *
      * @param empresa     Empresa propietaria
      * @param hoy         Fecha a partir de la cual buscar (inclusive)
-     * @param estados     Estados que se consideran "activos" (CREADO, PENDIENTE_CONFIRMACION, CONFIRMADO)
+    * @param estados     Estados que se consideran "activos" (PENDIENTE_CONFIRMACION, PENDIENTE_PAGO, CONFIRMADO)
      * @param horaInicio  Inicio del rango a evaluar
      * @param horaFin     Fin del rango a evaluar
      */
@@ -386,4 +386,6 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
         @Param("horaInicio") LocalTime horaInicio,
         @Param("horaFin") LocalTime horaFin
     );
+
+    List<Turno> findByEstadoAndFechaCreacionBefore(EstadoTurno estado, LocalDateTime fechaCreacionLimite);
 }

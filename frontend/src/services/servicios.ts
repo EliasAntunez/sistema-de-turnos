@@ -6,6 +6,8 @@ export interface ServicioRequest {
   duracionMinutos: number
   bufferMinutos?: number | null
   precio: number
+  requiereSena?: boolean
+  montoSena?: number | null
 }
 
 export interface ServicioResponse {
@@ -15,6 +17,8 @@ export interface ServicioResponse {
   duracionMinutos: number
   bufferMinutos: number
   precio: number
+  requiereSena: boolean
+  montoSena: number | null
   activo: boolean
   fechaCreacion: string
 }

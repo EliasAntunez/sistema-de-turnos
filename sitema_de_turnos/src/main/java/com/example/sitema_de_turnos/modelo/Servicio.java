@@ -25,7 +25,9 @@ import java.time.LocalDateTime;
         @CheckConstraint(name = "chk_servicio_precio_positivo",
                         constraint = "precio >= 0"),
         @CheckConstraint(name = "chk_servicio_buffer_positivo",
-                        constraint = "buffer_minutos >= 0")
+                        constraint = "buffer_minutos >= 0"),
+        @CheckConstraint(name = "chk_servicio_monto_sena_positivo",
+                        constraint = "monto_sena IS NULL OR monto_sena >= 0")
     }
 )
 public class Servicio {
@@ -59,6 +61,12 @@ public class Servicio {
      */
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
+
+    @Column(name = "requiere_sena", nullable = false)
+    private Boolean requiereSena = false;
+
+    @Column(name = "monto_sena", precision = 10, scale = 2)
+    private BigDecimal montoSena;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

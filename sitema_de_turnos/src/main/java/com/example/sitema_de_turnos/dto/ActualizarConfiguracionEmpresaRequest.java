@@ -53,4 +53,10 @@ public class ActualizarConfiguracionEmpresaRequest {
      */
     @NotNull(message = "Debe indicar si se envían recordatorios")
     private Boolean enviarRecordatorios;
+
+    /**
+     * Datos bancarios para cobro de señas (CBU/Alias/instrucciones)
+     * Campo opcional para permitir empresas sin configuración de transferencias.
+     */
+    private String datosBancarios;
 }
