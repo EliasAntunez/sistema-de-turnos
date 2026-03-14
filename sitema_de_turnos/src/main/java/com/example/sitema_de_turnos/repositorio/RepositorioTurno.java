@@ -47,6 +47,12 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
         @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
     );
 
+    List<Turno> findByClienteEmailIgnoreCaseAndFechaAndEstadoIn(
+        String email,
+        LocalDate fecha,
+        List<EstadoTurno> estados
+    );
+
     /**
      * Buscar turnos que bloquean agenda para un profesional en una fecha.
      * Excluye TODOS los estados terminales (CANCELADO, ATENDIDO, NO_ASISTIO)

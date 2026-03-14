@@ -54,6 +54,10 @@ public class ServicioTurno {
         private static final List<EstadoTurno> ESTADOS_TERMINALES =
             List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
 
+        /** Estados que bloquean reserva global por superposición para la identidad física del cliente. */
+        private static final List<EstadoTurno> ESTADOS_BLOQUEANTES_SUPERPOSICION_CLIENTE =
+            List.of(EstadoTurno.CONFIRMADO, EstadoTurno.PENDIENTE_PAGO);
+
     // ✅ M2: Constantes estáticas para formateo de fechas
     private static final DateTimeFormatter FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter FORMATTER_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -123,6 +127,8 @@ public class ServicioTurno {
         // Calcular horaFin incluyendo buffer (duración + buffer del servicio o buffer por defecto de la empresa)
         int buffer = servicio.getBufferMinutos() != null ? servicio.getBufferMinutos() : empresa.getBufferPorDefecto();
         LocalTime horaFin = horaInicio.plusMinutes(servicio.getDuracionMinutos()).plusMinutes(buffer);
+        // Hora fin física del cliente (sin buffer): se usa sólo para validación global por email
+        LocalTime horaFinCliente = horaInicio.plusMinutes(servicio.getDuracionMinutos());
 
         // 4.1. Validar que el profesional NO tenga bloqueo en esta fecha
         if (!repositorioBloqueoFecha.findBloqueoEnFecha(profesional, fecha).isEmpty()) {
@@ -153,6 +159,31 @@ public class ServicioTurno {
         int diasMaximos = empresa.getDiasMaximosReserva() != null ? empresa.getDiasMaximosReserva() : 30;
         if (fecha.isAfter(fechaHoyEmpresa.plusDays(diasMaximos))) {
             throw new ValidacionException("No se puede reservar con más de " + diasMaximos + " días de anticipación");
+        }
+
+        // 6.1 Validar superposición global por identidad física (email)
+        String emailClienteReserva = clienteAutenticado != null
+            ? NormalizadorDatos.normalizarEmail(clienteAutenticado.getEmail())
+            : NormalizadorDatos.normalizarEmail(request.getEmailCliente());
+
+        List<Turno> turnosDelClienteMismoDia = repositorioTurno.findByClienteEmailIgnoreCaseAndFechaAndEstadoIn(
+            emailClienteReserva,
+            fecha,
+            ESTADOS_BLOQUEANTES_SUPERPOSICION_CLIENTE
+        );
+
+        // Validación exacta sin falso positivo por buffer persistido en BD.
+        // Intervalos semiabiertos [inicio, finPuro): dos turnos consecutivos en el mismo minuto no se solapan.
+        boolean clienteTieneSuperposicionGlobal = turnosDelClienteMismoDia.stream().anyMatch(turnoExistente -> {
+            LocalTime finPuroTurnoExistente = turnoExistente.getHoraInicio().plusMinutes(turnoExistente.getDuracionMinutos());
+            return turnoExistente.getHoraInicio().isBefore(horaFinCliente)
+                && finPuroTurnoExistente.isAfter(horaInicio);
+        });
+
+        if (clienteTieneSuperposicionGlobal) {
+            throw new ValidacionException(
+                "No puedes reservar este turno porque ya tienes otra reserva (confirmada o pendiente de pago) en este mismo horario, ya sea en esta u otra sucursal."
+            );
         }
 
         // 7. Verificar disponibilidad (sin solapamiento)
