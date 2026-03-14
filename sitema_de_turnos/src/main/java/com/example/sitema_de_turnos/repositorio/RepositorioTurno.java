@@ -83,11 +83,14 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "WHERE t.profesional = :profesional " +
            "AND t.fecha BETWEEN :fechaInicio AND :fechaFin " +
            "AND t.estado NOT IN :estadosTerminales " +
+           "AND (t.fecha > :fechaActual OR (t.fecha = :fechaActual AND t.horaInicio >= :horaActual)) " +
            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findConflictosBloqueo(
         @Param("profesional") PerfilProfesional profesional,
         @Param("fechaInicio") LocalDate fechaInicio,
         @Param("fechaFin") LocalDate fechaFin,
+        @Param("fechaActual") LocalDate fechaActual,
+        @Param("horaActual") LocalTime horaActual,
         @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
     );
 
@@ -110,13 +113,16 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
            "t.motivoCancelacion = :motivo, " +
            "t.canceladoPor = :canceladoPor, " +
            "t.fechaCancelacion = :ahora " +
-           "WHERE t.id IN :ids")
+           "WHERE t.id IN :ids " +
+           "AND (t.fecha > :fechaActual OR (t.fecha = :fechaActual AND t.horaInicio >= :horaActual))")
     int cancelarTurnosMasivamente(
         @Param("ids") List<Long> ids,
         @Param("estado") EstadoTurno estado,
         @Param("motivo") String motivo,
         @Param("canceladoPor") String canceladoPor,
-        @Param("ahora") LocalDateTime ahora
+        @Param("ahora") LocalDateTime ahora,
+        @Param("fechaActual") LocalDate fechaActual,
+        @Param("horaActual") LocalTime horaActual
     );
 
     /**
@@ -387,5 +393,29 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long> {
         @Param("horaFin") LocalTime horaFin
     );
 
-    List<Turno> findByEstadoAndFechaCreacionBefore(EstadoTurno estado, LocalDateTime fechaCreacionLimite);
+    @Query("SELECT t FROM Turno t " +
+           "WHERE t.estado = :estado " +
+           "AND (" +
+               "t.fechaCreacion <= :fechaCreacionLimite " +
+               "OR t.fecha < :fechaActual " +
+               "OR (t.fecha = :fechaActual AND t.horaInicio <= :horaActual)" +
+           ") " +
+           "ORDER BY t.fecha ASC, t.horaInicio ASC")
+    List<Turno> findTurnosPendientesPagoExpirados(
+        @Param("estado") EstadoTurno estado,
+        @Param("fechaCreacionLimite") LocalDateTime fechaCreacionLimite,
+        @Param("fechaActual") LocalDate fechaActual,
+        @Param("horaActual") LocalTime horaActual
+    );
+
+    @Query("SELECT COUNT(t.id) FROM Turno t " +
+           "WHERE t.profesional.id = :profesionalId " +
+           "AND t.estado = :estado " +
+           "AND (t.fecha < :fechaActual OR (t.fecha = :fechaActual AND t.horaFin < :horaActual))")
+    long countTurnosSinResolver(
+        @Param("profesionalId") Long profesionalId,
+        @Param("estado") EstadoTurno estado,
+        @Param("fechaActual") LocalDate fechaActual,
+        @Param("horaActual") LocalTime horaActual
+    );
 }

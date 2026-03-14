@@ -69,8 +69,8 @@
               <div class="ml-4 flex flex-col items-end gap-3">
                 <span :class="getEstadoClass(turno.estado)" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">{{ getEstadoTexto(turno.estado) }}</span>
                 <div class="flex gap-2 mt-2">
-                    <button v-if="turno.estado !== 'CANCELADO'" @click.prevent="openReprogramarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-md text-sm">Reprogramar</button>
-                    <button v-if="turno.estado !== 'CANCELADO'" @click.prevent="openCancelarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-red-100 text-red-800 rounded-md text-sm">Cancelar</button>
+                    <button v-if="turno.estado !== 'CANCELADO' && !esTurnoPasado(turno)" @click.prevent="openReprogramarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-md text-sm">Reprogramar</button>
+                    <button v-if="turno.estado !== 'CANCELADO' && !esTurnoPasado(turno)" @click.prevent="openCancelarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-red-100 text-red-800 rounded-md text-sm">Cancelar</button>
                 </div>
               </div>
             </div>
@@ -224,6 +224,15 @@ const toast = useToastStore()
 const selectedTurno = ref<Turno | null>(null)
 // removed nombreClienteForm and observacionesForm: editing of nombre no longer allowed
 const motivoCancelForm = ref('')
+const OFFSET_ARGENTINA = '-03:00'
+
+function obtenerTimestampInicioTurnoArgentina(turno: Turno): number {
+  return new Date(`${turno.fecha}T${turno.horaInicio}:00${OFFSET_ARGENTINA}`).getTime()
+}
+
+function esTurnoPasado(turno: Turno): boolean {
+  return obtenerTimestampInicioTurnoArgentina(turno) < Date.now()
+}
 
 // Obtener fecha mínima para reprogramación (hoy)
 const fechaMinima = new Date().toISOString().split('T')[0]
@@ -338,11 +347,11 @@ async function onCancelar(turno: Turno) {
 }
 
 function openReprogramarModal(turno: Turno) {
-  const inicio = new Date(`${turno.fecha}T${turno.horaInicio}:00`)
-  const ahora = new Date()
-  const diffMs = inicio.getTime() - ahora.getTime()
+  const inicioMs = obtenerTimestampInicioTurnoArgentina(turno)
+  const ahoraMs = Date.now()
+  const diffMs = inicioMs - ahoraMs
 
-  if (inicio.getTime() < ahora.getTime()) {
+  if (esTurnoPasado(turno)) {
     toast.showWarning('No se puede reprogramar un turno que ya pasó')
     return
   }
@@ -477,11 +486,11 @@ async function submitReprogram() {
 }
 
 function openCancelarModal(turno: Turno) {
-  const inicio = new Date(`${turno.fecha}T${turno.horaInicio}:00`)
-  const ahora = new Date()
-  const diffMs = inicio.getTime() - ahora.getTime()
+  const inicioMs = obtenerTimestampInicioTurnoArgentina(turno)
+  const ahoraMs = Date.now()
+  const diffMs = inicioMs - ahoraMs
 
-  if (inicio.getTime() < ahora.getTime()) {
+  if (esTurnoPasado(turno)) {
     toast.showWarning('No se puede cancelar un turno que ya pasó')
     return
   }

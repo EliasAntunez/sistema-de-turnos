@@ -52,6 +52,21 @@ public class ServicioTurno {
     private static final DateTimeFormatter FORMATTER_HORA = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter FORMATTER_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter FORMATTER_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final ZoneId ZONA_ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
+
+    private LocalDateTime obtenerAhoraArgentina() {
+        return LocalDateTime.now(ZONA_ARGENTINA);
+    }
+
+    private void validarNoCancelacionRetrospectiva(Turno turno) {
+        LocalDateTime ahoraArgentina = obtenerAhoraArgentina();
+        LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
+        if (inicioTurno.isBefore(ahoraArgentina)) {
+            throw new ValidacionException(
+                "No se puede cancelar un turno que ya ha pasado. Debe marcarse como Atendido o No Asistió."
+            );
+        }
+    }
 
     /**
      * Obtener fecha/hora actual en la zona horaria de la empresa.
@@ -432,6 +447,8 @@ public class ServicioTurno {
         Turno turno = repositorioTurno.findById(turnoId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
 
+        validarNoCancelacionRetrospectiva(turno);
+
         if (turno.getEstado() == EstadoTurno.CANCELADO) {
             throw new ValidacionException("El turno ya está cancelado");
         }
@@ -440,14 +457,9 @@ public class ServicioTurno {
             throw new ValidacionException("No se puede cancelar un turno ya atendido");
         }
 
-        // Validar que el turno no sea pasado y que la cancelación respete la anticipación mínima (1 hora)
-        ZonedDateTime ahoraEmpresa = obtenerAhoraEmpresa(turno.getEmpresa());
+        // Validar anticipación mínima (1 hora)
+        LocalDateTime ahoraLocal = obtenerAhoraArgentina();
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
-        LocalDateTime ahoraLocal = ahoraEmpresa.toLocalDateTime();
-
-        if (inicioTurno.isBefore(ahoraLocal)) {
-            throw new ValidacionException("No se puede cancelar un turno que ya pasó");
-        }
 
         if (inicioTurno.minusHours(1).isBefore(ahoraLocal)) {
             throw new ValidacionException(
@@ -727,6 +739,7 @@ public class ServicioTurno {
                 if (estadoActual == EstadoTurno.ATENDIDO) {
                     throw new ValidacionException("No se puede cancelar un turno ya atendido");
                 }
+                validarNoCancelacionRetrospectiva(turno);
                 break;
         }
     }
@@ -768,6 +781,20 @@ public class ServicioTurno {
         return turnos.stream()
                 .map(this::mapearATurnoResponsePublico)
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public long contarTurnosSinResolverProfesional(String emailProfesional) {
+        PerfilProfesional profesional = repositorioPerfilProfesional.findByUsuarioEmail(emailProfesional)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Profesional no encontrado"));
+
+        LocalDateTime ahoraArgentina = obtenerAhoraArgentina();
+        return repositorioTurno.countTurnosSinResolver(
+            profesional.getId(),
+            EstadoTurno.CONFIRMADO,
+            ahoraArgentina.toLocalDate(),
+            ahoraArgentina.toLocalTime()
+        );
     }
 
     // ==================== MÉTODOS PRIVADOS PARA NOTIFICACIONES ====================
