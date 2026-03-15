@@ -6,7 +6,9 @@ import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
 import com.example.sitema_de_turnos.excepcion.OperacionBloqueadaPorTurnosException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.modelo.*;
-import com.example.sitema_de_turnos.repositorio.*;
+import com.example.sitema_de_turnos.repositorio.RepositorioDisponibilidadProfesional;
+import com.example.sitema_de_turnos.repositorio.RepositorioHorarioEmpresa;
+import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -250,7 +252,7 @@ public class ServicioDisponibilidad {
                 repositorioHorarioEmpresa.findByEmpresaAndDiaSemanaAndActivoTrue(empresa, diaSemana);
 
         if (horariosEmpresa.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new IllegalStateException(
                     String.format("La empresa no tiene horarios configurados para %s. " +
                             "Solicite al dueño que configure los horarios de la empresa primero.", 
                             diaSemana));
@@ -267,7 +269,7 @@ public class ServicioDisponibilidad {
                     .map(h -> h.getHoraInicio() + " - " + h.getHoraFin())
                     .collect(Collectors.joining(", "));
 
-            throw new IllegalArgumentException(
+            throw new IllegalStateException(
                     String.format("El horario %s - %s para %s está fuera del horario de la empresa. " +
                             "Horarios disponibles: %s",
                             horaInicio, horaFin, diaSemana, horariosDisponibles));
@@ -276,43 +278,18 @@ public class ServicioDisponibilidad {
 
     /**
      * Obtiene la disponibilidad efectiva de un profesional para un día específico.
-     * Si el profesional tiene DisponibilidadProfesional configurada para ese día, la retorna.
-     * Si no tiene configuración propia, hereda los HorarioEmpresa como fallback.
+         * Regla estricta: la fuente de verdad es siempre la disponibilidad del profesional.
+         * Si no tiene configuración para el día, retorna lista vacía.
      * 
-     * Este método centraliza la regla de negocio de herencia de horarios y debe ser
-     * usado en todos los cálculos de disponibilidad real (turnos, validaciones, reportes).
-     * 
-     * @return Lista de rangos horarios efectivos para el día (puede estar vacía si la empresa tampoco tiene horarios)
+         * @return Lista de rangos horarios del profesional para el día
      */
     @Transactional(readOnly = true)
     public List<DisponibilidadResponse> obtenerDisponibilidadEfectiva(PerfilProfesional profesional, DiaSemana diaSemana) {
-        // Primero, buscar disponibilidad explícita del profesional
         List<DisponibilidadProfesional> disponibilidadesPropias = 
                 repositorioDisponibilidad.findByProfesionalAndDiaSemanaAndActivoTrue(profesional, diaSemana);
 
-        // Si tiene configuración propia, usarla (es la fuente de verdad)
-        if (!disponibilidadesPropias.isEmpty()) {
-            return disponibilidadesPropias.stream()
-                    .map(this::convertirAResponse)
-                    .collect(Collectors.toList());
-        }
-
-        // Fallback: heredar horarios de la empresa
-        List<HorarioEmpresa> horariosEmpresa = 
-                repositorioHorarioEmpresa.findByEmpresaAndDiaSemanaAndActivoTrue(
-                    profesional.getEmpresa(), diaSemana);
-
-        // Convertir HorarioEmpresa a DisponibilidadResponse
-        return horariosEmpresa.stream()
-                .map(horario -> {
-                    DisponibilidadResponse response = new DisponibilidadResponse();
-                    response.setId(null); // No tiene ID porque no es una entidad DisponibilidadProfesional
-                    response.setDiaSemana(horario.getDiaSemana());
-                    response.setHoraInicio(horario.getHoraInicio());
-                    response.setHoraFin(horario.getHoraFin());
-                    response.setActivo(true);
-                    return response;
-                })
+        return disponibilidadesPropias.stream()
+            .map(this::convertirAResponse)
                 .collect(Collectors.toList());
     }
 

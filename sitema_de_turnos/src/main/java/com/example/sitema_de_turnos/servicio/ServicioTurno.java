@@ -46,7 +46,6 @@ public class ServicioTurno {
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
-    private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final RepositorioPago repositorioPago;
     private final ServicioNotificacion servicioNotificacion;
 
@@ -378,7 +377,7 @@ public class ServicioTurno {
         LocalTime nuevaHoraFin = nuevaHoraInicio.plusMinutes(turno.getDuracionMinutos()).plusMinutes(turno.getBufferMinutos());
 
         // Validar que el nuevo horario esté dentro de la disponibilidad configurada del profesional
-        validarHorarioEnDisponibilidad(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getEmpresa());
+        validarHorarioEnDisponibilidad(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin);
 
         // Validar solapamiento atómicamente (excluyendo el propio turno en su slot original)
         if (repositorioTurno.existeSolapamientoExcluyendo(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getId(), ESTADOS_TERMINALES)) {
@@ -569,12 +568,10 @@ public class ServicioTurno {
     /**
      * Valida que el intervalo [horaInicio, horaFin) se encuentre dentro de al menos un rango de
      * disponibilidad configurado para el profesional en el día indicado.
-     * Primero consulta DisponibilidadProfesional; si no hay, usa HorarioEmpresa (fallback).
      * Lanza ValidacionException si el horario está fuera de la disponibilidad configurada.
      */
     private void validarHorarioEnDisponibilidad(PerfilProfesional profesional, LocalDate fecha,
-                                                LocalTime horaInicio, LocalTime horaFin,
-                                                Empresa empresa) {
+                                                LocalTime horaInicio, LocalTime horaFin) {
         DiaSemana dia = convertirDiaSemana(fecha.getDayOfWeek());
 
         java.util.List<DisponibilidadProfesional> disponibilidades =
@@ -589,17 +586,7 @@ public class ServicioTurno {
             return;
         }
 
-        // Fallback: verificar contra horario de la empresa
-        java.util.List<HorarioEmpresa> horariosEmpresa =
-            repositorioHorarioEmpresa.findByEmpresaAndDiaSemanaAndActivoTrue(empresa, dia);
-        if (horariosEmpresa.isEmpty()) {
-            throw new ValidacionException("El profesional no tiene disponibilidad configurada para ese día");
-        }
-        boolean dentroDe = horariosEmpresa.stream().anyMatch(h ->
-            !horaInicio.isBefore(h.getHoraInicio()) && !horaFin.isAfter(h.getHoraFin()));
-        if (!dentroDe) {
-            throw new ValidacionException("El horario seleccionado está fuera del horario de atención");
-        }
+        throw new ValidacionException("El profesional no tiene disponibilidad configurada para ese día");
     }
 
     private DiaSemana convertirDiaSemana(java.time.DayOfWeek dayOfWeek) {
