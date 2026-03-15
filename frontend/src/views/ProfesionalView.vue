@@ -33,14 +33,14 @@
     <!-- Navigation Tabs -->
     <nav class="tabs-navigation">
       <button 
-        @click="seccionActiva = 'disponibilidad'" 
-        :class="['tab-btn', { active: seccionActiva === 'disponibilidad' }]">
-        📅 Disponibilidad
-      </button>
-      <button 
         @click="seccionActiva = 'turnos'" 
         :class="['tab-btn', { active: seccionActiva === 'turnos' }]">
         📋 Mis Turnos
+      </button>
+      <button 
+        @click="seccionActiva = 'disponibilidad'" 
+        :class="['tab-btn', { active: seccionActiva === 'disponibilidad' }]">
+        📅 Disponibilidad
       </button>
       <button 
         @click="seccionActiva = 'bloqueos'" 
@@ -597,7 +597,7 @@ const userMenuRef = ref<HTMLElement | null>(null)
 ;(window as any).apiClient = api
 
 // Estado de navegación
-const seccionActiva = ref<'disponibilidad' | 'turnos' | 'bloqueos'>('disponibilidad')
+const seccionActiva = ref<'disponibilidad' | 'turnos' | 'bloqueos'>('turnos')
 
 // Estado para Disponibilidad
 const disponibilidades = ref<DisponibilidadResponse[]>([])
