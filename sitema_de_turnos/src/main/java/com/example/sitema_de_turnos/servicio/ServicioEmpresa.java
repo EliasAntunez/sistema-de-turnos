@@ -1,6 +1,8 @@
 package com.example.sitema_de_turnos.servicio;
 
 import com.example.sitema_de_turnos.dto.*;
+import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
+import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.modelo.PerfilDueno;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
@@ -168,6 +170,55 @@ public class ServicioEmpresa {
     // Agregá este método en tu servicio de Empresa
     public Empresa obtenerPorDueno(Long perfilDuenoId) {
         return repositorioEmpresa.findByPerfilDuenoId(perfilDuenoId).orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public EmpresaDto obtenerEmpresaDelDueno(String emailDueno) {
+        PerfilDueno perfil = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = repositorioEmpresa.findByPerfilDuenoId(perfil.getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("El dueño autenticado no tiene empresa asociada"));
+
+        validarRelacionDuenoEmpresa(perfil, empresa);
+        return mapearAEmpresaDto(empresa);
+    }
+
+    @Transactional
+    public EmpresaDto actualizarEmpresaDelDueno(String emailDueno, ActualizarEmpresaRequest request) {
+        PerfilDueno perfil = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = repositorioEmpresa.findByPerfilDuenoId(perfil.getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("El dueño autenticado no tiene empresa asociada"));
+
+        validarRelacionDuenoEmpresa(perfil, empresa);
+
+        empresa.setNombre(request.getNombre() != null ? request.getNombre().trim() : null);
+        empresa.setDescripcion(request.getDescripcion() != null ? request.getDescripcion().trim() : null);
+        empresa.setDireccion(request.getDireccion() != null ? request.getDireccion().trim() : null);
+        empresa.setCiudad(request.getCiudad() != null ? request.getCiudad().trim() : null);
+        empresa.setProvincia(request.getProvincia() != null ? request.getProvincia().trim() : null);
+        empresa.setTelefono(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarTelefono(request.getTelefono()));
+        empresa.setEmail(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarEmail(request.getEmail()));
+
+        Empresa empresaActualizada = repositorioEmpresa.save(empresa);
+        return mapearAEmpresaDto(empresaActualizada);
+    }
+
+    private void validarRelacionDuenoEmpresa(PerfilDueno perfil, Empresa empresa) {
+        if (empresa.getPerfilDueno() == null || !empresa.getPerfilDueno().getId().equals(perfil.getId())) {
+            throw new AccesoDenegadoException("Acceso denegado: la empresa no pertenece al dueño autenticado");
+        }
+    }
+
+    private EmpresaDto mapearAEmpresaDto(Empresa empresa) {
+        EmpresaDto dto = new EmpresaDto();
+        dto.setId(empresa.getId());
+        dto.setNombre(empresa.getNombre());
+        dto.setDescripcion(empresa.getDescripcion());
+        dto.setDireccion(empresa.getDireccion());
+        dto.setCiudad(empresa.getCiudad());
+        dto.setProvincia(empresa.getProvincia());
+        dto.setTelefono(empresa.getTelefono());
+        dto.setEmail(empresa.getEmail());
+        return dto;
     }
 
     private void validarDatosDueno(RegistroDuenoRequest duenoRequest) {
