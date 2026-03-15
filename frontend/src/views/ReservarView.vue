@@ -105,7 +105,23 @@
           <p v-if="servicio.descripcion" class="descripcion">{{ servicio.descripcion }}</p>
           <div class="servicio-details">
             <span class="duracion">⏱️ {{ servicio.duracionMinutos }} min</span>
-            <span class="precio">${{ servicio.precio }}</span>
+            <span class="precio">{{ formatearMonedaARS(servicio.precio) }}</span>
+          </div>
+          <div class="mt-2">
+            <span
+              v-if="servicio.requiereSena"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200"
+            >
+              {{ servicio.montoSena != null
+                ? `⚠️ Requiere seña de ${formatearMonedaARS(servicio.montoSena)}`
+                : '⚠️ Requiere seña' }}
+            </span>
+            <span
+              v-else
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
+            >
+              Pago en el local
+            </span>
           </div>
         </div>
       </div>
@@ -205,7 +221,7 @@
         </div>
         <div class="resumen-item">
           <strong>Precio:</strong>
-          <span>${{ servicioSeleccionado?.precio }}</span>
+          <span>{{ formatearMonedaARS(servicioSeleccionado?.precio) }}</span>
         </div>
         <div class="resumen-item">
           <strong>Profesional:</strong>
@@ -222,7 +238,7 @@
       </div>
 
       <div v-if="servicioSeleccionado?.requiereSena" class="info-text">
-        Este servicio requiere una seña de ${{ formatearMontoSena(servicioSeleccionado?.montoSena) }} para confirmar la reserva. Una vez reservado, coordina el pago con el local.
+        Este servicio requiere una seña de {{ formatearMonedaARS(servicioSeleccionado?.montoSena) }} para confirmar la reserva. Una vez reservado, coordina el pago con el local.
       </div>
 
       <!-- Cliente autenticado: datos pre-llenados -->
@@ -324,7 +340,7 @@
           <p><strong>Fecha:</strong> {{ formatearFechaCompleta(turnoCreado.fecha) }}</p>
           <p><strong>Hora de inicio:</strong> {{ turnoCreado.horaInicio }}</p>
           <p><strong>Duración:</strong> {{ turnoCreado.duracionMinutos }} minutos</p>
-          <p><strong>Precio:</strong> ${{ turnoCreado.precio }}</p>
+          <p><strong>Precio:</strong> {{ formatearMonedaARS(turnoCreado.precio) }}</p>
           <p><strong>Estado:</strong> <span class="badge-estado">{{ turnoCreado.estado }}</span></p>
           
           <hr />
@@ -501,6 +517,7 @@ import PoliticasService from '@/services/politicasCancelacion'
 import type { PoliticaCancelacion } from '@/types/politicasCancelacion'
 import Toast from '@/components/Toast.vue'
 import { useToastStore } from '@/composables/useToast'
+import { formatCurrencyARS as formatearMonedaARS } from '@/utils/currency'
 
 const route = useRoute()
 const router = useRouter()
@@ -1070,11 +1087,6 @@ function formatearHora(isoString: string): string {
     console.error("Error formateando hora:", isoString, e);
     return isoString; // Devolver el string original si hay error
   }
-}
-
-function formatearMontoSena(monto: number | null | undefined): string {
-  const valor = typeof monto === 'number' ? monto : 0
-  return valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 // Computed para verificar si el cliente está autenticado Y pertenece a la empresa actual

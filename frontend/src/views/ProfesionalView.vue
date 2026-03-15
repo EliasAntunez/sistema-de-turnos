@@ -256,7 +256,7 @@
                 <strong>Email:</strong> {{ turno.clienteEmail }}
               </div>
               <div class="turno-info-row">
-                <strong>Duración:</strong> {{ turno.duracionMinutos }} min | <strong>Precio:</strong> ${{ turno.precio }}
+                <strong>Duración:</strong> {{ turno.duracionMinutos }} min | <strong>Precio:</strong> {{ formatearMonedaARS(turno.precio) }}
               </div>
               <div v-if="turno.observaciones" class="turno-observaciones">
                 <strong>Observaciones:</strong>
@@ -577,6 +577,7 @@ import { disponibilidadService, type DisponibilidadRequest, type DisponibilidadR
 import { bloqueosService, type BloqueoRequest, type BloqueoResponse, type ConflictosBloqueoResponse } from '../services/bloqueos'
 import api from '../services/api'
 import { useToastStore } from '../composables/useToast'
+import { formatCurrencyARS as formatearMonedaARS } from '../utils/currency'
 
 const router = useRouter()
 const authStore = useAuthStore()

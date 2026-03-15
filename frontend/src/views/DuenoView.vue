@@ -130,13 +130,13 @@
               <strong>Duración:</strong> {{ servicio.duracionMinutos }} minutos
             </div>
             <div class="info-item">
-              <strong>Precio:</strong> ${{ servicio.precio }}
+              <strong>Precio:</strong> {{ formatearMonedaARS(servicio.precio) }}
             </div>
             <div class="info-item">
               <strong>Requiere seña:</strong> {{ servicio.requiereSena ? 'Sí' : 'No' }}
             </div>
             <div v-if="servicio.requiereSena && servicio.montoSena !== null" class="info-item">
-              <strong>Monto seña:</strong> ${{ servicio.montoSena }}
+              <strong>Monto seña:</strong> {{ formatearMonedaARS(servicio.montoSena) }}
             </div>
           </div>
           <div class="card-actions">
@@ -582,7 +582,7 @@
               >
                 <div class="servicio-info">
                   <strong>{{ servicio.nombre }}</strong>
-                  <span class="servicio-meta">{{ servicio.duracionMinutos }} min - ${{ servicio.precio }}</span>
+                  <span class="servicio-meta">{{ servicio.duracionMinutos }} min - {{ formatearMonedaARS(servicio.precio) }}</span>
                 </div>
                 <button 
                   type="button"
@@ -892,6 +892,7 @@ import type { PoliticaCancelacionRequest, PoliticaCancelacionResponse } from '..
 import { useToastStore } from '../composables/useToast'
 import Toast from '../components/Toast.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
+import { formatCurrencyARS as formatearMonedaARS } from '../utils/currency'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1299,7 +1300,6 @@ function formatearFecha(fecha: string): string {
     return fecha
   }
 }
-
 
 async function cargarProfesionales() {
   loading.value = true
