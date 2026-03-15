@@ -181,6 +181,10 @@ export default {
   },
 
   // Configuración de la Empresa (Dueño)
+  actualizarEmpresaDueno(datos: any) {
+    return apiClient.put('/dueno/empresa', datos)
+  },
+
   obtenerConfiguracion() {
     return apiClient.get('/dueno/configuracion')
   },

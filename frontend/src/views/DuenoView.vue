@@ -4,10 +4,7 @@
     <header class="dueno-header">
       <!-- Mostrar el nombre de la empresa del dueño -->
       <h1>{{ nombreEmpresa }}</h1>
-      <div class="user-info">
-        <span>{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
-        <span class="badge-dueno">Dueño</span>
-        <!-- Acceso rápido al panel de profesional si el usuario tiene ambos roles -->
+      <div class="user-info" ref="userMenuRef">
         <button
           v-if="authStore.isProfesional"
           @click="router.push('/profesional')"
@@ -16,7 +13,16 @@
         >
           📅 Mi Agenda
         </button>
-        <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
+
+        <button class="user-menu-trigger" @click.stop="toggleUserMenu">
+          <span>{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+          <span class="user-menu-arrow">▾</span>
+        </button>
+
+        <div v-if="showUserMenu" class="user-menu-dropdown" @click.stop>
+          <button class="user-menu-item" @click="abrirModalEditarEmpresa">Editar Empresa</button>
+          <button class="user-menu-item user-menu-item-danger" @click="handleLogout">Cerrar Sesión</button>
+        </div>
       </div>
     </header>
 
@@ -410,6 +416,106 @@
         </form>
       </div>
     </main>
+
+        <!-- Modal Form Empresa -->
+        <div v-if="showModalEmpresa" class="modal-overlay" @click="cerrarModalEditarEmpresa">
+          <div class="modal" @click.stop>
+            <div class="modal-header">
+              <h2>Editar Empresa</h2>
+              <button @click="cerrarModalEditarEmpresa" class="btn-close">&times;</button>
+            </div>
+            <form @submit.prevent="submitFormEmpresa" class="modal-form">
+              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.nombre }">
+                <label>Nombre *</label>
+                <input
+                  v-model="formDataEmpresa.nombre"
+                  type="text"
+                  required
+                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Nombre de la empresa"
+                />
+                <span v-if="fieldErrorsEmpresa.nombre" class="field-error">{{ fieldErrorsEmpresa.nombre }}</span>
+              </div>
+
+              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.email }">
+                <label>Email</label>
+                <input
+                  v-model="formDataEmpresa.email"
+                  type="email"
+                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="contacto@empresa.com"
+                />
+                <span v-if="fieldErrorsEmpresa.email" class="field-error">{{ fieldErrorsEmpresa.email }}</span>
+              </div>
+
+              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.telefono }">
+                <label>Teléfono</label>
+                <input
+                  v-model="formDataEmpresa.telefono"
+                  type="tel"
+                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Solo números (10-15 dígitos)"
+                />
+                <span v-if="fieldErrorsEmpresa.telefono" class="field-error">{{ fieldErrorsEmpresa.telefono }}</span>
+              </div>
+
+              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.direccion }">
+                <label>Dirección</label>
+                <input
+                  v-model="formDataEmpresa.direccion"
+                  type="text"
+                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Dirección comercial"
+                />
+                <span v-if="fieldErrorsEmpresa.direccion" class="field-error">{{ fieldErrorsEmpresa.direccion }}</span>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.ciudad }">
+                  <label>Ciudad</label>
+                  <input
+                    v-model="formDataEmpresa.ciudad"
+                    type="text"
+                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ciudad"
+                  />
+                  <span v-if="fieldErrorsEmpresa.ciudad" class="field-error">{{ fieldErrorsEmpresa.ciudad }}</span>
+                </div>
+
+                <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.provincia }">
+                  <label>Provincia</label>
+                  <input
+                    v-model="formDataEmpresa.provincia"
+                    type="text"
+                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Provincia"
+                  />
+                  <span v-if="fieldErrorsEmpresa.provincia" class="field-error">{{ fieldErrorsEmpresa.provincia }}</span>
+                </div>
+              </div>
+
+              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.descripcion }">
+                <label>Descripción</label>
+                <textarea
+                  v-model="formDataEmpresa.descripcion"
+                  rows="3"
+                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Descripción breve de la empresa"
+                ></textarea>
+                <span v-if="fieldErrorsEmpresa.descripcion" class="field-error">{{ fieldErrorsEmpresa.descripcion }}</span>
+              </div>
+
+              <div v-if="errorEmpresa" class="error-message">{{ errorEmpresa }}</div>
+
+              <div class="modal-actions">
+                <button type="button" @click="cerrarModalEditarEmpresa" class="btn-cancel">Cancelar</button>
+                <button type="submit" class="btn-submit" :disabled="!canSubmitEmpresa">
+                  {{ submittingEmpresa ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
 
 <!-- Modal Form Políticas -->
 <div v-if="showModalPolitica" class="modal-overlay" @click="closeModalPolitica">
@@ -882,7 +988,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
@@ -900,6 +1006,36 @@ const toast = useToastStore()
 
 const nombreEmpresa = ref('')
 const empresaId = ref<number | null>(null)
+const showUserMenu = ref(false)
+const userMenuRef = ref<HTMLElement | null>(null)
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const TELEFONO_REGEX = /^\d{10,15}$/
+
+const showModalEmpresa = ref(false)
+const submittingEmpresa = ref(false)
+const errorEmpresa = ref('')
+const fieldErrorsEmpresa = ref<Record<string, string>>({})
+
+const empresaOriginal = ref({
+  nombre: '',
+  descripcion: '',
+  direccion: '',
+  ciudad: '',
+  provincia: '',
+  telefono: '',
+  email: ''
+})
+
+const formDataEmpresa = ref({
+  nombre: '',
+  descripcion: '',
+  direccion: '',
+  ciudad: '',
+  provincia: '',
+  telefono: '',
+  email: ''
+})
 
 // Tab activo
 const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas' | 'configuracion'>('profesionales')
@@ -1049,6 +1185,7 @@ function agruparHorariosPorDia() {
 }
 
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutsideUserMenu)
   await cargarNombreEmpresa()
   cargarProfesionales()
   cargarServicios()
@@ -1056,6 +1193,165 @@ onMounted(async () => {
   await cargarPoliticasCancelacion()
   cargarConfiguracion()
 })
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutsideUserMenu)
+})
+
+watch(
+  formDataEmpresa,
+  () => {
+    if (!showModalEmpresa.value) return
+    fieldErrorsEmpresa.value = validarFormularioEmpresa()
+  },
+  { deep: true }
+)
+
+const formEmpresaDirty = computed(() => {
+  return Object.keys(empresaOriginal.value).some((campo) => {
+    const key = campo as keyof typeof empresaOriginal.value
+    return (formDataEmpresa.value[key] ?? '').trim() !== (empresaOriginal.value[key] ?? '').trim()
+  })
+})
+
+const formEmpresaValido = computed(() => Object.keys(fieldErrorsEmpresa.value).length === 0)
+const canSubmitEmpresa = computed(() => formEmpresaDirty.value && formEmpresaValido.value && !submittingEmpresa.value)
+
+function toggleUserMenu() {
+  showUserMenu.value = !showUserMenu.value
+}
+
+function handleClickOutsideUserMenu(event: MouseEvent) {
+  if (!userMenuRef.value) return
+  if (!userMenuRef.value.contains(event.target as Node)) {
+    showUserMenu.value = false
+  }
+}
+
+function mapearEmpresaAFormulario(data: any) {
+  const mapped = {
+    nombre: data?.nombre ?? '',
+    descripcion: data?.descripcion ?? '',
+    direccion: data?.direccion ?? '',
+    ciudad: data?.ciudad ?? '',
+    provincia: data?.provincia ?? '',
+    telefono: data?.telefono ?? '',
+    email: data?.email ?? ''
+  }
+
+  empresaOriginal.value = { ...mapped }
+  formDataEmpresa.value = { ...mapped }
+}
+
+function abrirModalEditarEmpresa() {
+  showUserMenu.value = false
+  errorEmpresa.value = ''
+  formDataEmpresa.value = { ...empresaOriginal.value }
+  fieldErrorsEmpresa.value = validarFormularioEmpresa()
+  showModalEmpresa.value = true
+}
+
+function cerrarModalEditarEmpresa() {
+  showModalEmpresa.value = false
+  errorEmpresa.value = ''
+  fieldErrorsEmpresa.value = {}
+}
+
+function normalizarCampoTexto(value: string) {
+  return (value ?? '').trim()
+}
+
+function normalizarCampoOpcional(value: string) {
+  const limpio = normalizarCampoTexto(value)
+  return limpio.length > 0 ? limpio : null
+}
+
+function validarFormularioEmpresa(): Record<string, string> {
+  const errores: Record<string, string> = {}
+  const nombre = normalizarCampoTexto(formDataEmpresa.value.nombre)
+  const descripcion = normalizarCampoTexto(formDataEmpresa.value.descripcion)
+  const direccion = normalizarCampoTexto(formDataEmpresa.value.direccion)
+  const ciudad = normalizarCampoTexto(formDataEmpresa.value.ciudad)
+  const provincia = normalizarCampoTexto(formDataEmpresa.value.provincia)
+  const telefono = normalizarCampoTexto(formDataEmpresa.value.telefono)
+  const email = normalizarCampoTexto(formDataEmpresa.value.email)
+
+  if (!nombre) {
+    errores.nombre = 'El nombre de la empresa es obligatorio.'
+  } else if (nombre.length < 2 || nombre.length > 200) {
+    errores.nombre = 'El nombre debe tener entre 2 y 200 caracteres.'
+  }
+
+  if (descripcion.length > 500) {
+    errores.descripcion = 'La descripción no puede exceder 500 caracteres.'
+  }
+
+  if (direccion.length > 200) {
+    errores.direccion = 'La dirección no puede exceder 200 caracteres.'
+  }
+
+  if (ciudad.length > 100) {
+    errores.ciudad = 'La ciudad no puede exceder 100 caracteres.'
+  }
+
+  if (provincia.length > 50) {
+    errores.provincia = 'La provincia no puede exceder 50 caracteres.'
+  }
+
+  if (telefono && !TELEFONO_REGEX.test(telefono)) {
+    errores.telefono = 'El teléfono debe tener entre 10 y 15 dígitos numéricos.'
+  }
+
+  if (email && !EMAIL_REGEX.test(email)) {
+    errores.email = 'El email no es válido.'
+  } else if (email.length > 150) {
+    errores.email = 'El email no puede exceder 150 caracteres.'
+  }
+
+  return errores
+}
+
+async function submitFormEmpresa() {
+  fieldErrorsEmpresa.value = validarFormularioEmpresa()
+  errorEmpresa.value = ''
+
+  if (!canSubmitEmpresa.value) {
+    return
+  }
+
+  submittingEmpresa.value = true
+  try {
+    const payload = {
+      nombre: normalizarCampoTexto(formDataEmpresa.value.nombre),
+      descripcion: normalizarCampoOpcional(formDataEmpresa.value.descripcion),
+      direccion: normalizarCampoOpcional(formDataEmpresa.value.direccion),
+      ciudad: normalizarCampoOpcional(formDataEmpresa.value.ciudad),
+      provincia: normalizarCampoOpcional(formDataEmpresa.value.provincia),
+      telefono: normalizarCampoOpcional(formDataEmpresa.value.telefono),
+      email: normalizarCampoOpcional(formDataEmpresa.value.email)
+    }
+
+    const response = await api.actualizarEmpresaDueno(payload)
+    const data = response.data?.datos ?? response.data
+
+    nombreEmpresa.value = data?.nombre ?? nombreEmpresa.value
+    mapearEmpresaAFormulario(data)
+
+    cerrarModalEditarEmpresa()
+    toast.showSuccess('Empresa actualizada correctamente')
+  } catch (err: any) {
+    if (err.response?.data?.errores) {
+      fieldErrorsEmpresa.value = err.response.data.errores
+      errorEmpresa.value = 'Por favor corrija los errores en el formulario.'
+    } else if (err.response?.data?.mensaje) {
+      errorEmpresa.value = err.response.data.mensaje
+    } else {
+      errorEmpresa.value = 'Error al actualizar la empresa. Intente nuevamente.'
+    }
+  } finally {
+    submittingEmpresa.value = false
+  }
+}
 
 // ====Funcion para cargar Nombre de la empresa====
 async function cargarNombreEmpresa() {
@@ -1073,6 +1369,7 @@ async function cargarNombreEmpresa() {
     }
     nombreEmpresa.value = data?.nombre || 'Mi Empresa'
     empresaId.value = data?.id || null
+    mapearEmpresaAFormulario(data)
     if (!empresaId.value) {
       if (import.meta.env.DEV) console.warn('[FRONTEND] No se obtuvo el id de la empresa en la respuesta:', data)
     }
@@ -1080,6 +1377,7 @@ async function cargarNombreEmpresa() {
     console.error('[FRONTEND] Error al obtener empresa:', err)
     nombreEmpresa.value = 'Mi Empresa'
     empresaId.value = null
+    mapearEmpresaAFormulario({ nombre: 'Mi Empresa' })
   }
 }
 
@@ -1497,6 +1795,7 @@ async function ejecutarToggleProfesional() {
 }
 
 function handleLogout() {
+  showUserMenu.value = false
   // Llamar al endpoint de logout para invalidar sesión del servidor
   api.logout()
     .then(() => {
@@ -1969,18 +2268,10 @@ async function submitConfiguracion() {
 }
 
 .user-info {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 1rem;
-}
-
-.badge-dueno {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.4rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
+  gap: 0.75rem;
 }
 
 .btn-switch-rol {
@@ -1999,20 +2290,67 @@ async function submitConfiguracion() {
   transform: translateY(-2px);
 }
 
-.btn-logout {
-  background: #e53e3e;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.5rem;
+.user-menu-trigger {
+  background: white;
+  border: 2px solid #e2e8f0;
+  color: #2d3748;
+  padding: 0.5rem 0.9rem;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
 }
 
-.btn-logout:hover {
-  background: #c53030;
-  transform: translateY(-2px);
+.user-menu-trigger:hover {
+  border-color: #cbd5e0;
+  background: #f8fafc;
+}
+
+.user-menu-arrow {
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  margin-top: 0.5rem;
+  top: 100%;
+  right: 0;
+  width: 12rem;
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 0.25rem 0;
+  z-index: 1050;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.user-menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #2d3748;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.user-menu-item:hover {
+  background: #f1f5f9;
+}
+
+.user-menu-item-danger {
+  color: #c53030;
+}
+
+.user-menu-item-danger:hover {
+  background: #fff5f5;
 }
 
 .dueno-content {

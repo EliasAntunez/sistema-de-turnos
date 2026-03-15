@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +28,6 @@ public class ControladorDueno {
     private final ServicioProfesional servicioProfesional;
     private final ServicioServicio servicioServicio;
     private final ServicioHorarioEmpresa servicioHorarioEmpresa;
-    private final com.example.sitema_de_turnos.servicio.ServicioDueno servicioDueno;
     private final com.example.sitema_de_turnos.servicio.ServicioEmpresa servicioEmpresa;
 
     @GetMapping("/profesionales")
@@ -38,31 +38,22 @@ public class ControladorDueno {
     }
 
     @GetMapping("/empresa")
-    public ResponseEntity<?> obtenerEmpresaDelDueno(org.springframework.security.core.Authentication authentication) {
-        String email = authentication.getName();
-        logger.info("[EMPRESA] Email recibido del usuario autenticado: {}", email);
-        com.example.sitema_de_turnos.modelo.PerfilDueno perfil = null;
-        try {
-            perfil = servicioDueno.obtenerPorEmail(email);
-            logger.info("[EMPRESA] Dueño encontrado: {} (id: {})", perfil != null ? perfil.getUsuario().getEmail() : null, perfil != null ? perfil.getId() : null);
-        } catch (Exception e) {
-            logger.error("[EMPRESA] Error al buscar dueño por email: {} - {}", email, e.getMessage());
-            return ResponseEntity.status(500).body("Error al buscar dueño: " + e.getMessage());
-        }
-        if (perfil == null) {
-            logger.warn("[EMPRESA] No se encontró dueño para el email: {}", email);
-            return ResponseEntity.status(404).body("No se encontró dueño para el email: " + email);
-        }
-        if (perfil.getEmpresa() == null) {
-            logger.warn("[EMPRESA] El dueño con email {} no tiene empresa asociada", email);
-            return ResponseEntity.status(404).body("El dueño no tiene empresa asociada");
-        }
-        var empresa = perfil.getEmpresa();
-        logger.info("[EMPRESA] Empresa encontrada para el dueño {}: id {}", email, empresa.getId());
-        // Usar DTO plano para evitar referencias cíclicas
-        com.example.sitema_de_turnos.dto.EmpresaDto dto = new com.example.sitema_de_turnos.dto.EmpresaDto(empresa.getId(), empresa.getNombre());
-        logger.info("[EMPRESA] DTO a retornar: {}", dto);
-        return ResponseEntity.ok(dto);
+    public ResponseEntity<EmpresaDto> obtenerEmpresaDelDueno() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        logger.info("[EMPRESA] Consultando empresa del dueño autenticado: {}", email);
+        return ResponseEntity.ok(servicioEmpresa.obtenerEmpresaDelDueno(email));
+    }
+
+    @PutMapping("/empresa")
+    public ResponseEntity<RespuestaApi<EmpresaDto>> actualizarEmpresaDelDueno(
+            @Valid @RequestBody ActualizarEmpresaRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        logger.info("[EMPRESA] Actualizando empresa del dueño autenticado: {}", email);
+
+        EmpresaDto empresaActualizada = servicioEmpresa.actualizarEmpresaDelDueno(email, request);
+        return ResponseEntity.ok(
+                RespuestaApi.exitosa("Empresa actualizada exitosamente", empresaActualizada)
+        );
     }
 
     @PostMapping("/profesionales")

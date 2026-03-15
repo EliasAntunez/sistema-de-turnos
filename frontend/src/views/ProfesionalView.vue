@@ -6,8 +6,7 @@
         <div class="header-left">
           <h1>{{ authStore.usuario?.empresaNombre || 'Empresa' }} - Panel de Profesional</h1>
         </div>
-        <div class="header-right">
-          <span class="user-name">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+        <div class="header-right" ref="userMenuRef">
           <!-- Acceso rápido al panel de dueño si el usuario tiene ambos roles -->
           <button
             v-if="authStore.isDueno"
@@ -18,7 +17,15 @@
             🏢 Mi Empresa
           </button>
           <NotificationBell />
-          <button @click="cerrarSesion" class="btn-logout">Cerrar Sesión</button>
+
+          <button class="user-menu-trigger" @click.stop="toggleUserMenu">
+            <span class="user-name">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+            <span class="user-menu-arrow">▾</span>
+          </button>
+
+          <div v-if="showUserMenu" class="user-menu-dropdown" @click.stop>
+            <button class="user-menu-item user-menu-item-danger" @click="cerrarSesion">Cerrar Sesión</button>
+          </div>
         </div>
       </div>
     </header>
@@ -271,9 +278,9 @@
                 Registrar Pago
               </button>
               <select 
-                v-if="puedesCambiarEstado(turno)"
+                :disabled="esEstadoFinalTurno(turno.estado)"
                 @change="solicitarCambioEstado(turno, ($event.target as HTMLSelectElement).value, ($event.target as HTMLSelectElement))"
-                class="select-estado">
+                class="select-estado disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:border-gray-300 disabled:text-gray-500">
                 <option value="">Cambiar estado</option>
                 <option v-for="estado in estadosDisponibles(turno)" :key="estado.valor" :value="estado.valor">
                   {{ estado.label }}
@@ -565,7 +572,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificacionesStore } from '../stores/notificaciones'
@@ -583,6 +590,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 const notificacionesStore = useNotificacionesStore()
 const toastStore = useToastStore()
+const showUserMenu = ref(false)
+const userMenuRef = ref<HTMLElement | null>(null)
 
 // Hacer api disponible globalmente para las funciones
 ;(window as any).apiClient = api
@@ -719,6 +728,8 @@ function esTurnoPasado(turno: any): boolean {
 }
 
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutsideUserMenu)
+
   const hoy = toIsoDate(new Date())
   filtrosTurnos.value.fechaDesde = hoy
   filtrosTurnos.value.fechaHasta = hoy
@@ -740,6 +751,21 @@ onMounted(async () => {
     notificacionesStore.actualizarContador()
   ])
 })
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutsideUserMenu)
+})
+
+function toggleUserMenu() {
+  showUserMenu.value = !showUserMenu.value
+}
+
+function handleClickOutsideUserMenu(event: MouseEvent) {
+  if (!userMenuRef.value) return
+  if (!userMenuRef.value.contains(event.target as Node)) {
+    showUserMenu.value = false
+  }
+}
 
 async function cargarCantidadTurnosSinResolver() {
   try {
@@ -1153,6 +1179,10 @@ function puedesCambiarEstado(turno: any): boolean {
   return turno.estado !== 'CANCELADO' && turno.estado !== 'ATENDIDO'
 }
 
+function esEstadoFinalTurno(estado: string): boolean {
+  return ['NO_ASISTIO', 'NO_ASISTIDO', 'CANCELADO', 'ATENDIDO'].includes(estado)
+}
+
 function estadosDisponibles(turno: any) {
   const estados = []
   const esPasado = esTurnoPasado(turno)
@@ -1334,6 +1364,7 @@ function formatearFechaLegible(fecha: string): string {
 }
 
 function cerrarSesion() {
+  showUserMenu.value = false
   // Llamar al endpoint de logout para invalidar sesión del servidor
   api.logout()
     .then(() => {
@@ -1414,6 +1445,7 @@ function cerrarSesion() {
 }
 
 .header-right {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -1453,6 +1485,69 @@ function cerrarSesion() {
 
 .btn-switch-rol:hover {
   background-color: rgba(255, 255, 255, 0.28);
+}
+
+.user-menu-trigger {
+  background: white;
+  border: 2px solid #e2e8f0;
+  color: #2d3748;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.user-menu-trigger:hover {
+  border-color: #cbd5e0;
+  background: #f8fafc;
+}
+
+.user-menu-arrow {
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  width: 12rem;
+  background: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 0.25rem 0;
+  z-index: 1050;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.user-menu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #2d3748;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.user-menu-item:hover {
+  background: #f1f5f9;
+}
+
+.user-menu-item-danger {
+  color: #c53030;
+}
+
+.user-menu-item-danger:hover {
+  background: #fff5f5;
 }
 
 .btn-logout {
