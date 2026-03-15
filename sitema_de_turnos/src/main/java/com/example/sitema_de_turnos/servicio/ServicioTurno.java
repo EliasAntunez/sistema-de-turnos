@@ -10,6 +10,7 @@ import com.example.sitema_de_turnos.excepcion.SolapamientoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.*;
 import com.example.sitema_de_turnos.repositorio.*;
+import com.example.sitema_de_turnos.servicio.notificacion.EmailNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -48,6 +49,7 @@ public class ServicioTurno {
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
     private final RepositorioPago repositorioPago;
     private final ServicioNotificacion servicioNotificacion;
+    private final EmailNotificationService emailNotificationService;
 
         /** Estados terminales que no deben bloquear agenda ni participar en el índice parcial. */
         private static final List<EstadoTurno> ESTADOS_TERMINALES =
@@ -236,6 +238,10 @@ public class ServicioTurno {
             pago.setEstado(EstadoPago.PENDIENTE);
             pago.setReferenciaExterna(null);
             repositorioPago.save(pago);
+        }
+
+        if (turno.getEstado() == EstadoTurno.CONFIRMADO) {
+            emailNotificationService.enviarCorreoConfirmacionTurno(turno);
         }
 
         // 10. Enviar notificación al profesional
@@ -708,6 +714,8 @@ public class ServicioTurno {
         // Validar transiciones de estado permitidas
         validarTransicionEstado(turno, request.getNuevoEstado());
 
+        EstadoTurno estadoAnterior = turno.getEstado();
+
         // Actualizar estado
         turno.setEstado(request.getNuevoEstado());
         
@@ -717,6 +725,11 @@ public class ServicioTurno {
         }
 
         turno = repositorioTurno.save(turno);
+
+        if (estadoAnterior != EstadoTurno.CONFIRMADO && turno.getEstado() == EstadoTurno.CONFIRMADO) {
+            emailNotificationService.enviarCorreoConfirmacionTurno(turno);
+        }
+
         return mapearATurnoResponseProfesional(turno);
     }
 

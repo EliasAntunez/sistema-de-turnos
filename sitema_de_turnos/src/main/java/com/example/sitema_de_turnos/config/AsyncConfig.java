@@ -12,9 +12,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * Habilita el soporte de @Async en el contexto de Spring.
  *
  * El executor "notificacionesExecutor" es dedicado al envío de emails:
- * - corePoolSize 2: 2 hilos permanentes para picos habituales
- * - maxPoolSize 5: hasta 5 hilos bajo carga alta
- * - queueCapacity 100: cola para absorber ráfagas sin rechazar tareas
+ * - corePoolSize 5: 5 hilos permanentes para carga base de notificaciones
+ * - maxPoolSize 10: hasta 10 hilos bajo picos de envío
+ * - queueCapacity 25: cola acotada para evitar crecimiento descontrolado
  * - CallerRunsPolicy: si la cola se llena, el hilo del llamador ejecuta la tarea
  *   (degradación controlada — nunca pierde un email silenciosamente)
  */
@@ -25,9 +25,9 @@ public class AsyncConfig {
     @Bean(name = "notificacionesExecutor")
     public Executor notificacionesExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(5);
-        executor.setQueueCapacity(100);
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(25);
         executor.setThreadNamePrefix("notif-async-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
