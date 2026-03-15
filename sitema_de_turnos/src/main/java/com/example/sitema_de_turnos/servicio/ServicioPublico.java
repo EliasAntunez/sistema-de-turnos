@@ -35,7 +35,6 @@ public class ServicioPublico {
     private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final RepositorioProfesionalServicio repositorioProfesionalServicio;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidad;
-    private final RepositorioHorarioEmpresa repositorioHorarioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioTurno repositorioTurno;
 
@@ -210,7 +209,7 @@ public class ServicioPublico {
         // Obtener día de la semana
         DiaSemana diaSemana = convertirDayOfWeekADiaSemana(fecha.getDayOfWeek());
 
-        // Obtener horarios del profesional (con fallback a empresa)
+        // Obtener horarios del profesional (fuente de verdad absoluta)
         List<RangoHorario> rangosHorarios = obtenerRangosHorarios(profesional, diaSemana);
 
         if (rangosHorarios.isEmpty()) {
@@ -232,26 +231,16 @@ public class ServicioPublico {
         return generarSlots(rangosHorarios, fecha, servicio.getDuracionMinutos(), bufferMinutos, profesional, empresa);
     }
 
-    /**
-     * Obtener rangos horarios del profesional (con fallback a empresa)
-     */
+        /**
+         * Obtener rangos horarios del profesional.
+         * Regla estricta: si no tiene disponibilidad configurada para el día, retorna lista vacía.
+         */
     private List<RangoHorario> obtenerRangosHorarios(PerfilProfesional profesional, DiaSemana diaSemana) {
-        // Primero intentar obtener disponibilidad propia del profesional
         List<DisponibilidadProfesional> disponibilidades = 
                 repositorioDisponibilidad.findByProfesionalAndDiaSemanaAndActivoTrue(profesional, diaSemana);
 
-        if (!disponibilidades.isEmpty()) {
-            return disponibilidades.stream()
-                    .map(d -> new RangoHorario(d.getHoraInicio(), d.getHoraFin()))
-                    .collect(Collectors.toList());
-        }
-
-        // Fallback: usar horarios de la empresa
-        List<HorarioEmpresa> horariosEmpresa = 
-                repositorioHorarioEmpresa.findByEmpresaAndDiaSemanaAndActivoTrue(profesional.getEmpresa(), diaSemana);
-
-        return horariosEmpresa.stream()
-                .map(h -> new RangoHorario(h.getHoraInicio(), h.getHoraFin()))
+        return disponibilidades.stream()
+            .map(d -> new RangoHorario(d.getHoraInicio(), d.getHoraFin()))
                 .collect(Collectors.toList());
     }
 
