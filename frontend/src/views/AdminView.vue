@@ -200,14 +200,14 @@
           <div class="empresa-actions">
             <button 
               v-if="empresa.activa"
-              @click="cambiarEstado(empresa.id, false)"
+              @click="confirmarCambioEstado(empresa, false)"
               class="btn-danger-sm"
             >
               Desactivar
             </button>
             <button 
               v-else
-              @click="cambiarEstado(empresa.id, true)"
+              @click="confirmarCambioEstado(empresa, true)"
               class="btn-success-sm"
             >
               Activar
@@ -215,6 +215,16 @@
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        :show="showConfirmToggleEmpresa"
+        :titulo="`${nuevoEstadoEmpresa ? 'Activar' : 'Desactivar'} Empresa`"
+        :mensaje="`¿Estás seguro de que deseas ${nuevoEstadoEmpresa ? 'activar' : 'desactivar'} la empresa ${empresaPendienteToggle?.nombre}?`"
+        :textoConfirmar="cambiandoEstadoEmpresa ? 'Guardando...' : (nuevoEstadoEmpresa ? 'Activar' : 'Desactivar')"
+        :colorBoton="nuevoEstadoEmpresa ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+        @confirm="ejecutarCambioEstadoEmpresa"
+        @cancel="cerrarConfirmToggleEmpresa"
+      />
     </main>
   </div>
   <Toast />
@@ -226,6 +236,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import Toast from '../components/Toast.vue'
+import ConfirmModal from '../components/ConfirmModal.vue'
 import { useToastStore } from '../composables/useToast'
 
 const router = useRouter()
@@ -243,6 +254,10 @@ const cargandoEmpresas = ref(false)
 const error = ref('')
 const exito = ref('')
 const fieldErrors = ref<Record<string, string>>({})
+const showConfirmToggleEmpresa = ref(false)
+const empresaPendienteToggle = ref<any>(null)
+const nuevoEstadoEmpresa = ref(false)
+const cambiandoEstadoEmpresa = ref(false)
 
 const formData = ref({
   dueno: {
@@ -338,6 +353,29 @@ async function cambiarEstado(id: number, activa: boolean) {
   } catch (err: any) {
     console.error('Error al cambiar estado:', err)
     toastStore.showError('Error al cambiar el estado de la empresa')
+  }
+}
+
+function confirmarCambioEstado(empresa: any, activa: boolean) {
+  empresaPendienteToggle.value = empresa
+  nuevoEstadoEmpresa.value = activa
+  showConfirmToggleEmpresa.value = true
+}
+
+function cerrarConfirmToggleEmpresa() {
+  showConfirmToggleEmpresa.value = false
+  empresaPendienteToggle.value = null
+}
+
+async function ejecutarCambioEstadoEmpresa() {
+  if (!empresaPendienteToggle.value) return
+
+  try {
+    cambiandoEstadoEmpresa.value = true
+    await cambiarEstado(empresaPendienteToggle.value.id, nuevoEstadoEmpresa.value)
+    cerrarConfirmToggleEmpresa()
+  } finally {
+    cambiandoEstadoEmpresa.value = false
   }
 }
 

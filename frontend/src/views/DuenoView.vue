@@ -142,7 +142,7 @@
           <div class="card-actions">
             <button @click="openModalServicio(servicio)" class="btn-edit">Editar</button>
             <button 
-              @click="toggleServicioActivo(servicio)" 
+              @click="confirmarToggleServicioActivo(servicio)" 
               :class="servicio.activo ? 'btn-delete' : 'btn-activate'"
             >
               {{ servicio.activo ? 'Desactivar' : 'Activar' }}
@@ -251,7 +251,7 @@
       </div>
       <div class="card-actions">
         <button 
-          @click="togglePoliticaActiva(politica)" 
+          @click="confirmarTogglePoliticaActiva(politica)" 
           :class="politica.activa ? 'btn-delete' : 'btn-activate'"
         >
           {{ politica.activa ? 'Desactivar' : 'Activar' }}
@@ -586,7 +586,7 @@
                 </div>
                 <button 
                   type="button"
-                  @click="toggleServicio(servicio)"
+                  @click="confirmarToggleServicioProfesional(servicio)"
                   :class="['btn-toggle', servicio.disponible ? 'activo' : 'inactivo']"
                   :disabled="submittingToggle"
                 >
@@ -817,75 +817,65 @@
     </div>
   </div>
   
-  <!-- Modal: Confirmar eliminación de horario -->
-  <div v-if="showConfirmDeleteHorario" class="modal-overlay" @click="cerrarConfirmDeleteHorario">
-    <div class="modal modal-small" @click.stop>
-      <div class="modal-header">
-        <h2>Eliminar Horario</h2>
-        <button @click="cerrarConfirmDeleteHorario" class="btn-close">&times;</button>
-      </div>
-      <div class="modal-form">
-        <p>¿Estás seguro de eliminar el horario de
-          <strong>{{ nombresDias[horarioPendienteEliminar?.diaSemana] }}</strong>
-          ({{ horarioPendienteEliminar?.horaInicio }} - {{ horarioPendienteEliminar?.horaFin }})?</p>
-        <p class="text-muted" style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
-        <div class="modal-actions">
-          <button type="button" @click="cerrarConfirmDeleteHorario" class="btn-cancel">Cancelar</button>
-          <button
-            type="button"
-            @click="ejecutarEliminarHorario"
-            class="btn-danger"
-            :disabled="eliminandoHorario"
-          >
-            {{ eliminandoHorario ? 'Eliminando...' : 'Eliminar' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ConfirmModal
+    :show="showConfirmDeleteHorario"
+    titulo="Eliminar Horario"
+    :mensaje="`¿Estás seguro de eliminar el horario de ${nombresDias[horarioPendienteEliminar?.diaSemana]} (${horarioPendienteEliminar?.horaInicio} - ${horarioPendienteEliminar?.horaFin})?\nEsta acción no se puede deshacer.`"
+    textoConfirmar="Eliminar"
+    colorBoton="bg-red-600 hover:bg-red-700"
+    @confirm="ejecutarEliminarHorario"
+    @cancel="cerrarConfirmDeleteHorario"
+  />
 
-  <!-- Modal: Confirmar Toggle Profesional -->
-  <div v-if="showConfirmToggleProfesional" class="modal-overlay" @click="showConfirmToggleProfesional = false">
-    <div class="modal modal-small" @click.stop>
-      <div class="modal-header">
-        <h2>{{ profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar' }} Profesional</h2>
-        <button @click="showConfirmToggleProfesional = false" class="btn-close">&times;</button>
-      </div>
-      <div class="modal-form">
-        <p>
-          ¿Estás seguro de {{ profesionalPendienteToggle?.activo ? 'desactivar' : 'activar' }} a
-          <strong>{{ profesionalPendienteToggle?.nombre }} {{ profesionalPendienteToggle?.apellido }}</strong>?
-        </p>
-        <div class="modal-actions">
-          <button type="button" @click="showConfirmToggleProfesional = false" class="btn-cancel">Cancelar</button>
-          <button
-            type="button"
-            @click="ejecutarToggleProfesional"
-            :class="profesionalPendienteToggle?.activo ? 'btn-danger' : 'btn-submit'"
-          >
-            {{ profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ConfirmModal
+    :show="showConfirmToggleProfesional"
+    :titulo="`${profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar'} Profesional`"
+    :mensaje="`¿Estás seguro de ${profesionalPendienteToggle?.activo ? 'desactivar' : 'activar'} a ${profesionalPendienteToggle?.nombre} ${profesionalPendienteToggle?.apellido}?`"
+    :textoConfirmar="profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar'"
+    :colorBoton="profesionalPendienteToggle?.activo ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    @confirm="ejecutarToggleProfesional"
+    @cancel="cerrarConfirmToggleProfesional"
+  />
 
-  <!-- Modal: Confirmar Eliminar Política -->
-  <div v-if="showConfirmDeletePolitica" class="modal-overlay" @click="showConfirmDeletePolitica = false">
-    <div class="modal modal-small" @click.stop>
-      <div class="modal-header">
-        <h2>Eliminar Política</h2>
-        <button @click="showConfirmDeletePolitica = false" class="btn-close">&times;</button>
-      </div>
-      <div class="modal-form">
-        <p>¿Estás seguro de eliminar esta política? Esta acción no se puede deshacer.</p>
-        <div class="modal-actions">
-          <button type="button" @click="showConfirmDeletePolitica = false" class="btn-cancel">Cancelar</button>
-          <button type="button" @click="ejecutarEliminarPolitica" class="btn-danger">Eliminar</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ConfirmModal
+    :show="showConfirmDeletePolitica"
+    titulo="Eliminar Política"
+    mensaje="¿Estás seguro de eliminar esta política? Esta acción no se puede deshacer."
+    textoConfirmar="Eliminar"
+    colorBoton="bg-red-600 hover:bg-red-700"
+    @confirm="ejecutarEliminarPolitica"
+    @cancel="cerrarConfirmDeletePolitica"
+  />
+
+  <ConfirmModal
+    :show="showConfirmToggleServicio"
+    :titulo="`${servicioPendienteToggle?.activo ? 'Desactivar' : 'Activar'} Servicio`"
+    :mensaje="servicioPendienteToggle?.activo ? `¿Estás seguro de que deseas desactivar el servicio ${servicioPendienteToggle?.nombre}? Dejará de estar disponible para nuevas reservas.` : `¿Estás seguro de que deseas activar el servicio ${servicioPendienteToggle?.nombre}?`"
+    :textoConfirmar="submittingToggleServicio ? 'Guardando...' : (servicioPendienteToggle?.activo ? 'Desactivar' : 'Activar')"
+    :colorBoton="servicioPendienteToggle?.activo ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    @confirm="ejecutarToggleServicioActivo"
+    @cancel="cerrarConfirmToggleServicio"
+  />
+
+  <ConfirmModal
+    :show="showConfirmTogglePolitica"
+    :titulo="`${politicaPendienteToggle?.activa ? 'Desactivar' : 'Activar'} Política`"
+    :mensaje="politicaPendienteToggle?.activa ? '¿Estás seguro de que deseas desactivar esta política de cancelación? Dejará de aplicarse a los nuevos turnos.' : '¿Estás seguro de que deseas activar esta política de cancelación? Comenzará a aplicarse a los nuevos turnos.'"
+    :textoConfirmar="submittingTogglePolitica ? 'Guardando...' : (politicaPendienteToggle?.activa ? 'Desactivar' : 'Activar')"
+    :colorBoton="politicaPendienteToggle?.activa ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    @confirm="ejecutarTogglePoliticaActiva"
+    @cancel="cerrarConfirmTogglePolitica"
+  />
+
+  <ConfirmModal
+    :show="showConfirmToggleServicioProfesional"
+    :titulo="`${servicioProfesionalPendienteToggle?.disponible ? 'Desactivar' : 'Activar'} Servicio en Agenda`"
+    :mensaje="`¿Confirmas ${servicioProfesionalPendienteToggle?.disponible ? 'desactivar' : 'activar'} ${servicioProfesionalPendienteToggle?.nombre} para ${editingProfesional?.nombre} ${editingProfesional?.apellido}?`"
+    :textoConfirmar="submittingToggle ? 'Guardando...' : (servicioProfesionalPendienteToggle?.disponible ? 'Desactivar' : 'Activar')"
+    :colorBoton="servicioProfesionalPendienteToggle?.disponible ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    @confirm="ejecutarToggleServicioProfesional"
+    @cancel="cerrarConfirmToggleServicioProfesional"
+  />
 
   <!-- Toast para notificaciones -->
   <Toast />
@@ -901,6 +891,7 @@ import PoliticasService from '../services/politicasCancelacion'
 import type { PoliticaCancelacionRequest, PoliticaCancelacionResponse } from '../types/politicasCancelacion'
 import { useToastStore } from '../composables/useToast'
 import Toast from '../components/Toast.vue'
+import ConfirmModal from '../components/ConfirmModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -920,6 +911,7 @@ const loadingPoliticas = ref(false)
 const showModalPolitica = ref(false)
 const errorPolitica = ref('')
 const submittingPolitica = ref(false)
+const submittingTogglePolitica = ref(false)
 const fieldErrorsPolitica = ref<Record<string, string>>({})
 
 const formDataPolitica = ref<PoliticaCancelacionRequest>({
@@ -957,6 +949,9 @@ const servicios = ref<ServicioResponse[]>([])
 const loadingServicios = ref(false)
 const showModalServicio = ref(false)
 const editingServicio = ref<ServicioResponse | null>(null)
+const showConfirmToggleServicio = ref(false)
+const servicioPendienteToggle = ref<ServicioResponse | null>(null)
+const submittingToggleServicio = ref(false)
 const errorServicio = ref('')
 const submittingServicio = ref(false)
 const fieldErrorsServicio = ref<Record<string, string>>({})
@@ -984,6 +979,12 @@ const fieldErrorsHorario = ref<Record<string, string>>({})
 const showConfirmDeleteHorario = ref(false)
 const horarioPendienteEliminar = ref<any>(null)
 const eliminandoHorario = ref(false)
+
+const showConfirmTogglePolitica = ref(false)
+const politicaPendienteToggle = ref<PoliticaCancelacionResponse | null>(null)
+
+const showConfirmToggleServicioProfesional = ref(false)
+const servicioProfesionalPendienteToggle = ref<any>(null)
 
 // Detalles de conflicto 409 en el formulario de horario
 const horarioConflictoDetalles = ref<string[]>([])
@@ -1212,8 +1213,22 @@ async function submitFormPolitica() {
   }
 }
 
-async function togglePoliticaActiva(politica: PoliticaCancelacionResponse) {
+function confirmarTogglePoliticaActiva(politica: PoliticaCancelacionResponse) {
+  politicaPendienteToggle.value = politica
+  showConfirmTogglePolitica.value = true
+}
+
+function cerrarConfirmTogglePolitica() {
+  showConfirmTogglePolitica.value = false
+  politicaPendienteToggle.value = null
+}
+
+async function ejecutarTogglePoliticaActiva() {
+  const politica = politicaPendienteToggle.value
+  if (!politica) return
+
   try {
+    submittingTogglePolitica.value = true
     if (politica.activa) {
       await PoliticasService.desactivar(politica.id)
       toast.showSuccess('Política desactivada correctamente')
@@ -1221,10 +1236,13 @@ async function togglePoliticaActiva(politica: PoliticaCancelacionResponse) {
       await PoliticasService.activar(politica.id)
       toast.showSuccess('Política activada correctamente')
     }
+    cerrarConfirmTogglePolitica()
     await cargarPoliticasCancelacion()
   } catch (err: any) {
     console.error('Error al cambiar estado de política:', err)
     toast.showError(err?.response?.data?.mensaje || err?.message || 'Error al cambiar el estado de la política.')
+  } finally {
+    submittingTogglePolitica.value = false
   }
 }
 
@@ -1234,6 +1252,11 @@ const showConfirmDeletePolitica = ref(false)
 function confirmarEliminarPolitica(id: number) {
   politicaPendienteEliminar.value = id
   showConfirmDeletePolitica.value = true
+}
+
+function cerrarConfirmDeletePolitica() {
+  showConfirmDeletePolitica.value = false
+  politicaPendienteEliminar.value = null
 }
 
 async function ejecutarEliminarPolitica() {
@@ -1365,6 +1388,23 @@ async function toggleServicio(servicio: any) {
   }
 }
 
+function confirmarToggleServicioProfesional(servicio: any) {
+  servicioProfesionalPendienteToggle.value = servicio
+  showConfirmToggleServicioProfesional.value = true
+}
+
+function cerrarConfirmToggleServicioProfesional() {
+  showConfirmToggleServicioProfesional.value = false
+  servicioProfesionalPendienteToggle.value = null
+}
+
+async function ejecutarToggleServicioProfesional() {
+  const servicio = servicioProfesionalPendienteToggle.value
+  if (!servicio) return
+  cerrarConfirmToggleServicioProfesional()
+  await toggleServicio(servicio)
+}
+
 async function submitForm() {
   error.value = ''
   fieldErrors.value = {}
@@ -1423,6 +1463,11 @@ const showConfirmToggleProfesional = ref(false)
 function confirmarToggleProfesional(profesional: any) {
   profesionalPendienteToggle.value = profesional
   showConfirmToggleProfesional.value = true
+}
+
+function cerrarConfirmToggleProfesional() {
+  showConfirmToggleProfesional.value = false
+  profesionalPendienteToggle.value = null
 }
 
 async function ejecutarToggleProfesional() {
@@ -1567,7 +1612,9 @@ async function submitFormServicio() {
 }
 
 async function toggleServicioActivo(servicio: ServicioResponse) {
+  if (submittingToggleServicio.value) return
   try {
+    submittingToggleServicio.value = true
     if (servicio.activo) {
       await servicioService.desactivarServicio(servicio.id)
       toast.showSuccess(`Servicio "${servicio.nombre}" oculto para nuevas reservas. Los turnos existentes se mantienen.`)
@@ -1575,11 +1622,30 @@ async function toggleServicioActivo(servicio: ServicioResponse) {
       await servicioService.activarServicio(servicio.id)
       toast.showSuccess(`Servicio "${servicio.nombre}" activado correctamente`)
     }
+    cerrarConfirmToggleServicio()
     await cargarServicios()
   } catch (err: any) {
     console.error('Error al cambiar estado del servicio:', err)
     toast.showError(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
+  } finally {
+    submittingToggleServicio.value = false
   }
+}
+
+function confirmarToggleServicioActivo(servicio: ServicioResponse) {
+  servicioPendienteToggle.value = servicio
+  showConfirmToggleServicio.value = true
+}
+
+function cerrarConfirmToggleServicio() {
+  showConfirmToggleServicio.value = false
+  servicioPendienteToggle.value = null
+}
+
+async function ejecutarToggleServicioActivo() {
+  const servicio = servicioPendienteToggle.value
+  if (!servicio) return
+  await toggleServicioActivo(servicio)
 }
 // ==================== FUNCIONES PARA HORARIOS ====================
 

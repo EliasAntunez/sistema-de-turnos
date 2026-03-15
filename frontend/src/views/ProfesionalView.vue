@@ -272,7 +272,7 @@
               </button>
               <select 
                 v-if="puedesCambiarEstado(turno)"
-                @change="cambiarEstado(turno, ($event.target as HTMLSelectElement).value)"
+                @change="solicitarCambioEstado(turno, ($event.target as HTMLSelectElement).value, ($event.target as HTMLSelectElement))"
                 class="select-estado">
                 <option value="">Cambiar estado</option>
                 <option v-for="estado in estadosDisponibles(turno)" :key="estado.valor" :value="estado.valor">
@@ -529,61 +529,39 @@
       @bloqueo-creado="onBloqueoCreado"
     />
 
-    <!-- Modal: Confirmar eliminación de disponibilidad -->
-    <div v-if="showConfirmDeleteDisponibilidad" class="modal-overlay" @click="cerrarConfirmDeleteDisponibilidad">
-      <div class="modal modal-small" @click.stop>
-        <div class="modal-header">
-          <h2>Eliminar Disponibilidad</h2>
-          <button @click="cerrarConfirmDeleteDisponibilidad" class="btn-close">&times;</button>
-        </div>
-        <div class="modal-form">
-          <p>¿Estás seguro de eliminar la disponibilidad del
-            <strong>{{ nombresDias[disponibilidadPendienteEliminar?.diaSemana ?? ''] }}</strong>
-            ({{ disponibilidadPendienteEliminar?.horaInicio }} - {{ disponibilidadPendienteEliminar?.horaFin }})?</p>
-          <p style="color:#718096;font-size:0.875rem;margin-top:0.5rem;">Esta acción no se puede deshacer.</p>
-          <div class="modal-actions">
-            <button type="button" @click="cerrarConfirmDeleteDisponibilidad" class="btn-cancel">Cancelar</button>
-            <button
-              type="button"
-              @click="ejecutarEliminarDisponibilidad"
-              class="btn-delete"
-              :disabled="eliminandoDisponibilidad"
-            >
-              {{ eliminandoDisponibilidad ? 'Eliminando...' : 'Eliminar' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ConfirmModal
+      :show="showConfirmDeleteDisponibilidad"
+      titulo="Eliminar Disponibilidad"
+      :mensaje="`¿Estás seguro de eliminar la disponibilidad del ${nombresDias[disponibilidadPendienteEliminar?.diaSemana ?? '']} (${disponibilidadPendienteEliminar?.horaInicio} - ${disponibilidadPendienteEliminar?.horaFin})?\nEsta acción no se puede deshacer.`"
+      textoConfirmar="Eliminar"
+      colorBoton="bg-red-600 hover:bg-red-700"
+      @confirm="ejecutarEliminarDisponibilidad"
+      @cancel="cerrarConfirmDeleteDisponibilidad"
+    />
 
     <!-- Toast para notificaciones -->
     <Toast />
   </div>
 
-  <!-- Modal: Confirmar eliminación de bloqueo -->
-  <div v-if="showConfirmDeleteBloqueo" class="modal-overlay" @click="showConfirmDeleteBloqueo = false">
-    <div class="modal modal-small" @click.stop>
-      <div class="modal-header">
-        <h2>Eliminar Bloqueo</h2>
-        <button @click="showConfirmDeleteBloqueo = false" class="btn-close">&times;</button>
-      </div>
-      <div class="modal-form">
-        <p>
-          ¿Estás seguro de eliminar el bloqueo del
-          <strong>
-            {{ formatearFecha(bloqueoAPendienteEliminar?.fechaInicio ?? '') }}
-            <span v-if="bloqueoAPendienteEliminar?.fechaFin && bloqueoAPendienteEliminar.fechaFin !== bloqueoAPendienteEliminar.fechaInicio">
-              - {{ formatearFecha(bloqueoAPendienteEliminar.fechaFin) }}
-            </span>
-          </strong>?
-        </p>
-        <div class="modal-actions">
-          <button type="button" @click="showConfirmDeleteBloqueo = false" class="btn-cancel">Cancelar</button>
-          <button type="button" @click="ejecutarEliminarBloqueo" class="btn-delete">Eliminar</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <ConfirmModal
+    :show="showConfirmDeleteBloqueo"
+    titulo="Eliminar Bloqueo"
+    :mensaje="`¿Estás seguro de eliminar el bloqueo del ${formatearFecha(bloqueoAPendienteEliminar?.fechaInicio ?? '')}${bloqueoAPendienteEliminar?.fechaFin && bloqueoAPendienteEliminar.fechaFin !== bloqueoAPendienteEliminar.fechaInicio ? ` - ${formatearFecha(bloqueoAPendienteEliminar.fechaFin)}` : ''}?`"
+    textoConfirmar="Eliminar"
+    colorBoton="bg-red-600 hover:bg-red-700"
+    @confirm="ejecutarEliminarBloqueo"
+    @cancel="showConfirmDeleteBloqueo = false"
+  />
+
+  <ConfirmModal
+    :show="showConfirmCambioEstadoTurno"
+    titulo="Confirmar cambio de estado"
+    :mensaje="`¿Confirmas el cambio de estado a ${obtenerLabelEstado(nuevoEstadoPendienteTurno)} para el turno de ${turnoPendienteCambioEstado?.clienteNombre}?`"
+    textoConfirmar="Confirmar"
+    :colorBoton="nuevoEstadoPendienteTurno === 'CANCELADO' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    @confirm="confirmarCambioEstadoTurno"
+    @cancel="cerrarConfirmCambioEstadoTurno"
+  />
 </template>
 
 <script setup lang="ts">
@@ -594,6 +572,7 @@ import { useNotificacionesStore } from '../stores/notificaciones'
 import NotificationBell from '../components/NotificationBell.vue'
 import Toast from '../components/Toast.vue'
 import BloqueoConflictosModal from '../components/BloqueoConflictosModal.vue'
+import ConfirmModal from '../components/ConfirmModal.vue'
 import { disponibilidadService, type DisponibilidadRequest, type DisponibilidadResponse, diasSemana } from '../services/disponibilidad'
 import { bloqueosService, type BloqueoRequest, type BloqueoResponse, type ConflictosBloqueoResponse } from '../services/bloqueos'
 import api from '../services/api'
@@ -625,6 +604,9 @@ const errorInicializar = ref('')
 const showConfirmDeleteDisponibilidad = ref(false)
 const disponibilidadPendienteEliminar = ref<DisponibilidadResponse | null>(null)
 const eliminandoDisponibilidad = ref(false)
+const showConfirmCambioEstadoTurno = ref(false)
+const turnoPendienteCambioEstado = ref<any>(null)
+const nuevoEstadoPendienteTurno = ref('')
 
 // Detalles de conflicto 409 en el formulario de disponibilidad
 const disponibilidadConflictoDetalles = ref<string[]>([])
@@ -1250,6 +1232,50 @@ async function cambiarEstado(turno: any, nuevoEstado: string) {
   } catch (error: any) {
     console.error('Error al cambiar estado:', error)
     toastStore.showError('Error al cambiar estado: ' + (error.response?.data?.mensaje || error.message))
+  }
+}
+
+function solicitarCambioEstado(turno: any, nuevoEstado: string, selectEstado?: HTMLSelectElement) {
+  if (!nuevoEstado) return
+
+  if (nuevoEstado === 'CANCELADO' && esTurnoPasado(turno)) {
+    toastStore.showWarning('No se puede cancelar un turno que ya ha pasado. Debe marcarse como Atendido o No Asistió.')
+    if (selectEstado) selectEstado.value = ''
+    return
+  }
+
+  turnoPendienteCambioEstado.value = turno
+  nuevoEstadoPendienteTurno.value = nuevoEstado
+  showConfirmCambioEstadoTurno.value = true
+
+  if (selectEstado) selectEstado.value = ''
+}
+
+function cerrarConfirmCambioEstadoTurno() {
+  showConfirmCambioEstadoTurno.value = false
+  turnoPendienteCambioEstado.value = null
+  nuevoEstadoPendienteTurno.value = ''
+}
+
+async function confirmarCambioEstadoTurno() {
+  if (!turnoPendienteCambioEstado.value || !nuevoEstadoPendienteTurno.value) return
+
+  const turno = turnoPendienteCambioEstado.value
+  const nuevoEstado = nuevoEstadoPendienteTurno.value
+
+  cerrarConfirmCambioEstadoTurno()
+  await cambiarEstado(turno, nuevoEstado)
+}
+
+function obtenerLabelEstado(estado: string) {
+  switch (estado) {
+    case 'PENDIENTE_CONFIRMACION': return 'Pendiente de confirmación'
+    case 'PENDIENTE_PAGO': return 'Pendiente de pago'
+    case 'CONFIRMADO': return 'Confirmado'
+    case 'ATENDIDO': return 'Atendido'
+    case 'NO_ASISTIO': return 'No asistió'
+    case 'CANCELADO': return 'Cancelado'
+    default: return estado
   }
 }
 

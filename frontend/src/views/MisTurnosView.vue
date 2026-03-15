@@ -169,21 +169,23 @@
     <!-- Modales: se renderizan dentro del mismo template -->
     
 
-    <div v-if="showCancelarModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 class="text-lg font-semibold mb-4">Cancelar reserva</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Motivo</label>
-            <input v-model="motivoCancelForm" class="mt-1 block w-full border rounded p-2" placeholder="Opcional" />
-          </div>
+    <ConfirmModal
+      :show="showCancelarModal"
+      titulo="Confirmar cancelación de turno"
+      :mensaje="`¿Confirmas la cancelación del turno ${selectedTurno?.fecha} a las ${selectedTurno?.horaInicio}?\nAl confirmar, se aplicará la política de cancelación vigente de la empresa (plazos, penalizaciones y/o bloqueos).`"
+      textoConfirmar="Confirmar cancelación"
+      textoCancelar="Volver"
+      colorBoton="bg-red-600 hover:bg-red-700"
+      @confirm="submitCancelar"
+      @cancel="closeCancelarModal"
+    >
+      <template #body>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Motivo</label>
+          <input v-model="motivoCancelForm" class="mt-1 block w-full border rounded p-2" placeholder="Opcional" />
         </div>
-        <div class="mt-4 flex justify-end gap-2">
-          <button @click="closeCancelarModal" class="px-4 py-2 bg-gray-200 rounded">Volver</button>
-          <button :disabled="actionLoading" @click="submitCancelar" class="px-4 py-2 bg-red-600 text-white rounded">Confirmar cancelación</button>
-        </div>
-      </div>
-    </div>
+      </template>
+    </ConfirmModal>
 
     <div v-if="showReprogramModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -270,6 +272,7 @@ import publicoService, { type EmpresaPublica, type SlotDisponible } from '@/serv
 import { useClienteStore } from '@/stores/cliente'
 import { useToastStore } from '@/composables/useToast'
 import Toast from '@/components/Toast.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import Footer from '@/components/Footer.vue'
 
 interface Turno {
