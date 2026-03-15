@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmación de turno</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f7fb;font-family:Arial,sans-serif;color:#1f2937;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="620" cellspacing="0" cellpadding="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:#0f766e;padding:22px 28px;color:#ffffff;">
+              <h1 style="margin:0;font-size:22px;">Turno confirmado ✅</h1>
+              <p style="margin:8px 0 0 0;font-size:14px;opacity:.95;">Tu reserva quedó registrada correctamente.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 28px;">
+              <p style="margin:0 0 16px 0;font-size:15px;">Hola <strong>{clienteNombre}</strong>, estos son los detalles de tu turno:</p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Fecha:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right">{fecha}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Hora:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right">{hora} hs</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Profesional:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right">{profesionalNombre}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Empresa:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right">{empresaNombre}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Servicio:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right">{servicioNombre}</td></tr>
+              </table>
+
+              <h2 style="margin:22px 0 10px 0;font-size:16px;color:#111827;">Resumen financiero</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Precio total</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right">{precioTotal}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;">Seña abonada</td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right">{montoSena}</td></tr>
+                <tr><td style="padding:10px 0 0 0;"><strong>Saldo restante en local</strong></td><td style="padding:10px 0 0 0;" align="right"><strong>{saldoRestante}</strong></td></tr>
+              </table>
+
+              <p style="margin:24px 0 0 0;font-size:13px;color:#6b7280;">Este correo es informativo. Si necesitás reprogramar o cancelar, contactá al establecimiento.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

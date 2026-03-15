@@ -2,6 +2,14 @@ package com.example.sitema_de_turnos.servicio.notificacion;
 
 import com.example.sitema_de_turnos.dto.notificacion.ReminderData;
 import com.example.sitema_de_turnos.excepcion.NotificationException;
+import com.example.sitema_de_turnos.modelo.Cliente;
+import com.example.sitema_de_turnos.modelo.Empresa;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import com.example.sitema_de_turnos.modelo.Servicio;
+import com.example.sitema_de_turnos.modelo.Turno;
+import com.example.sitema_de_turnos.modelo.Usuario;
+import com.example.sitema_de_turnos.modelo.Pago;
+import com.example.sitema_de_turnos.repositorio.RepositorioPago;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +23,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.math.BigDecimal;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,13 +44,16 @@ class EmailNotificationServiceTest {
     @Mock
     private MimeMessage mimeMessage;
 
+    @Mock
+    private RepositorioPago repositorioPago;
+
     private EmailNotificationService emailService;
 
     private ReminderData reminderDataValido;
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailNotificationService(mailSender);
+        emailService = new EmailNotificationService(mailSender, repositorioPago);
         
         // Configurar propiedades usando reflection
         ReflectionTestUtils.setField(emailService, "emailFrom", "test@example.com");
@@ -67,6 +80,7 @@ class EmailNotificationServiceTest {
 
         // Mock comportamiento de JavaMailSender (usando lenient para evitar UnnecessaryStubbing)
         lenient().when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        lenient().when(repositorioPago.findByTurnoId(anyLong())).thenReturn(Optional.empty());
     }
 
     // ==================== TESTS DE DISPONIBILIDAD ====================
@@ -387,7 +401,7 @@ class EmailNotificationServiceTest {
     @DisplayName("Constructor debe cargar template HTML exitosamente")
     void constructorDebeCargarTemplate() {
         // Si el constructor falla al cargar el template, lanza NotificationException
-        assertDoesNotThrow(() -> new EmailNotificationService(mailSender));
+        assertDoesNotThrow(() -> new EmailNotificationService(mailSender, repositorioPago));
     }
 
     @Test
@@ -452,5 +466,73 @@ class EmailNotificationServiceTest {
             assertDoesNotThrow(() -> emailService.sendReminder(reminderDataValido),
                 "Debería manejar teléfono: " + telefono);
         }
+    }
+
+    // ==================== TESTS DE CONFIRMACIÓN DE TURNO ====================
+
+    @Test
+    @DisplayName("Debe enviar confirmación de turno cuando los datos son válidos")
+    void debeEnviarConfirmacionTurnoConDatosValidos() {
+        Turno turno = construirTurnoValido();
+        Pago pago = new Pago();
+        pago.setMonto(new BigDecimal("2500.00"));
+        when(repositorioPago.findByTurnoId(turno.getId())).thenReturn(Optional.of(pago));
+
+        assertDoesNotThrow(() -> emailService.enviarCorreoConfirmacionTurno(turno));
+
+        verify(mailSender, times(1)).createMimeMessage();
+        verify(mailSender, times(1)).send(mimeMessage);
+    }
+
+    @Test
+    @DisplayName("No debe propagar excepción si falla SMTP durante confirmación")
+    void noDebePropagarExcepcionSiFallaSmtpConfirmacion() {
+        Turno turno = construirTurnoValido();
+        doThrow(new RuntimeException("SMTP caído")).when(mailSender).send(any(MimeMessage.class));
+
+        assertDoesNotThrow(() -> emailService.enviarCorreoConfirmacionTurno(turno));
+        verify(mailSender, times(1)).createMimeMessage();
+    }
+
+    @Test
+    @DisplayName("No debe enviar confirmación si servicio email está deshabilitado")
+    void noDebeEnviarConfirmacionSiServicioDeshabilitado() {
+        Turno turno = construirTurnoValido();
+        ReflectionTestUtils.setField(emailService, "enabled", false);
+
+        emailService.enviarCorreoConfirmacionTurno(turno);
+
+        verify(mailSender, never()).createMimeMessage();
+        verify(mailSender, never()).send(any(MimeMessage.class));
+    }
+
+    private Turno construirTurnoValido() {
+        Usuario usuarioProfesional = new Usuario();
+        usuarioProfesional.setNombre("Ana");
+        usuarioProfesional.setApellido("García");
+
+        PerfilProfesional profesional = new PerfilProfesional();
+        profesional.setUsuario(usuarioProfesional);
+
+        Empresa empresa = new Empresa();
+        empresa.setNombre("Centro Integral Test");
+
+        Servicio servicio = new Servicio();
+        servicio.setNombre("Masoterapia");
+
+        Cliente cliente = new Cliente();
+        cliente.setNombre("Juan Pérez");
+        cliente.setEmail("cliente@example.com");
+
+        Turno turno = new Turno();
+        turno.setId(99L);
+        turno.setEmpresa(empresa);
+        turno.setServicio(servicio);
+        turno.setProfesional(profesional);
+        turno.setCliente(cliente);
+        turno.setFecha(LocalDate.now().plusDays(1));
+        turno.setHoraInicio(LocalTime.of(9, 30));
+        turno.setPrecio(new BigDecimal("10000.00"));
+        return turno;
     }
 }

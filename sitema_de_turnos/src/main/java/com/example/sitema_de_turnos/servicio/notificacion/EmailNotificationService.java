@@ -2,6 +2,9 @@ package com.example.sitema_de_turnos.servicio.notificacion;
 
 import com.example.sitema_de_turnos.dto.notificacion.ReminderData;
 import com.example.sitema_de_turnos.excepcion.NotificationException;
+import com.example.sitema_de_turnos.modelo.Pago;
+import com.example.sitema_de_turnos.modelo.Turno;
+import com.example.sitema_de_turnos.repositorio.RepositorioPago;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -9,13 +12,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.NumberFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -31,10 +37,15 @@ import java.util.stream.Collectors;
 public class EmailNotificationService implements NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailNotificationService.class);
-    private static final String TEMPLATE_PATH = "/templates/recordatorio-email.html";
+    private static final String TEMPLATE_RECORDATORIO_PATH = "/templates/recordatorio-email.html";
+    private static final String TEMPLATE_CONFIRMACION_PATH = "/templates/confirmacion-turno-email.html";
+    private static final DateTimeFormatter FORMATTER_FECHA_TURNO = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter FORMATTER_HORA_TURNO = DateTimeFormatter.ofPattern("HH:mm");
     
     private final JavaMailSender mailSender;
-    private final String htmlTemplate;  // Template cargado en construcción
+    private final RepositorioPago repositorioPago;
+    private final String reminderTemplate;
+    private final String confirmacionTurnoTemplate;
     
     @Value("${app.notification.email.from}")
     private String emailFrom;
@@ -45,9 +56,11 @@ public class EmailNotificationService implements NotificationService {
     @Value("${app.notification.email.enabled:true}")
     private boolean enabled;
     
-    public EmailNotificationService(JavaMailSender mailSender) {
+    public EmailNotificationService(JavaMailSender mailSender, RepositorioPago repositorioPago) {
         this.mailSender = mailSender;
-        this.htmlTemplate = cargarTemplate();
+        this.repositorioPago = repositorioPago;
+        this.reminderTemplate = cargarTemplate(TEMPLATE_RECORDATORIO_PATH);
+        this.confirmacionTurnoTemplate = cargarTemplate(TEMPLATE_CONFIRMACION_PATH);
     }
     
     @Override
@@ -83,6 +96,42 @@ public class EmailNotificationService implements NotificationService {
             throw new NotificationException(errorMsg, e);
         }
     }
+
+    @Async("notificacionesExecutor")
+    public void enviarCorreoConfirmacionTurno(Turno turno) {
+        String emailDestino = turno != null && turno.getCliente() != null ? turno.getCliente().getEmail() : "desconocido";
+        try {
+            if (!enabled) {
+                log.warn("⚠️ Sistema de email deshabilitado - No se enviará confirmación para turno {}",
+                        turno != null ? turno.getId() : null);
+                return;
+            }
+
+            validarDatosTurno(turno);
+
+            BigDecimal precioTotal = valorSeguro(turno.getPrecio());
+            BigDecimal montoSena = repositorioPago.findByTurnoId(turno.getId())
+                    .map(Pago::getMonto)
+                    .map(this::valorSeguro)
+                    .orElse(BigDecimal.ZERO);
+            BigDecimal saldoRestante = precioTotal.subtract(montoSena).max(BigDecimal.ZERO);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(emailFrom, emailFromName);
+            helper.setTo(turno.getCliente().getEmail());
+            helper.setSubject("✅ Confirmación de turno - " + turno.getEmpresa().getNombre());
+            helper.setText(construirCuerpoConfirmacionTurno(turno, precioTotal, montoSena, saldoRestante), true);
+
+            mailSender.send(message);
+
+            log.info("✅ Confirmación de turno enviada - Turno {} - Email: {}",
+                    turno.getId(), turno.getCliente().getEmail());
+        } catch (Exception e) {
+            log.error("Error al enviar el correo a {}: ", emailDestino, e);
+        }
+    }
     
     @Override
     public boolean isAvailable() {
@@ -113,10 +162,10 @@ public class EmailNotificationService implements NotificationService {
      * ✅ B6: Carga el template HTML desde resources al iniciar el servicio
      * Evita tener 150+ líneas de HTML hardcodeadas en Java
      */
-    private String cargarTemplate() {
-        try (InputStream is = getClass().getResourceAsStream(TEMPLATE_PATH)) {
+    private String cargarTemplate(String templatePath) {
+        try (InputStream is = getClass().getResourceAsStream(templatePath)) {
             if (is == null) {
-                throw new NotificationException("No se encontró template HTML en: " + TEMPLATE_PATH);
+                throw new NotificationException("No se encontró template HTML en: " + templatePath);
             }
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
                 return reader.lines().collect(Collectors.joining("\n"));
@@ -190,7 +239,7 @@ public class EmailNotificationService implements NotificationService {
         String telefonoValor = data.getEmpresaTelefono() != null ? data.getEmpresaTelefono() : "";
         
         // Reemplazar placeholders en el template
-        return htmlTemplate
+        return reminderTemplate
             .replace("{empresaNombre}", empresaNombre)
             .replace("{clienteNombre}", clienteNombre)
             .replace("{tiempoRestante}", tiempoRestante)
@@ -205,5 +254,58 @@ public class EmailNotificationService implements NotificationService {
             .replace("{displayTelefono}", displayTelefono)
             .replace("{telefonoHref}", telefonoHref)
             .replace("{telefonoValor}", telefonoValor);
+    }
+
+    private String construirCuerpoConfirmacionTurno(
+            Turno turno,
+            BigDecimal precioTotal,
+            BigDecimal montoSena,
+            BigDecimal saldoRestante
+    ) {
+        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("es", "AR"));
+
+        String fecha = turno.getFecha().format(FORMATTER_FECHA_TURNO);
+        String hora = turno.getHoraInicio().format(FORMATTER_HORA_TURNO);
+        String profesional = turno.getProfesional().getUsuario().getNombre() + " "
+                + turno.getProfesional().getUsuario().getApellido();
+
+        return confirmacionTurnoTemplate
+                .replace("{clienteNombre}", escaparHtml(turno.getCliente().getNombre()))
+                .replace("{fecha}", escaparHtml(fecha))
+                .replace("{hora}", escaparHtml(hora))
+                .replace("{profesionalNombre}", escaparHtml(profesional.trim()))
+                .replace("{empresaNombre}", escaparHtml(turno.getEmpresa().getNombre()))
+                .replace("{servicioNombre}", escaparHtml(turno.getServicio().getNombre()))
+                .replace("{precioTotal}", escaparHtml(currency.format(precioTotal)))
+                .replace("{montoSena}", escaparHtml(currency.format(montoSena)))
+                .replace("{saldoRestante}", escaparHtml(currency.format(saldoRestante)));
+    }
+
+    private void validarDatosTurno(Turno turno) {
+        if (turno == null) {
+            throw new NotificationException("Turno no puede ser null para enviar confirmación");
+        }
+        if (turno.getCliente() == null || turno.getCliente().getEmail() == null || turno.getCliente().getEmail().isBlank()) {
+            throw new NotificationException("Email del cliente requerido para confirmación de turno");
+        }
+        if (turno.getEmpresa() == null || turno.getEmpresa().getNombre() == null) {
+            throw new NotificationException("Datos de empresa incompletos para enviar confirmación de turno");
+        }
+    }
+
+    private BigDecimal valorSeguro(BigDecimal valor) {
+        return valor == null ? BigDecimal.ZERO : valor;
+    }
+
+    private String escaparHtml(String valor) {
+        if (valor == null) {
+            return "";
+        }
+        return valor
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;");
     }
 }

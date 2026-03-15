@@ -12,6 +12,7 @@ import com.example.sitema_de_turnos.repositorio.RepositorioPago;
 import com.example.sitema_de_turnos.repositorio.RepositorioPerfilDueno;
 import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
+import com.example.sitema_de_turnos.servicio.notificacion.EmailNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class ServicioPago {
     private final RepositorioPago repositorioPago;
     private final RepositorioPerfilDueno repositorioPerfilDueno;
     private final RepositorioPerfilProfesional repositorioPerfilProfesional;
+    private final EmailNotificationService emailNotificationService;
 
     @Transactional
     public void confirmarPagoManual(String emailStaff, Long turnoId, MetodoPago metodoPago) {
@@ -52,7 +54,9 @@ public class ServicioPago {
         turno.setEstado(EstadoTurno.CONFIRMADO);
 
         repositorioPago.save(pago);
-        repositorioTurno.save(turno);
+        turno = repositorioTurno.save(turno);
+
+        emailNotificationService.enviarCorreoConfirmacionTurno(turno);
     }
 
     private void validarPermisosStaff(String emailStaff, Turno turno) {
