@@ -14,6 +14,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -39,11 +41,14 @@ public class EmailNotificationService implements NotificationService {
     private static final Logger log = LoggerFactory.getLogger(EmailNotificationService.class);
     private static final String TEMPLATE_RECORDATORIO_PATH = "/templates/recordatorio-email.html";
     private static final String TEMPLATE_CONFIRMACION_PATH = "/templates/confirmacion-turno-email.html";
+    private static final String TEMPLATE_REPROGRAMACION_PROFESIONAL = "reprogramacion-por-profesional";
+    private static final String TEMPLATE_REPROGRAMACION_CLIENTE = "reprogramacion-por-cliente";
     private static final DateTimeFormatter FORMATTER_FECHA_TURNO = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter FORMATTER_HORA_TURNO = DateTimeFormatter.ofPattern("HH:mm");
     
     private final JavaMailSender mailSender;
     private final RepositorioPago repositorioPago;
+    private final TemplateEngine templateEngine;
     private final String reminderTemplate;
     private final String confirmacionTurnoTemplate;
     
@@ -55,10 +60,14 @@ public class EmailNotificationService implements NotificationService {
     
     @Value("${app.notification.email.enabled:true}")
     private boolean enabled;
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
     
-    public EmailNotificationService(JavaMailSender mailSender, RepositorioPago repositorioPago) {
+    public EmailNotificationService(JavaMailSender mailSender, RepositorioPago repositorioPago, TemplateEngine templateEngine) {
         this.mailSender = mailSender;
         this.repositorioPago = repositorioPago;
+        this.templateEngine = templateEngine;
         this.reminderTemplate = cargarTemplate(TEMPLATE_RECORDATORIO_PATH);
         this.confirmacionTurnoTemplate = cargarTemplate(TEMPLATE_CONFIRMACION_PATH);
     }
@@ -130,6 +139,67 @@ public class EmailNotificationService implements NotificationService {
                     turno.getId(), turno.getCliente().getEmail());
         } catch (Exception e) {
             log.error("Error al enviar el correo a {}: ", emailDestino, e);
+        }
+    }
+
+    @Async("notificacionesExecutor")
+    public void enviarCorreoReprogramacionPorProfesional(Turno turno) {
+        enviarCorreoReprogramacionTurno(turno, TEMPLATE_REPROGRAMACION_PROFESIONAL,
+            "📅 Tu turno fue reprogramado - ");
+    }
+
+    @Async("notificacionesExecutor")
+    public void enviarCorreoReprogramacionPorCliente(Turno turno) {
+        enviarCorreoReprogramacionTurno(turno, TEMPLATE_REPROGRAMACION_CLIENTE,
+            "✅ Reprogramación confirmada - ");
+    }
+
+    private void enviarCorreoReprogramacionTurno(Turno turno, String templateNombre, String prefijoAsunto) {
+        String emailDestino = turno != null && turno.getCliente() != null ? turno.getCliente().getEmail() : "desconocido";
+        try {
+            if (!enabled) {
+                log.warn("⚠️ Sistema de email deshabilitado - No se enviará reprogramación para turno {}",
+                        turno != null ? turno.getId() : null);
+                return;
+            }
+
+            validarDatosTurno(turno);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(emailFrom, emailFromName);
+            helper.setTo(turno.getCliente().getEmail());
+            helper.setSubject(prefijoAsunto + turno.getEmpresa().getNombre());
+
+            String fecha = turno.getFecha().format(FORMATTER_FECHA_TURNO);
+            String horaInicio = turno.getHoraInicio().format(FORMATTER_HORA_TURNO);
+            String horaFin = turno.getHoraInicio().plusMinutes(turno.getDuracionMinutos()).format(FORMATTER_HORA_TURNO);
+            String profesional = turno.getProfesional().getUsuario().getNombre() + " "
+                    + turno.getProfesional().getUsuario().getApellido();
+                String slugEmpresa = turno.getEmpresa() != null ? turno.getEmpresa().getSlug() : null;
+                String frontendBase = frontendUrl != null ? frontendUrl.replaceAll("/+$", "") : "";
+                String urlLogin = frontendBase + "/empresa/" + slugEmpresa + "/login-cliente";
+
+            Context context = new Context(new Locale("es", "AR"));
+            context.setVariable("clienteNombre", turno.getCliente().getNombre());
+            context.setVariable("profesionalNombre", profesional.trim());
+            context.setVariable("empresaNombre", turno.getEmpresa().getNombre());
+            context.setVariable("servicioNombre", turno.getServicio().getNombre());
+            context.setVariable("fecha", fecha);
+            context.setVariable("horaInicio", horaInicio);
+            context.setVariable("horaFin", horaFin);
+            context.setVariable("urlLogin", urlLogin);
+
+            String html = templateEngine.process(templateNombre, context);
+
+            helper.setText(html, true);
+            mailSender.send(message);
+
+            log.info("✅ Reprogramación de turno enviada - Turno {} - Email: {}",
+                    turno.getId(), turno.getCliente().getEmail());
+        } catch (Exception e) {
+            log.error("Error al enviar correo de reprogramación a {}: ", emailDestino, e);
         }
     }
     

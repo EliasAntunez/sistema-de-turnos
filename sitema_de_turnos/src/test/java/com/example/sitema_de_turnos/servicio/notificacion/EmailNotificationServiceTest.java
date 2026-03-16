@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.thymeleaf.TemplateEngine;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,13 +48,16 @@ class EmailNotificationServiceTest {
     @Mock
     private RepositorioPago repositorioPago;
 
+    @Mock
+    private TemplateEngine templateEngine;
+
     private EmailNotificationService emailService;
 
     private ReminderData reminderDataValido;
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailNotificationService(mailSender, repositorioPago);
+        emailService = new EmailNotificationService(mailSender, repositorioPago, templateEngine);
         
         // Configurar propiedades usando reflection
         ReflectionTestUtils.setField(emailService, "emailFrom", "test@example.com");
@@ -401,7 +405,7 @@ class EmailNotificationServiceTest {
     @DisplayName("Constructor debe cargar template HTML exitosamente")
     void constructorDebeCargarTemplate() {
         // Si el constructor falla al cargar el template, lanza NotificationException
-        assertDoesNotThrow(() -> new EmailNotificationService(mailSender, repositorioPago));
+        assertDoesNotThrow(() -> new EmailNotificationService(mailSender, repositorioPago, templateEngine));
     }
 
     @Test

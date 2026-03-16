@@ -38,9 +38,9 @@ public class ServicioPublico {
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioTurno repositorioTurno;
 
-    /** Estados terminales que NO deben bloquear slots en el calendario. */
-    private static final List<EstadoTurno> ESTADOS_TERMINALES =
-            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
+        /** Estados que bloquean slots en el calendario. */
+        private static final List<EstadoTurno> ESTADOS_OCUPANTES_AGENDA =
+            List.of(EstadoTurno.CONFIRMADO, EstadoTurno.PENDIENTE_PAGO);
 
     /**
      * Obtener información pública de una empresa por slug
@@ -276,9 +276,9 @@ public class ServicioPublico {
         List<SlotDisponibleResponse> slots = new ArrayList<>();
         Integer duracionTotal = duracionServicio + buffer;
 
-        // Obtener turnos que bloquean agenda (excluye cancelados, atendidos, no-asistió)
+        // Obtener turnos que bloquean agenda (solo estados ocupantes)
         List<Turno> turnosExistentes = repositorioTurno.findTurnosActivosByProfesionalAndFecha(
-                profesional, fecha, ESTADOS_TERMINALES);
+            profesional, fecha, ESTADOS_OCUPANTES_AGENDA);
         
         turnosExistentes.sort(Comparator.comparing(Turno::getHoraInicio));
 

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reprogramación exitosa</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f7fb;font-family:Arial,sans-serif;color:#1f2937;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f7fb;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="620" cellspacing="0" cellpadding="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td style="background:#0f766e;padding:22px 28px;color:#ffffff;">
+              <h1 style="margin:0;font-size:22px;">Reprogramación confirmada ✅</h1>
+              <p style="margin:8px 0 0 0;font-size:14px;opacity:.95;">Tu cambio se registró correctamente.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 28px;">
+              <p style="margin:0 0 16px 0;font-size:15px;">Hola <strong th:text="${clienteNombre}">Cliente</strong>,</p>
+              <p style="margin:0 0 16px 0;font-size:15px;">¡Listo! Has reprogramado tu turno exitosamente. Aquí están los detalles de tu nuevo horario.</p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Empresa:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right" th:text="${empresaNombre}">Empresa</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Servicio:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right" th:text="${servicioNombre}">Servicio</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Profesional:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right" th:text="${profesionalNombre}">Profesional</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Nueva fecha:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right" th:text="${fecha}">01/01/2026</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong>Nueva hora:</strong></td><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;" align="right"><span th:text="${horaInicio}">10:00</span> - <span th:text="${horaFin}">10:30</span></td></tr>
+              </table>
+
+              <div style="margin-top:24px;">
+                <a th:href="${gestionarTurnoUrl}" href="http://localhost:5173" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 18px;border-radius:8px;">Gestionar mi Turno</a>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

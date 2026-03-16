@@ -63,6 +63,7 @@
               <option value="CONFIRMADO">Confirmado</option>
               <option value="ATENDIDO">Atendido</option>
               <option value="NO_ASISTIO">No asistió</option>
+              <option value="REPROGRAMADO">Reprogramado</option>
               <option value="CANCELADO">Cancelado</option>
             </select>
           </div>
@@ -136,8 +137,8 @@
               <div class="ml-4 flex flex-col items-end gap-3">
                 <span :class="getEstadoClass(turno.estado)" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">{{ getEstadoTexto(turno.estado) }}</span>
                 <div class="flex gap-2 mt-2">
-                    <button v-if="turno.estado !== 'CANCELADO' && !esTurnoPasado(turno)" @click.prevent="openReprogramarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-md text-sm">Reprogramar</button>
-                    <button v-if="turno.estado !== 'CANCELADO' && !esTurnoPasado(turno)" @click.prevent="openCancelarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-red-100 text-red-800 rounded-md text-sm">Cancelar</button>
+                    <button v-if="!esEstadoFinalTurno(turno.estado) && !esTurnoPasado(turno)" @click.prevent="openReprogramarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-md text-sm">Reprogramar</button>
+                    <button v-if="!esEstadoFinalTurno(turno.estado) && !esTurnoPasado(turno)" @click.prevent="openCancelarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-red-100 text-red-800 rounded-md text-sm">Cancelar</button>
                 </div>
               </div>
             </div>
@@ -397,7 +398,8 @@ async function cargarTurnos(page = currentPage.value) {
     
     if (response.data.exito) {
       const pageData = response.data.datos
-      turnos.value = pageData.content || []
+      const contenido = pageData.content || []
+      turnos.value = filtrarReprogramadosSegunVista(contenido)
       totalPages.value = pageData.totalPages ?? 0
       currentPage.value = pageData.number ?? page
     } else {
@@ -416,6 +418,18 @@ async function cargarTurnos(page = currentPage.value) {
   } finally {
     loading.value = false
   }
+}
+
+function filtrarReprogramadosSegunVista(turnosEntrada: Turno[]): Turno[] {
+  const estadoSeleccionado = filtros.value.estado
+  const esFiltroExplicitoReprogramado = estadoSeleccionado === 'REPROGRAMADO'
+  const esVistaHistorial = filtros.value.periodo === 'todos'
+
+  if (esFiltroExplicitoReprogramado || esVistaHistorial) {
+    return turnosEntrada
+  }
+
+  return turnosEntrada.filter(turno => turno.estado !== 'REPROGRAMADO')
 }
 
 function aplicarFiltros() {
@@ -504,6 +518,7 @@ function getEstadoTexto(estado: string): string {
     'CONFIRMADO': 'Confirmado',
     'EN_ATENCION': 'En Atención',
     'ATENDIDO': 'Atendido',
+    'REPROGRAMADO': 'Reprogramado',
     'CANCELADO': 'Cancelado'
   }
   return estados[estado] || estado
@@ -517,9 +532,14 @@ function getEstadoClass(estado: string): string {
     'CONFIRMADO': 'bg-green-100 text-green-800',
     'EN_ATENCION': 'bg-yellow-100 text-yellow-800',
     'ATENDIDO': 'bg-gray-100 text-gray-800',
+    'REPROGRAMADO': 'bg-purple-100 text-purple-800',
     'CANCELADO': 'bg-red-100 text-red-800'
   }
   return clases[estado] || 'bg-gray-100 text-gray-800'
+}
+
+function esEstadoFinalTurno(estado: string): boolean {
+  return ['CANCELADO', 'ATENDIDO', 'NO_ASISTIO', 'REPROGRAMADO'].includes(estado)
 }
 
 function obtenerDatosBancariosTurno(turno: Turno): string {
@@ -547,6 +567,11 @@ async function onCancelar(turno: Turno) {
 }
 
 function openReprogramarModal(turno: Turno) {
+  if (esEstadoFinalTurno(turno.estado)) {
+    toast.showWarning('No se puede reprogramar un turno en estado final')
+    return
+  }
+
   if (esTurnoPasado(turno)) {
     toast.showWarning('No se puede reprogramar un turno que ya pasó')
     return
@@ -651,6 +676,7 @@ async function submitReprogram() {
   }
   if (actionLoading.value) return
   actionLoading.value = true
+  let reprogramacionExitosa = false
   try {
     try { await api.getCsrfToken() } catch (e) { /* ignorar */ }
 
@@ -665,8 +691,8 @@ async function submitReprogram() {
 
     const resp = await api.reprogramReservation(selectedTurno.value.id, payload)
     if (resp.status === 200) {
+      reprogramacionExitosa = true
       await cargarTurnos()
-      closeReprogramModal()
       toast.showSuccess('Reserva reprogramada correctamente')
     } else {
       console.error('Reprogramar fallo', resp)
@@ -674,7 +700,6 @@ async function submitReprogram() {
     }
   } catch (e: any) {
     console.error(e)
-    closeReprogramModal()
     const status = e?.response?.status
     const backendMessage = e?.response?.data?.mensaje || e?.response?.data?.message
     if (status === 400 || status === 409) {
@@ -684,10 +709,19 @@ async function submitReprogram() {
     }
   } finally {
     actionLoading.value = false
+    showReprogramModal.value = false
+    if (reprogramacionExitosa) {
+      closeReprogramModal()
+    }
   }
 }
 
 function openCancelarModal(turno: Turno) {
+  if (esEstadoFinalTurno(turno.estado)) {
+    toast.showWarning('No se puede cancelar un turno en estado final')
+    return
+  }
+
   if (esTurnoPasado(turno)) {
     toast.showWarning('No se puede cancelar un turno que ya pasó')
     return

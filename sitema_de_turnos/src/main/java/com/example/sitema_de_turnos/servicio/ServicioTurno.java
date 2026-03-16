@@ -48,17 +48,19 @@ public class ServicioTurno {
     private final RepositorioCliente repositorioCliente;
     private final RepositorioServicio repositorioServicio;
     private final RepositorioPerfilProfesional repositorioPerfilProfesional;
+    private final RepositorioPerfilDueno repositorioPerfilDueno;
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
     private final RepositorioPago repositorioPago;
     private final ServicioNotificacion servicioNotificacion;
     private final ServicioPoliticaCancelacion servicioPoliticaCancelacion;
+    private final ServicioPublico servicioPublico;
     private final EmailNotificationService emailNotificationService;
 
-        /** Estados terminales que no deben bloquear agenda ni participar en el índice parcial. */
-        private static final List<EstadoTurno> ESTADOS_TERMINALES =
-            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
+        /** Estados que ocupan agenda para validaciones de disponibilidad/superposición. */
+        private static final List<EstadoTurno> ESTADOS_OCUPANTES_AGENDA =
+            List.of(EstadoTurno.CONFIRMADO, EstadoTurno.PENDIENTE_PAGO);
 
         /** Estados que bloquean reserva global por superposición para la identidad física del cliente. */
         private static final List<EstadoTurno> ESTADOS_BLOQUEANTES_SUPERPOSICION_CLIENTE =
@@ -69,6 +71,11 @@ public class ServicioTurno {
     private static final DateTimeFormatter FORMATTER_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter FORMATTER_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final ZoneId ZONA_ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
+
+    private enum OrigenReprogramacion {
+        CLIENTE,
+        PROFESIONAL
+    }
 
     private LocalDateTime obtenerAhoraArgentina() {
         return LocalDateTime.now(ZONA_ARGENTINA);
@@ -242,7 +249,7 @@ public class ServicioTurno {
         }
 
         // 7. Verificar disponibilidad (sin solapamiento)
-        if (repositorioTurno.existeSolapamiento(profesional, fecha, horaInicio, horaFin, ESTADOS_TERMINALES)) {
+        if (repositorioTurno.existeSolapamiento(profesional, fecha, horaInicio, horaFin, ESTADOS_OCUPANTES_AGENDA)) {
             throw new SolapamientoException("El horario seleccionado ya no está disponible");
         }
 
@@ -366,17 +373,13 @@ public class ServicioTurno {
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ)
     public TurnoResponsePublico reprogramarReservaPorCliente(Long turnoId, Cliente cliente, com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request) {
-        Turno turno = repositorioTurno.findById(turnoId)
+        Turno turno = repositorioTurno.findByIdForUpdate(turnoId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
 
         log.info("reprogramarReservaPorCliente called: turnoId={}, turnoClienteId={}, requesterClienteId={}", turnoId, turno.getCliente().getId(), cliente.getId());
 
         if (!turno.getCliente().getId().equals(cliente.getId())) {
             throw new AccesoDenegadoException("No tienes permiso para reprogramar este turno");
-        }
-
-        if (turno.getEstado() == EstadoTurno.CANCELADO || turno.getEstado() == EstadoTurno.ATENDIDO) {
-            throw new ValidacionException("No se puede reprogramar un turno cancelado o ya atendido");
         }
 
         // Validar que el turno origen no sea pasado
@@ -392,8 +395,9 @@ public class ServicioTurno {
         validarPoliticaCancelacionCliente(turno, ahoraLocal);
 
         // Campos solicitados (parse desde strings para compatibilidad de serialización en tests)
-        java.time.LocalDate nuevaFecha = request.getFechaAsLocalDate();
-        java.time.LocalTime nuevaHoraInicio = request.getHoraInicioAsLocalTime();
+        FechaHoraReprogramacion fechaHoraReprogramacion = obtenerFechaHoraReprogramacion(request);
+        LocalDate nuevaFecha = fechaHoraReprogramacion.fecha();
+        LocalTime nuevaHoraInicio = fechaHoraReprogramacion.horaInicio();
         Long nuevoProfesionalId = request.getProfesionalId();
 
         if (nuevaFecha == null || nuevaHoraInicio == null) {
@@ -429,41 +433,75 @@ public class ServicioTurno {
             profesionalDestino = turno.getProfesional();
         }
 
-        // Validar bloqueos de fecha del profesional destino
-        if (!repositorioBloqueoFecha.findBloqueoEnFecha(profesionalDestino, nuevaFecha).isEmpty()) {
-            throw new ValidacionException("El profesional no está disponible en la fecha seleccionada");
-        }
+        Turno turnoReprogramado = aplicarReprogramacionSegura(
+            turno,
+            profesionalDestino,
+            nuevaFecha,
+            nuevaHoraInicio,
+            OrigenReprogramacion.CLIENTE
+        );
 
-        // Calcular hora fin usando la duración y buffer del turno actual
-        LocalTime nuevaHoraFin = nuevaHoraInicio.plusMinutes(turno.getDuracionMinutos()).plusMinutes(turno.getBufferMinutos());
-
-        // Validar que el nuevo horario esté dentro de la disponibilidad configurada del profesional
-        validarHorarioEnDisponibilidad(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin);
-
-        // Validar solapamiento atómicamente (excluyendo el propio turno en su slot original)
-        if (repositorioTurno.existeSolapamientoExcluyendo(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, turno.getId(), ESTADOS_TERMINALES)) {
-            throw new SolapamientoException("El horario seleccionado ya no está disponible");
-        }
-
-        // Si todo OK, aplicar cambios
-        turno.setProfesional(profesionalDestino);
-        turno.setFecha(nuevaFecha);
-        turno.setHoraInicio(nuevaHoraInicio);
-        turno.setHoraFin(nuevaHoraFin);
-
-        try {
-            turno = repositorioTurno.save(turno);
-        } catch (DataIntegrityViolationException e) {
-            throw new SolapamientoException("El turno ya fue tomado por otro cliente. Por favor, elija otro horario.", e);
-        }
+        emailNotificationService.enviarCorreoReprogramacionPorCliente(turnoReprogramado);
 
         log.info("Turno reprogramado: turnoId={}, profesional={}, nuevaFecha={}, nuevaHoraInicio={}, nuevaHoraFin={}",
-            turno.getId(), turno.getProfesional().getId(), turno.getFecha(), turno.getHoraInicio(), turno.getHoraFin());
+            turnoReprogramado.getId(), turnoReprogramado.getProfesional().getId(), turnoReprogramado.getFecha(), turnoReprogramado.getHoraInicio(), turnoReprogramado.getHoraFin());
 
         // Enviar notificación de reprogramación al profesional
-        enviarNotificacionReprogramacion(turno, inicioTurno, nuevoInicioTurno);
+        enviarNotificacionReprogramacion(turnoReprogramado, inicioTurno, nuevoInicioTurno);
 
-        return mapearATurnoResponsePublico(turno);
+        return mapearATurnoResponsePublico(turnoReprogramado);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<com.example.sitema_de_turnos.dto.publico.SlotDisponibleResponse> obtenerSlotsDisponiblesReprogramacionProfesional(
+            String emailProfesional,
+            Long turnoId,
+            LocalDate fecha) {
+        Turno turno = repositorioTurno.findById(turnoId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
+
+        validarAccesoProfesionalODueno(emailProfesional, turno);
+
+        int bloqueTotalMinutos = turno.getDuracionMinutos() + turno.getBufferMinutos();
+        return servicioPublico.obtenerSlotsDisponibles(
+            turno.getEmpresa().getSlug(),
+            turno.getServicio().getId(),
+            turno.getProfesional().getId(),
+            fecha,
+            bloqueTotalMinutos
+        );
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    public TurnoResponseProfesional reprogramarTurnoProfesional(
+            String emailProfesional,
+            Long turnoId,
+            com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request) {
+        Turno turno = repositorioTurno.findByIdForUpdate(turnoId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
+
+        validarAccesoProfesionalODueno(emailProfesional, turno);
+
+        FechaHoraReprogramacion fechaHoraReprogramacion = obtenerFechaHoraReprogramacion(request);
+        LocalDate nuevaFecha = fechaHoraReprogramacion.fecha();
+        LocalTime nuevaHoraInicio = fechaHoraReprogramacion.horaInicio();
+
+        if (request.getProfesionalId() != null && !request.getProfesionalId().equals(turno.getProfesional().getId())) {
+            throw new ValidacionException("La reprogramación desde este flujo mantiene el mismo profesional");
+        }
+
+        LocalDateTime inicioAnterior = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
+        Turno turnoReprogramado = aplicarReprogramacionSegura(
+            turno,
+            turno.getProfesional(),
+            nuevaFecha,
+            nuevaHoraInicio,
+            OrigenReprogramacion.PROFESIONAL
+        );
+
+        emailNotificationService.enviarCorreoReprogramacionPorProfesional(turnoReprogramado);
+
+        return mapearATurnoResponseProfesional(turnoReprogramado);
     }
 
     /**
@@ -649,6 +687,156 @@ public class ServicioTurno {
         }
 
         throw new ValidacionException("El profesional no tiene disponibilidad configurada para ese día");
+    }
+
+    private Turno aplicarReprogramacionSegura(
+            Turno turnoOriginal,
+            PerfilProfesional profesionalDestino,
+            LocalDate nuevaFecha,
+            LocalTime nuevaHoraInicio,
+            OrigenReprogramacion origenReprogramacion) {
+        EstadoTurno estadoOriginal = turnoOriginal.getEstado();
+
+        if (profesionalDestino == null || !profesionalDestino.getActivo()) {
+            throw new ValidacionException("Profesional no disponible");
+        }
+
+        if (turnoOriginal.getEmpresa() == null
+            || profesionalDestino.getEmpresa() == null
+            || !profesionalDestino.getEmpresa().getId().equals(turnoOriginal.getEmpresa().getId())) {
+            throw new ValidacionException("El profesional no pertenece a la misma empresa del turno");
+        }
+
+        if (estadoOriginal != EstadoTurno.CONFIRMADO && estadoOriginal != EstadoTurno.PENDIENTE_PAGO) {
+            throw new ValidacionException("Solo se pueden reprogramar turnos en estado CONFIRMADO o PENDIENTE_PAGO");
+        }
+
+        LocalDateTime nuevoInicioTurno = LocalDateTime.of(nuevaFecha, nuevaHoraInicio);
+        if (nuevoInicioTurno.isBefore(obtenerAhoraEmpresa(turnoOriginal.getEmpresa()).toLocalDateTime())) {
+            throw new ValidacionException("No se puede reprogramar a una fecha/hora pasada");
+        }
+
+        int cantidadReprogramacionesActual = turnoOriginal.getCantidadReprogramacionesCliente() != null
+            ? turnoOriginal.getCantidadReprogramacionesCliente()
+            : 0;
+
+        if (origenReprogramacion == OrigenReprogramacion.CLIENTE && cantidadReprogramacionesActual >= 2) {
+            throw new ValidacionException("Has alcanzado el límite máximo de reprogramaciones para este turno. Comunícate con el local.");
+        }
+
+        if (!repositorioBloqueoFecha.findBloqueoEnFecha(profesionalDestino, nuevaFecha).isEmpty()) {
+            throw new ValidacionException("El profesional no está disponible en la fecha seleccionada");
+        }
+
+        LocalTime nuevaHoraFin = nuevaHoraInicio
+            .plusMinutes(turnoOriginal.getDuracionMinutos())
+            .plusMinutes(turnoOriginal.getBufferMinutos());
+
+        validarHorarioEnDisponibilidad(profesionalDestino, nuevaFecha, nuevaHoraInicio, nuevaHoraFin);
+
+        List<Long> conflictosOcupantes = repositorioTurno.findIdsTurnosOcupantesSolapadosForUpdate(
+            profesionalDestino,
+            nuevaFecha,
+            nuevaHoraInicio,
+            nuevaHoraFin,
+            turnoOriginal.getId(),
+            ESTADOS_OCUPANTES_AGENDA
+        );
+        if (!conflictosOcupantes.isEmpty()) {
+            throw new SolapamientoException("El horario seleccionado se superpone con un turno ocupado del profesional");
+        }
+
+        if (repositorioTurno.existeSolapamientoExcluyendo(
+                profesionalDestino,
+                nuevaFecha,
+                nuevaHoraInicio,
+                nuevaHoraFin,
+                turnoOriginal.getId(),
+                ESTADOS_OCUPANTES_AGENDA)) {
+            throw new SolapamientoException("El horario seleccionado ya no está disponible");
+        }
+
+        turnoOriginal.setEstado(EstadoTurno.REPROGRAMADO);
+
+        Turno nuevoTurno = new Turno();
+        nuevoTurno.setTurnoOrigenId(turnoOriginal.getId());
+        nuevoTurno.setEmpresa(turnoOriginal.getEmpresa());
+        nuevoTurno.setServicio(turnoOriginal.getServicio());
+        nuevoTurno.setProfesional(profesionalDestino);
+        nuevoTurno.setCliente(turnoOriginal.getCliente());
+        nuevoTurno.setFecha(nuevaFecha);
+        nuevoTurno.setHoraInicio(nuevaHoraInicio);
+        nuevoTurno.setHoraFin(nuevaHoraFin);
+        nuevoTurno.setDuracionMinutos(turnoOriginal.getDuracionMinutos());
+        nuevoTurno.setBufferMinutos(turnoOriginal.getBufferMinutos());
+        nuevoTurno.setPrecio(turnoOriginal.getPrecio());
+        nuevoTurno.setHorasLimiteCancelacionAplicada(turnoOriginal.getHorasLimiteCancelacionAplicada());
+        nuevoTurno.setObservaciones(turnoOriginal.getObservaciones());
+        int cantidadReprogramaciones = cantidadReprogramacionesActual;
+        if (origenReprogramacion == OrigenReprogramacion.CLIENTE) {
+            cantidadReprogramaciones += 1;
+        }
+        nuevoTurno.setCantidadReprogramacionesCliente(cantidadReprogramaciones);
+        nuevoTurno.setEstado(estadoOriginal);
+
+        try {
+            repositorioTurno.save(turnoOriginal);
+            Turno nuevoTurnoPersistido = repositorioTurno.save(nuevoTurno);
+            trasladarPagoAlTurnoReprogramado(turnoOriginal, nuevoTurnoPersistido);
+            return nuevoTurnoPersistido;
+        } catch (DataIntegrityViolationException e) {
+            throw new SolapamientoException("El turno ya fue tomado por otro cliente. Por favor, elija otro horario.", e);
+        }
+    }
+
+    private FechaHoraReprogramacion obtenerFechaHoraReprogramacion(
+            com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest request) {
+        try {
+            LocalDate fecha = request.getFechaAsLocalDate();
+            LocalTime horaInicio = request.getHoraInicioAsLocalTime();
+            if (fecha == null || horaInicio == null) {
+                throw new ValidacionException("Fecha y hora inicio son requeridos para reprogramar");
+            }
+            return new FechaHoraReprogramacion(fecha, horaInicio);
+        } catch (ValidacionException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ValidacionException("Formato inválido para fecha u hora. Use fecha YYYY-MM-DD y hora HH:mm");
+        }
+    }
+
+    private record FechaHoraReprogramacion(LocalDate fecha, LocalTime horaInicio) {}
+
+    private void trasladarPagoAlTurnoReprogramado(Turno turnoOriginal, Turno nuevoTurno) {
+        repositorioPago.findByTurnoId(turnoOriginal.getId()).ifPresent(pagoOriginal -> {
+            if (!esPagoTrasladable(pagoOriginal)) {
+                return;
+            }
+
+            pagoOriginal.setTurno(nuevoTurno);
+            repositorioPago.save(pagoOriginal);
+        });
+    }
+
+    private boolean esPagoTrasladable(Pago pago) {
+        return pago.getEstado() == EstadoPago.APROBADO || pago.getEstado() == EstadoPago.PENDIENTE;
+    }
+
+    private void validarAccesoProfesionalODueno(String emailProfesional, Turno turno) {
+        boolean esProfesionalAsignado = turno.getProfesional() != null
+            && turno.getProfesional().getUsuario() != null
+            && turno.getProfesional().getUsuario().getEmail() != null
+            && turno.getProfesional().getUsuario().getEmail().equalsIgnoreCase(emailProfesional);
+
+        boolean esDuenoEmpresa = repositorioPerfilDueno.findByUsuarioEmail(emailProfesional)
+            .map(PerfilDueno::getEmpresa)
+            .map(Empresa::getId)
+            .map(idEmpresaDueno -> idEmpresaDueno.equals(turno.getEmpresa().getId()))
+            .orElse(false);
+
+        if (!esProfesionalAsignado && !esDuenoEmpresa) {
+            throw new AccesoDenegadoException("No tienes permiso para reprogramar este turno");
+        }
     }
 
     private DiaSemana convertirDiaSemana(java.time.DayOfWeek dayOfWeek) {
@@ -839,6 +1027,9 @@ public class ServicioTurno {
         if (estadoActual == EstadoTurno.ATENDIDO && nuevoEstado != EstadoTurno.ATENDIDO) {
             throw new ValidacionException("No se puede modificar un turno ya atendido");
         }
+        if (estadoActual == EstadoTurno.REPROGRAMADO) {
+            throw new ValidacionException("No se puede modificar un turno reprogramado");
+        }
 
         // Validar transiciones específicas
         switch (nuevoEstado) {
@@ -875,6 +1066,8 @@ public class ServicioTurno {
                 }
                 validarNoCancelacionRetrospectiva(turno);
                 break;
+            case REPROGRAMADO:
+                throw new ValidacionException("El estado REPROGRAMADO se asigna automáticamente durante la reprogramación");
         }
     }
 

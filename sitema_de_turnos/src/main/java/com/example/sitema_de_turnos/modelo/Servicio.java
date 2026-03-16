@@ -62,7 +62,7 @@ public class Servicio {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 
-    @Column(name = "requiere_sena", nullable = false)
+    @Column(name = "requiere_sena", nullable = false, columnDefinition = "boolean default false")
     private Boolean requiereSena = false;
 
     @Column(name = "monto_sena", precision = 10, scale = 2)
@@ -82,6 +82,9 @@ public class Servicio {
 
     @PrePersist
     protected void onCreate() {
+        if (requiereSena == null) {
+            requiereSena = false;
+        }
         fechaCreacion = LocalDateTime.now();
     }
 }

@@ -235,6 +235,16 @@ export default {
     return apiClient.put(`/profesional/turnos/${turnoId}/observaciones`, datos)
   },
 
+  obtenerSlotsReprogramacionProfesional(turnoId: number, fecha: string) {
+    return apiClient.get(`/profesional/turnos/${turnoId}/slots-disponibles`, {
+      params: { fecha }
+    })
+  },
+
+  reprogramarTurnoProfesional(turnoId: number, datos: { fecha: string; horaInicio: string }) {
+    return apiClient.put(`/profesional/turnos/${turnoId}/reprogramar`, datos)
+  },
+
   actualizarEstadoCliente(clienteId: number, activo: boolean) {
     return apiClient.put(`/profesional/clientes/${clienteId}/estado`, { activo })
   },

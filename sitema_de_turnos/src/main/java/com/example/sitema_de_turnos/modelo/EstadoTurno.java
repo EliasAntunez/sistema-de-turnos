@@ -29,5 +29,10 @@ public enum EstadoTurno {
     /**
      * Cliente no se presentó al turno
      */
-    NO_ASISTIO
+    NO_ASISTIO,
+
+    /**
+     * Turno original marcado como histórico tras reprogramación (estado final)
+     */
+    REPROGRAMADO
 }
