@@ -235,6 +235,10 @@ export default {
     return apiClient.put(`/profesional/turnos/${turnoId}/observaciones`, datos)
   },
 
+  actualizarEstadoCliente(clienteId: number, activo: boolean) {
+    return apiClient.put(`/profesional/clientes/${clienteId}/estado`, { activo })
+  },
+
   // Cliente - Autenticación
   registrarCliente(empresaSlug: string, datos: { telefono: string | null; nombreUsuario: string; email: string; contrasena: string; confirmarContrasena: string }) {
     return apiClient.post(`/publico/empresa/${empresaSlug}/registro-cliente`, datos)

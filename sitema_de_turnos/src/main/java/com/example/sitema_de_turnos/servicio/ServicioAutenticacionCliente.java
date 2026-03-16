@@ -4,16 +4,21 @@ import com.example.sitema_de_turnos.dto.ClienteAutenticadoResponse;
 import com.example.sitema_de_turnos.dto.publico.RegistroClienteRequest;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
+import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.Cliente;
 import com.example.sitema_de_turnos.modelo.Empresa;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioCliente;
 import com.example.sitema_de_turnos.repositorio.RepositorioEmpresa;
+import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
+import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -26,6 +31,8 @@ public class ServicioAutenticacionCliente {
 
     private final RepositorioCliente repositorioCliente;
     private final RepositorioEmpresa repositorioEmpresa;
+    private final RepositorioPerfilProfesional repositorioPerfilProfesional;
+    private final RepositorioTurno repositorioTurno;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -185,6 +192,55 @@ public class ServicioAutenticacionCliente {
                 cliente.getId(), cliente.getNombre(), cliente.getEmail(), cliente.getNombreUsuario(), 
                 cliente.getTieneUsuario(), cliente.getActivo());
         return cliente;
+    }
+
+    /**
+     * Variante para login: incluye clientes inactivos para poder diferenciar
+     * credenciales inválidas de cuenta desactivada en la capa de seguridad.
+     */
+    public Cliente obtenerClienteParaLogin(String empresaSlug, String identificador) {
+        Empresa empresa = repositorioEmpresa.findBySlugAndActivaTrue(empresaSlug)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Empresa no encontrada"));
+
+        return repositorioCliente.findByEmpresaAndEmailOrNombreUsuarioAndTieneUsuarioTrue(empresa, identificador)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
+    }
+
+    @Transactional
+    public void desactivarClientePorProfesional(String emailProfesional, Long clienteId) {
+        cambiarEstadoClientePorProfesional(emailProfesional, clienteId, false);
+    }
+
+    @Transactional
+    public void cambiarEstadoClientePorProfesional(String emailProfesional, Long clienteId, boolean activo) {
+        PerfilProfesional profesional = repositorioPerfilProfesional.findByUsuarioEmail(emailProfesional)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Perfil profesional no encontrado"));
+
+        Cliente cliente = repositorioCliente.findByIdAndEmpresa(clienteId, profesional.getEmpresa())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado para este local"));
+
+        if (Boolean.TRUE.equals(cliente.getActivo()) == activo) {
+            throw new ValidacionException(activo
+                    ? "El cliente ya se encuentra activo"
+                    : "El cliente ya se encuentra desactivado");
+        }
+
+        if (!activo) {
+            LocalDateTime ahora = LocalDateTime.now();
+            boolean tieneTurnosFuturosConfirmados = repositorioTurno.existeTurnoFuturoConfirmadoPorCliente(
+                    cliente,
+                    EstadoTurno.CONFIRMADO,
+                    ahora.toLocalDate(),
+                    ahora.toLocalTime()
+            );
+
+            if (tieneTurnosFuturosConfirmados) {
+                throw new IllegalStateException("No puedes desactivar un cliente que tiene turnos pendientes. Cancela o atiende sus turnos primero.");
+            }
+        }
+
+        cliente.setActivo(activo);
+        repositorioCliente.save(cliente);
     }
 
     /**

@@ -30,6 +30,8 @@ public class TurnoResponseProfesional {
     private String estado;
     
     // Datos del cliente (solo visible para el profesional)
+    private Long clienteId;
+    private Boolean clienteActivo;
     private String clienteNombre;
     private String clienteTelefono;
     private String clienteEmail;

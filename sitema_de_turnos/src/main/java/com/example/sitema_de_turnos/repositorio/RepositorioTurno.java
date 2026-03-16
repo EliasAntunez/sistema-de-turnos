@@ -53,6 +53,16 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
         List<EstadoTurno> estados
     );
 
+    @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.cliente = :cliente " +
+           "AND t.estado = :estado " +
+           "AND (t.fecha > :fechaActual OR (t.fecha = :fechaActual AND t.horaInicio > :horaActual))")
+    boolean existeTurnoFuturoConfirmadoPorCliente(
+        @Param("cliente") Cliente cliente,
+        @Param("estado") EstadoTurno estado,
+        @Param("fechaActual") LocalDate fechaActual,
+        @Param("horaActual") LocalTime horaActual
+    );
+
     /**
      * Buscar turnos que bloquean agenda para un profesional en una fecha.
      * Excluye TODOS los estados terminales (CANCELADO, ATENDIDO, NO_ASISTIO)

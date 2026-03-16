@@ -265,7 +265,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
 import publicoService, { type EmpresaPublica, type SlotDisponible } from '@/services/publico'
@@ -547,17 +547,8 @@ async function onCancelar(turno: Turno) {
 }
 
 function openReprogramarModal(turno: Turno) {
-  const inicioMs = obtenerTimestampInicioTurnoArgentina(turno)
-  const ahoraMs = Date.now()
-  const diffMs = inicioMs - ahoraMs
-
   if (esTurnoPasado(turno)) {
     toast.showWarning('No se puede reprogramar un turno que ya pasó')
-    return
-  }
-
-  if (diffMs < 60 * 60 * 1000) {
-    toast.showWarning('No se puede reprogramar un turno con menos de 1 hora de anticipación')
     return
   }
 
@@ -643,10 +634,14 @@ function calcularFinServicioSlot(horaInicioISO: string): string {
 }
 
 // Watch para recargar slots cuando cambia la fecha
-watch(reprogramDate, () => {
+const stopWatchReprogramDate = watch(reprogramDate, () => {
   if (showReprogramModal.value && selectedTurno.value) {
     cargarSlotsParaReprogramar()
   }
+})
+
+onBeforeUnmount(() => {
+  stopWatchReprogramDate()
 })
 
 async function submitReprogram() {
@@ -679,24 +674,22 @@ async function submitReprogram() {
     }
   } catch (e: any) {
     console.error(e)
-    toast.showError('Error al reprogramar: ' + (e.response?.data?.mensaje || e.message || e))
+    closeReprogramModal()
+    const status = e?.response?.status
+    const backendMessage = e?.response?.data?.mensaje || e?.response?.data?.message
+    if (status === 400 || status === 409) {
+      toast.showError(backendMessage || 'No se pudo reprogramar por políticas del local')
+    } else {
+      toast.showError('Error al reprogramar: ' + (backendMessage || e.message || e))
+    }
   } finally {
     actionLoading.value = false
   }
 }
 
 function openCancelarModal(turno: Turno) {
-  const inicioMs = obtenerTimestampInicioTurnoArgentina(turno)
-  const ahoraMs = Date.now()
-  const diffMs = inicioMs - ahoraMs
-
   if (esTurnoPasado(turno)) {
     toast.showWarning('No se puede cancelar un turno que ya pasó')
-    return
-  }
-
-  if (diffMs < 60 * 60 * 1000) {
-    toast.showWarning('No se puede cancelar un turno con menos de 1 hora de anticipación')
     return
   }
 
@@ -729,7 +722,14 @@ async function submitCancelar() {
     }
   } catch (e: any) {
     console.error(e)
-    toast.showError('Error al cancelar: ' + (e.response?.data?.mensaje || e.message || e))
+    closeCancelarModal()
+    const status = e?.response?.status
+    const backendMessage = e?.response?.data?.mensaje || e?.response?.data?.message
+    if (status === 400 || status === 409) {
+      toast.showError(backendMessage || 'No se pudo cancelar por políticas del local')
+    } else {
+      toast.showError('Error al cancelar: ' + (backendMessage || e.message || e))
+    }
   } finally {
     actionLoading.value = false
   }

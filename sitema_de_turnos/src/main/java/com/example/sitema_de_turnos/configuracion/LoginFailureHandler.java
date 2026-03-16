@@ -39,7 +39,7 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
             log.warn("Intento de login fallido - Usuario no existe: {}", request.getParameter("username"));
             
         } else if (exception instanceof DisabledException) {
-            mensaje = "La cuenta está desactivada. Contacte al administrador";
+            mensaje = "Tu cuenta ha sido desactivada. Por favor, comunícate con el local.";
             log.warn("Intento de login fallido - Usuario desactivado: {}", request.getParameter("username"));
             
         } else if (exception instanceof LockedException) {

@@ -3,6 +3,7 @@ package com.example.sitema_de_turnos.servicio;
 import com.example.sitema_de_turnos.modelo.Cliente;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
@@ -37,7 +38,7 @@ public class ServicioDetallesCliente {
         String[] parts = username.split(":", 3);
         if (parts.length != 3) {
             log.error("❌ [DETALLES-CLIENTE] Formato inválido, partes incorrectas: {}", username);
-            throw new UsernameNotFoundException("Formato de usuario inválido: " + username);
+            throw new UsernameNotFoundException("Formato de usuario inválido");
         }
 
         String empresaSlug = parts[1];
@@ -45,13 +46,13 @@ public class ServicioDetallesCliente {
         log.info("📋 [DETALLES-CLIENTE] Parseado - EmpresaSlug: {} | Identificador: {}", empresaSlug, identificador);
 
         // Buscar cliente
-        Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaAutenticacion(empresaSlug, identificador);
+        Cliente cliente = servicioAutenticacionCliente.obtenerClienteParaLogin(empresaSlug, identificador);
         log.info("✅ [DETALLES-CLIENTE] Cliente encontrado - ID: {} | Nombre: {} | TieneUsuario: {} | Activo: {}", 
                 cliente.getId(), cliente.getNombre(), cliente.getTieneUsuario(), cliente.getActivo());
 
         if (!cliente.getActivo()) {
             log.error("❌ [DETALLES-CLIENTE] Cliente desactivado - ID: {}", cliente.getId());
-            throw new UsernameNotFoundException("Cliente desactivado");
+            throw new DisabledException("Tu cuenta ha sido desactivada. Por favor, comunícate con el local.");
         }
 
         if (!cliente.getTieneUsuario()) {

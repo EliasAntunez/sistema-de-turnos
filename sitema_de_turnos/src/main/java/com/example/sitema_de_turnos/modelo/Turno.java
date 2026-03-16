@@ -106,6 +106,13 @@ public class Turno {
     private String motivoCancelacion;
 
     /**
+     * Snapshot contractual de horas límite de cancelación vigente
+     * al momento de crear la reserva.
+     */
+    @Column(name = "horas_limite_cancelacion_aplicada")
+    private Integer horasLimiteCancelacionAplicada;
+
+    /**
      * Quién canceló el turno: CLIENTE, PROFESIONAL, EMPRESA
      */
     @Column(name = "cancelado_por", length = 20)

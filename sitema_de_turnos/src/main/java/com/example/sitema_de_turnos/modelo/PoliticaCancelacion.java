@@ -51,12 +51,6 @@ public class PoliticaCancelacion {
     private Integer horasLimiteCancelacion;
 
     /**
-     * Mensaje corto personalizado para el cliente (recordatorio, WhatsApp, etc)
-     */
-    @Column(name = "mensaje_cliente", length = 300)
-    private String mensajeCliente;
-
-    /**
      * Penalización: NINGUNA, ADVERTENCIA, BLOQUEO, MULTA
      */
     @Enumerated(EnumType.STRING)

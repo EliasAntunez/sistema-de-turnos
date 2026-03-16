@@ -241,15 +241,8 @@
           <strong>Descripción:</strong>
           <span class="truncate-text">{{ politica.descripcion }}</span>
         </div>
-        <div v-if="politica.mensajeCliente" class="info-item card-mensaje" :title="politica.mensajeCliente">
-          <strong>Mensaje para cliente:</strong>
-          <span class="truncate-text">{{ politica.mensajeCliente }}</span>
-        </div>
         <div class="info-item">
           <strong>Horas límite:</strong> {{ politica.horasLimiteCancelacion }} horas
-        </div>
-        <div class="info-item">
-          <strong>Penalización:</strong> {{ formatearPenalizacion(politica.penalizacion) }}
         </div>
         <div class="info-item" v-if="politica.fechaCreacion">
           <strong>Creada:</strong> {{ formatearFecha(politica.fechaCreacion) }}
@@ -535,24 +528,17 @@
         ></textarea>
         <span v-if="fieldErrorsPolitica.descripcion" class="field-error">{{ fieldErrorsPolitica.descripcion }}</span>
       </div>
-      <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.mensajeCliente }">
-        <label>Mensaje para cliente (opcional)</label>
-        <input
-          v-model="formDataPolitica.mensajeCliente"
-          type="text"
-          maxlength="300"
-          placeholder="Mensaje corto para recordatorio en WhatsApp"
-        />
-        <span v-if="fieldErrorsPolitica.mensajeCliente" class="field-error">{{ fieldErrorsPolitica.mensajeCliente }}</span>
-      </div>
       <div class="form-row">
-        <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.horasLimiteCancelacion }">
+        <div
+          v-if="formDataPolitica.tipo !== 'INASISTENCIA'"
+          class="form-group"
+          :class="{ 'has-error': fieldErrorsPolitica.horasLimiteCancelacion }"
+        >
           <label>Horas límite para cancelar *</label>
           <input 
             v-model.number="formDataPolitica.horasLimiteCancelacion" 
             type="number" 
             min="1" 
-            required 
             placeholder="24"
           />
           <span v-if="fieldErrorsPolitica.horasLimiteCancelacion" class="field-error">{{ fieldErrorsPolitica.horasLimiteCancelacion }}</span>
@@ -567,17 +553,6 @@
           </select>
           <span v-if="fieldErrorsPolitica.tipo" class="field-error">{{ fieldErrorsPolitica.tipo }}</span>
         </div>
-      </div>
-
-      <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.penalizacion }">
-        <label>Penalización *</label>
-        <select v-model="formDataPolitica.penalizacion" required>
-          <option value="NINGUNA">Ninguna</option>
-          <option value="ADVERTENCIA">Advertencia</option>
-          <option value="BLOQUEO">Bloqueo</option>
-          <option value="MULTA">Multa</option>
-        </select>
-        <span v-if="fieldErrorsPolitica.penalizacion" class="field-error">{{ fieldErrorsPolitica.penalizacion }}</span>
       </div>
 
       <div v-if="errorPolitica" class="error-message">{{ errorPolitica }}</div>
@@ -1054,9 +1029,8 @@ const fieldErrorsPolitica = ref<Record<string, string>>({})
 const formDataPolitica = ref<PoliticaCancelacionRequest>({
   tipo: 'CANCELACION',
   descripcion: '',
-  mensajeCliente: '',
   horasLimiteCancelacion: 24,
-  penalizacion: 'NINGUNA',
+  penalizacion: 'ADVERTENCIA',
   activa: true
 })
 
@@ -1425,9 +1399,8 @@ function openModalPolitica(politica?: PoliticaCancelacionResponse) {
     formDataPolitica.value = { 
       tipo: politica.tipo,
       descripcion: politica.descripcion,
-      mensajeCliente: politica.mensajeCliente || '',
       horasLimiteCancelacion: politica.horasLimiteCancelacion,
-      penalizacion: politica.penalizacion,
+      penalizacion: 'ADVERTENCIA',
       activa: politica.activa
     };
     editingPolitica.value = politica;
@@ -1436,9 +1409,8 @@ function openModalPolitica(politica?: PoliticaCancelacionResponse) {
     formDataPolitica.value = {
       tipo: 'CANCELACION',
       descripcion: '',
-      mensajeCliente: '',
       horasLimiteCancelacion: 24,
-      penalizacion: 'NINGUNA',
+      penalizacion: 'ADVERTENCIA',
       activa: true
     };
       editingPolitica.value = null;
@@ -1452,7 +1424,7 @@ function closeModalPolitica() {
     tipo: 'CANCELACION',
     descripcion: '',
     horasLimiteCancelacion: 24,
-    penalizacion: 'NINGUNA',
+    penalizacion: 'ADVERTENCIA',
     activa: true
   }
   fieldErrorsPolitica.value = {}
@@ -1472,11 +1444,12 @@ async function submitFormPolitica() {
         submittingPolitica.value = false
         return
       }
-      if (!formDataPolitica.value.horasLimiteCancelacion || formDataPolitica.value.horasLimiteCancelacion < 1) {
+      if (formDataPolitica.value.tipo !== 'INASISTENCIA' && (!formDataPolitica.value.horasLimiteCancelacion || formDataPolitica.value.horasLimiteCancelacion < 1)) {
         fieldErrorsPolitica.value.horasLimiteCancelacion = 'Debe indicar las horas límite.'
         submittingPolitica.value = false
         return
       }
+      formDataPolitica.value.penalizacion = 'ADVERTENCIA'
       /* Actualizar política existente con metodo */
       await PoliticasService.actualizar(editingPolitica.value!.id, formDataPolitica.value);
     } else {
@@ -1486,11 +1459,12 @@ async function submitFormPolitica() {
         submittingPolitica.value = false
         return
       }
-      if (!formDataPolitica.value.horasLimiteCancelacion || formDataPolitica.value.horasLimiteCancelacion < 1) {
+      if (formDataPolitica.value.tipo !== 'INASISTENCIA' && (!formDataPolitica.value.horasLimiteCancelacion || formDataPolitica.value.horasLimiteCancelacion < 1)) {
         fieldErrorsPolitica.value.horasLimiteCancelacion = 'Debe indicar las horas límite.'
         submittingPolitica.value = false
         return
       }
+      formDataPolitica.value.penalizacion = 'ADVERTENCIA'
       await PoliticasService.crear(formDataPolitica.value);
     }
     const wasEditing = !!editingPolitica.value

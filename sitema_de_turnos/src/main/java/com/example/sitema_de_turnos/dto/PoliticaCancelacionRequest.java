@@ -18,8 +18,6 @@ public class PoliticaCancelacionRequest {
     @NotNull(message = "La penalización es obligatoria")
     private String penalizacion;
 
-
-    private String mensajeCliente;
     private boolean activa = true;
 
 
@@ -34,9 +32,6 @@ public class PoliticaCancelacionRequest {
 
     public String getPenalizacion() { return penalizacion; }
     public void setPenalizacion(String penalizacion) { this.penalizacion = penalizacion; }
-
-    public String getMensajeCliente() { return mensajeCliente; }
-    public void setMensajeCliente(String mensajeCliente) { this.mensajeCliente = mensajeCliente; }
 
     public boolean isActiva() { return activa; }
     public void setActiva(boolean activa) { this.activa = activa; }

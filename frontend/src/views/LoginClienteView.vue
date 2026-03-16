@@ -187,12 +187,14 @@ import { useClienteStore } from '@/stores/cliente'
 import { useAuthStore } from '@/stores/auth'
 import publicoService, { type EmpresaPublica } from '@/services/publico'
 import Footer from '@/components/Footer.vue'
+import { useToastStore } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
 const clienteStore = useClienteStore()
 // Necesario para el aislamiento de sesión cruzada Staff ↔ Cliente
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 
 const empresaSlug = ref(route.params.empresaSlug as string)
 const empresa = ref<EmpresaPublica | null>(null)
@@ -257,13 +259,20 @@ async function login() {
     }
   } catch (error: any) {
     console.error('Error en login:', error)
-    
+    const mensajeCuentaDesactivada = 'Tu cuenta ha sido desactivada. Por favor, comunícate con el local.'
+
     if (error.response?.data?.mensaje) {
       errorMessage.value = error.response.data.mensaje
+      if (error.response.data.mensaje === mensajeCuentaDesactivada) {
+        toastStore.showError(mensajeCuentaDesactivada)
+      }
     } else if (error.response?.status === 401) {
       errorMessage.value = 'Email/usuario o contraseña incorrectos'
     } else if (error.response?.status === 404) {
       errorMessage.value = 'No existe una cuenta con este email/usuario. Regístrate primero.'
+    } else if (error.response?.status === 403) {
+      errorMessage.value = mensajeCuentaDesactivada
+      toastStore.showError(mensajeCuentaDesactivada)
     } else if (error.response?.status === 400) {
       errorMessage.value = 'Datos inválidos. Verifica la información ingresada.'
     } else if (error.response?.status === 500) {

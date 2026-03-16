@@ -11,6 +11,7 @@ import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioUsuario;
 import com.example.sitema_de_turnos.servicio.ServicioBloqueoFecha;
 import com.example.sitema_de_turnos.servicio.ServicioDisponibilidad;
+import com.example.sitema_de_turnos.servicio.ServicioAutenticacionCliente;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,7 @@ public class ControladorProfesional {
     private final ServicioBloqueoFecha servicioBloqueoFecha;
     private final com.example.sitema_de_turnos.servicio.ServicioHorarioEmpresa servicioHorarioEmpresa;
     private final com.example.sitema_de_turnos.servicio.ServicioTurno servicioTurno;
+    private final ServicioAutenticacionCliente servicioAutenticacionCliente;
     private final SessionRegistry sessionRegistry;
 
     /**
@@ -384,6 +386,18 @@ public class ControladorProfesional {
             servicioTurno.agregarObservacionesTurno(emailProfesional, id, request);
         return ResponseEntity.ok(
                 RespuestaApi.exitosa("Observaciones agregadas exitosamente", turno)
+        );
+    }
+
+    @PutMapping("/clientes/{id}/estado")
+    public ResponseEntity<RespuestaApi<Void>> actualizarEstadoCliente(
+            @PathVariable Long id,
+            @Valid @RequestBody ActualizarEstadoClienteRequest request,
+            Authentication authentication) {
+        String emailProfesional = authentication.getName();
+        servicioAutenticacionCliente.cambiarEstadoClientePorProfesional(emailProfesional, id, request.getActivo());
+        return ResponseEntity.ok(
+                RespuestaApi.exitosa(request.getActivo() ? "Cliente reactivado correctamente" : "Cliente desactivado correctamente", null)
         );
     }
 }
