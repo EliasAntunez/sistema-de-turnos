@@ -7,6 +7,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * Garantiza que el índice único parcial anti-solapamiento existe en la BD
  * al inicio de la aplicación.
@@ -22,7 +24,7 @@ import org.springframework.stereotype.Component;
  * El índice bloquea inserciones duplicadas a nivel de motor de base de datos:
  *
  *   CREATE UNIQUE INDEX idx_turno_no_overlap ON turnos (profesional_id, fecha, hora_inicio)
- *   WHERE estado NOT IN ('CANCELADO', 'ATENDIDO', 'NO_ASISTIO')
+ *   WHERE estado IN ('CONFIRMADO', 'PENDIENTE_PAGO')
  *
  * Flujo en una race condition:
  *   Thread A: SELECT → slot libre → INSERT  ← gana, commit OK
@@ -41,6 +43,7 @@ public class IndicesConcurrenciaConfig implements ApplicationRunner {
     private final JdbcTemplate jdbcTemplate;
 
     private static final String INDEX_NAME = "idx_turno_no_overlap";
+    private static final List<String> ESTADOS_OCUPANTES = List.of("CONFIRMADO", "PENDIENTE_PAGO");
 
     @Override
     public void run(ApplicationArguments args) {
@@ -50,10 +53,21 @@ public class IndicesConcurrenciaConfig implements ApplicationRunner {
     private void crearIndiceNoSolapamiento() {
         log.info("Creando/Verificando índice único de concurrencia en BD...");
         try {
+            String indexDef = jdbcTemplate.query(
+                "SELECT indexdef FROM pg_indexes WHERE schemaname = current_schema() AND indexname = ?",
+                rs -> rs.next() ? rs.getString("indexdef") : null,
+                INDEX_NAME
+            );
+
+            if (indexDef != null && requiereRecreacion(indexDef)) {
+                log.warn("Índice '{}' desactualizado. Se recreará con predicado de estados ocupantes explícitos.", INDEX_NAME);
+                jdbcTemplate.execute("DROP INDEX IF EXISTS " + INDEX_NAME);
+            }
+
             jdbcTemplate.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS " + INDEX_NAME + " " +
                 "ON turnos (profesional_id, fecha, hora_inicio) " +
-                "WHERE estado NOT IN ('CANCELADO', 'ATENDIDO', 'NO_ASISTIO')"
+                "WHERE estado IN ('CONFIRMADO', 'PENDIENTE_PAGO')"
             );
             log.info("✅ Índice anti-solapamiento '{}' verificado/creado en la BD", INDEX_NAME);
         } catch (Exception e) {
@@ -61,5 +75,12 @@ public class IndicesConcurrenciaConfig implements ApplicationRunner {
                     INDEX_NAME, e);
             throw new IllegalStateException("No se pudo crear/verificar el índice de concurrencia '" + INDEX_NAME + "'", e);
         }
+    }
+
+    private boolean requiereRecreacion(String indexDef) {
+        String indexDefUpper = indexDef.toUpperCase();
+        boolean contieneEstadosOcupantes = ESTADOS_OCUPANTES.stream().allMatch(indexDefUpper::contains);
+        boolean usaPredicadoNotIn = indexDefUpper.contains("NOT IN");
+        return !contieneEstadosOcupantes || usaPredicadoNotIn;
     }
 }

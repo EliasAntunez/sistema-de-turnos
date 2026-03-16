@@ -1,6 +1,8 @@
 package com.example.sitema_de_turnos.controlador;
 
 import com.example.sitema_de_turnos.dto.*;
+import com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest;
+import com.example.sitema_de_turnos.dto.publico.SlotDisponibleResponse;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponseProfesional;
 import com.example.sitema_de_turnos.excepcion.CuentaDesactivadaException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
@@ -13,6 +15,7 @@ import com.example.sitema_de_turnos.servicio.ServicioBloqueoFecha;
 import com.example.sitema_de_turnos.servicio.ServicioDisponibilidad;
 import com.example.sitema_de_turnos.servicio.ServicioAutenticacionCliente;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 import static org.springframework.data.domain.Sort.Direction.DESC;
 
 import java.util.List;
+import java.time.LocalDate;
 
 /**
  * Controlador para que los profesionales gestionen su propio perfil y disponibilidad
@@ -388,6 +392,31 @@ public class ControladorProfesional {
                 RespuestaApi.exitosa("Observaciones agregadas exitosamente", turno)
         );
     }
+
+        @GetMapping("/turnos/{id}/slots-disponibles")
+        public ResponseEntity<RespuestaApi<List<SlotDisponibleResponse>>> obtenerSlotsDisponiblesReprogramacion(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            Authentication authentication) {
+        String emailProfesional = authentication.getName();
+        List<SlotDisponibleResponse> slots =
+            servicioTurno.obtenerSlotsDisponiblesReprogramacionProfesional(emailProfesional, id, fecha);
+        return ResponseEntity.ok(
+            RespuestaApi.exitosa("Slots disponibles obtenidos exitosamente", slots)
+        );
+        }
+
+        @PutMapping("/turnos/{id}/reprogramar")
+        public ResponseEntity<RespuestaApi<TurnoResponseProfesional>> reprogramarTurno(
+            @PathVariable Long id,
+            @Valid @RequestBody ReservaReprogramarRequest request,
+            Authentication authentication) {
+        String emailProfesional = authentication.getName();
+        TurnoResponseProfesional turnoReprogramado = servicioTurno.reprogramarTurnoProfesional(emailProfesional, id, request);
+        return ResponseEntity.ok(
+            RespuestaApi.exitosa("Turno reprogramado exitosamente", turnoReprogramado)
+        );
+        }
 
     @PutMapping("/clientes/{id}/estado")
     public ResponseEntity<RespuestaApi<Void>> actualizarEstadoCliente(

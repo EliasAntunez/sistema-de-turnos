@@ -121,6 +121,16 @@ public class Turno {
     @Column(name = "fecha_cancelacion")
     private LocalDateTime fechaCancelacion;
 
+    /**
+     * ID del turno original del cual proviene esta reserva reprogramada.
+     * Null cuando el turno fue creado originalmente (sin clonación).
+     */
+    @Column(name = "turno_origen_id")
+    private Long turnoOrigenId;
+
+    @Column(name = "cantidad_reprogramaciones_cliente", nullable = false, columnDefinition = "integer default 0")
+    private Integer cantidadReprogramacionesCliente = 0;
+
     @Column(length = 500)
     private String observaciones;
 

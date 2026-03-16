@@ -1,9 +1,11 @@
 package com.example.sitema_de_turnos.repositorio;
 
 import com.example.sitema_de_turnos.modelo.*;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +18,10 @@ import java.util.List;
 @Repository
 public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecificationExecutor<Turno> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Turno t WHERE t.id = :turnoId")
+    java.util.Optional<Turno> findByIdForUpdate(@Param("turnoId") Long turnoId);
+
     /**
      * Verificar si existe un turno en un horario específico para un profesional.
      * CORREGIDO: usa parámetro enum tipado en lugar de literal de cadena para
@@ -23,20 +29,20 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
      */
     @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
-           "AND t.estado NOT IN :estadosTerminales " +
+           "AND t.estado IN :estadosOcupantes " +
            "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
     boolean existeSolapamiento(
         @Param("profesional") PerfilProfesional profesional,
         @Param("fecha") LocalDate fecha,
         @Param("horaInicio") LocalTime horaInicio,
         @Param("horaFin") LocalTime horaFin,
-        @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
+        @Param("estadosOcupantes") List<EstadoTurno> estadosOcupantes
     );
 
     @Query("SELECT COUNT(t) > 0 FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
            "AND t.id <> :turnoId " +
-           "AND t.estado NOT IN :estadosTerminales " +
+           "AND t.estado IN :estadosOcupantes " +
            "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
     boolean existeSolapamientoExcluyendo(
         @Param("profesional") PerfilProfesional profesional,
@@ -44,7 +50,22 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
         @Param("horaInicio") LocalTime horaInicio,
         @Param("horaFin") LocalTime horaFin,
         @Param("turnoId") Long turnoId,
-        @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
+        @Param("estadosOcupantes") List<EstadoTurno> estadosOcupantes
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t.id FROM Turno t WHERE t.profesional = :profesional " +
+           "AND t.fecha = :fecha " +
+           "AND t.id <> :turnoId " +
+           "AND t.estado IN :estadosOcupantes " +
+           "AND ((t.horaInicio < :horaFin AND t.horaFin > :horaInicio))")
+    List<Long> findIdsTurnosOcupantesSolapadosForUpdate(
+        @Param("profesional") PerfilProfesional profesional,
+        @Param("fecha") LocalDate fecha,
+        @Param("horaInicio") LocalTime horaInicio,
+        @Param("horaFin") LocalTime horaFin,
+        @Param("turnoId") Long turnoId,
+        @Param("estadosOcupantes") List<EstadoTurno> estadosOcupantes
     );
 
     List<Turno> findByClienteEmailIgnoreCaseAndFechaAndEstadoIn(
@@ -65,19 +86,19 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
 
     /**
      * Buscar turnos que bloquean agenda para un profesional en una fecha.
-     * Excluye TODOS los estados terminales (CANCELADO, ATENDIDO, NO_ASISTIO)
-     * para que los turnos finalizados o cancelados no ocupen slots en el calendario.
+    * Considera únicamente estados ocupantes de agenda (p.ej. CONFIRMADO, PENDIENTE_PAGO)
+    * para que turnos históricos o terminales no bloqueen slots.
      *
      * CORREGIDO: usa parámetro enum tipado para compatibilidad con Hibernate 6.
      */
     @Query("SELECT t FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
-           "AND t.estado NOT IN :estadosTerminales " +
+           "AND t.estado IN :estadosOcupantes " +
            "ORDER BY t.horaInicio")
     List<Turno> findTurnosActivosByProfesionalAndFecha(
         @Param("profesional") PerfilProfesional profesional,
         @Param("fecha") LocalDate fecha,
-        @Param("estadosTerminales") List<EstadoTurno> estadosTerminales
+        @Param("estadosOcupantes") List<EstadoTurno> estadosOcupantes
     );
 
     /**

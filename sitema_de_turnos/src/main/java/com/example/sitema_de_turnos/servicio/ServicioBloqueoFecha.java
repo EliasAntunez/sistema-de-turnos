@@ -40,7 +40,7 @@ public class ServicioBloqueoFecha {
 
     /** Estados terminales que no generan conflicto de bloqueo. */
     private static final List<EstadoTurno> ESTADOS_TERMINALES =
-            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO);
+            List.of(EstadoTurno.CANCELADO, EstadoTurno.ATENDIDO, EstadoTurno.NO_ASISTIO, EstadoTurno.REPROGRAMADO);
     private static final ZoneId ZONA_ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
 
     private final RepositorioBloqueoFecha repositorioBloqueoFecha;

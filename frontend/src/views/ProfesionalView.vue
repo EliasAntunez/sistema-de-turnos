@@ -197,6 +197,7 @@
               <option value="CONFIRMADO">Confirmado</option>
               <option value="ATENDIDO">Atendido</option>
               <option value="NO_ASISTIO">No asistió</option>
+              <option value="REPROGRAMADO">Reprogramado</option>
               <option value="CANCELADO">Cancelado</option>
             </select>
           </div>
@@ -271,6 +272,12 @@
               </div>
             </div>
             <div class="turno-actions">
+              <button
+                v-if="!esEstadoFinalTurno(turno.estado)"
+                @click="abrirModalReprogramacion(turno)"
+                class="btn-secondary-small">
+                Reprogramar
+              </button>
               <button
                 v-if="turno.estado === 'PENDIENTE_PAGO'"
                 @click="abrirModalPago(turno)"
@@ -429,6 +436,93 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div v-if="showModalReprogramacion" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Reprogramar reserva</h3>
+
+        <div v-if="turnoReprogramacionSeleccionado" class="mb-4 text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
+          <p><strong>Cliente:</strong> {{ turnoReprogramacionSeleccionado.clienteNombre }}</p>
+          <p><strong>Servicio:</strong> {{ turnoReprogramacionSeleccionado.servicioNombre }}</p>
+          <p>
+            <strong>Actual:</strong>
+            {{ formatearFechaLegible(turnoReprogramacionSeleccionado.fecha) }}
+            {{ turnoReprogramacionSeleccionado.horaInicio }} - {{ turnoReprogramacionSeleccionado.horaFin }}
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Selecciona una nueva fecha</label>
+            <input
+              type="date"
+              v-model="reprogramacionFecha"
+              :min="fechaMinima"
+              @change="cargarSlotsReprogramacion"
+              class="mt-1 block w-full border rounded p-2"
+            />
+          </div>
+
+          <div v-if="reprogramacionFecha">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Horarios disponibles</label>
+
+            <div v-if="loadingSlotsReprogramacion" class="text-center py-4">
+              <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+              <p class="mt-2 text-sm text-gray-600">Cargando horarios...</p>
+            </div>
+
+            <div v-else-if="slotsDisponiblesReprogramacion.length === 0" class="text-center py-4 bg-gray-50 rounded-md">
+              <p class="text-sm text-gray-600">No hay horarios disponibles para esta fecha.</p>
+              <p class="text-xs text-gray-500 mt-1">Intenta con otra fecha.</p>
+            </div>
+
+            <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
+              <button
+                v-for="(slot, index) in slotsDisponiblesReprogramacion"
+                :key="slot.horaInicio + index"
+                @click="seleccionarSlotReprogramacion(slot)"
+                :class="[
+                  'px-3 py-2 rounded-md text-sm border transition-colors',
+                  slotReprogramacionSeleccionado === slot
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
+                ]"
+              >
+                {{ formatearHoraSlotReprogramacion(slot.horaInicio) }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="slotReprogramacionSeleccionado" class="p-3 bg-indigo-50 rounded-md">
+            <p class="text-sm text-indigo-800">
+              <strong>Nuevo horario seleccionado:</strong>
+              {{ formatearHoraSlotReprogramacion(slotReprogramacionSeleccionado.horaInicio) }} -
+              {{ calcularFinServicioSlotReprogramacion(slotReprogramacionSeleccionado.horaInicio) }}
+            </p>
+          </div>
+
+          <p v-if="errorReprogramacion" class="text-sm text-red-600">{{ errorReprogramacion }}</p>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-2">
+          <button @click="cerrarModalReprogramacion" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+            Cancelar
+          </button>
+          <button
+            :disabled="!slotReprogramacionSeleccionado || submittingReprogramacion || loadingSlotsReprogramacion"
+            @click="submitReprogramacion"
+            :class="[
+              'px-4 py-2 rounded',
+              !slotReprogramacionSeleccionado || submittingReprogramacion || loadingSlotsReprogramacion
+                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            ]"
+          >
+            {{ submittingReprogramacion ? 'Reprogramando...' : 'Reprogramar' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -737,6 +831,22 @@ const turnoPagoSeleccionado = ref<any>(null)
 const metodoPagoManual = ref<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO')
 const submittingPagoManual = ref(false)
 const cantidadTurnosSinResolver = ref(0)
+
+interface SlotReprogramacion {
+  horaInicio: string
+  horaFin: string
+  profesionalId: number
+  profesionalNombre: string
+}
+
+const showModalReprogramacion = ref(false)
+const turnoReprogramacionSeleccionado = ref<any>(null)
+const reprogramacionFecha = ref('')
+const slotReprogramacionSeleccionado = ref<SlotReprogramacion | null>(null)
+const slotsDisponiblesReprogramacion = ref<SlotReprogramacion[]>([])
+const loadingSlotsReprogramacion = ref(false)
+const submittingReprogramacion = ref(false)
+const errorReprogramacion = ref('')
 const OFFSET_ARGENTINA = '-03:00'
 
 function obtenerTimestampInicioTurnoArgentina(turno: any): number {
@@ -1101,7 +1211,8 @@ async function cargarTurnos() {
 
     const response = await (window as any).apiClient.obtenerTurnosProfesional(params)
     const pageData = response.data.datos
-    turnos.value = pageData.content || []
+    const contenido = pageData.content || []
+    turnos.value = filtrarReprogramadosSegunVista(contenido)
     totalPagesTurnos.value = pageData.totalPages ?? 0
     currentPageTurnos.value = pageData.number ?? currentPageTurnos.value
     actualizarOpcionesServicioTurnos(turnos.value)
@@ -1111,6 +1222,16 @@ async function cargarTurnos() {
   } finally {
     loadingTurnos.value = false
   }
+}
+
+function filtrarReprogramadosSegunVista(turnosEntrada: any[]) {
+  const estadoSeleccionado = filtrosTurnos.value.estado
+
+  if (!estadoSeleccionado) {
+    return turnosEntrada
+  }
+
+  return turnosEntrada.filter(turno => turno.estado === estadoSeleccionado)
 }
 
 function actualizarOpcionesServicioTurnos(turnosPagina: any[]) {
@@ -1200,7 +1321,7 @@ function puedesCambiarEstado(turno: any): boolean {
 }
 
 function esEstadoFinalTurno(estado: string): boolean {
-  return ['NO_ASISTIO', 'NO_ASISTIDO', 'CANCELADO', 'ATENDIDO'].includes(estado)
+  return ['NO_ASISTIO', 'NO_ASISTIDO', 'CANCELADO', 'ATENDIDO', 'REPROGRAMADO'].includes(estado)
 }
 
 function estadosDisponibles(turno: any) {
@@ -1255,6 +1376,110 @@ async function submitPagoManual() {
     toastStore.showError('Error al registrar pago: ' + (error.response?.data?.mensaje || error.message))
   } finally {
     submittingPagoManual.value = false
+  }
+}
+
+function abrirModalReprogramacion(turno: any) {
+  turnoReprogramacionSeleccionado.value = turno
+  reprogramacionFecha.value = turno.fecha
+  slotReprogramacionSeleccionado.value = null
+  slotsDisponiblesReprogramacion.value = []
+  errorReprogramacion.value = ''
+  showModalReprogramacion.value = true
+  cargarSlotsReprogramacion()
+}
+
+function cerrarModalReprogramacion() {
+  showModalReprogramacion.value = false
+  turnoReprogramacionSeleccionado.value = null
+  reprogramacionFecha.value = ''
+  slotReprogramacionSeleccionado.value = null
+  slotsDisponiblesReprogramacion.value = []
+  errorReprogramacion.value = ''
+}
+
+function extraerHoraHHmm(isoDateTime: string) {
+  const fecha = new Date(isoDateTime)
+  const horas = String(fecha.getHours()).padStart(2, '0')
+  const minutos = String(fecha.getMinutes()).padStart(2, '0')
+  return `${horas}:${minutos}`
+}
+
+function seleccionarSlotReprogramacion(slot: SlotReprogramacion) {
+  slotReprogramacionSeleccionado.value = slot
+}
+
+function formatearHoraSlotReprogramacion(isoDateTime: string) {
+  return extraerHoraHHmm(isoDateTime)
+}
+
+function calcularFinServicioSlotReprogramacion(horaInicioISO: string): string {
+  const turno = turnoReprogramacionSeleccionado.value
+  if (!turno?.duracionMinutos) return ''
+
+  const base = new Date(horaInicioISO)
+  base.setMinutes(base.getMinutes() + turno.duracionMinutos)
+  return `${String(base.getHours()).padStart(2, '0')}:${String(base.getMinutes()).padStart(2, '0')}`
+}
+
+async function cargarSlotsReprogramacion() {
+  if (!turnoReprogramacionSeleccionado.value?.id || !reprogramacionFecha.value) {
+    slotsDisponiblesReprogramacion.value = []
+    return
+  }
+
+  try {
+    loadingSlotsReprogramacion.value = true
+    errorReprogramacion.value = ''
+    slotReprogramacionSeleccionado.value = null
+
+    const response = await (window as any).apiClient.obtenerSlotsReprogramacionProfesional(
+      turnoReprogramacionSeleccionado.value.id,
+      reprogramacionFecha.value
+    )
+
+    slotsDisponiblesReprogramacion.value = response.data?.datos || []
+  } catch (error: any) {
+    console.error('Error al cargar slots de reprogramación:', error)
+    slotsDisponiblesReprogramacion.value = []
+    errorReprogramacion.value = error.response?.data?.mensaje || 'No se pudo obtener la disponibilidad para reprogramar'
+  } finally {
+    loadingSlotsReprogramacion.value = false
+  }
+}
+
+async function submitReprogramacion() {
+  if (!turnoReprogramacionSeleccionado.value?.id || !slotReprogramacionSeleccionado.value || !reprogramacionFecha.value) {
+    errorReprogramacion.value = 'Debe seleccionar una fecha y un horario disponible'
+    return
+  }
+
+  let reprogramacionExitosa = false
+
+  try {
+    submittingReprogramacion.value = true
+    errorReprogramacion.value = ''
+
+    await (window as any).apiClient.reprogramarTurnoProfesional(
+      turnoReprogramacionSeleccionado.value.id,
+      {
+        fecha: reprogramacionFecha.value,
+        horaInicio: extraerHoraHHmm(slotReprogramacionSeleccionado.value.horaInicio)
+      }
+    )
+
+    reprogramacionExitosa = true
+    toastStore.showSuccess('Turno reprogramado correctamente')
+    await cargarTurnos()
+  } catch (error: any) {
+    console.error('Error al reprogramar turno:', error)
+    errorReprogramacion.value = error.response?.data?.mensaje || 'No se pudo reprogramar el turno'
+  } finally {
+    submittingReprogramacion.value = false
+    showModalReprogramacion.value = false
+    if (reprogramacionExitosa) {
+      cerrarModalReprogramacion()
+    }
   }
 }
 
@@ -1352,6 +1577,7 @@ function obtenerLabelEstado(estado: string) {
     case 'CONFIRMADO': return 'Confirmado'
     case 'ATENDIDO': return 'Atendido'
     case 'NO_ASISTIO': return 'No asistió'
+    case 'REPROGRAMADO': return 'Reprogramado'
     case 'CANCELADO': return 'Cancelado'
     default: return estado
   }
