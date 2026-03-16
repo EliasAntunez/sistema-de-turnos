@@ -45,11 +45,13 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useClienteStore } from '../stores/cliente'
 import api from '../services/api'
+import { useToastStore } from '../composables/useToast'
 
 const router = useRouter()
 const authStore = useAuthStore()
 // Necesario para el aislamiento de sesión cruzada Cliente ↔ Staff
 const clienteStore = useClienteStore()
+const toastStore = useToastStore()
 
 const email = ref('')
 const contrasena = ref('')
@@ -111,6 +113,9 @@ async function handleLogin() {
   } catch (err: any) {
     console.error('Error de login:', err)
     error.value = err.response?.data?.mensaje || 'Email o contraseña incorrectos'
+    if (error.value === 'Tu cuenta ha sido desactivada. Por favor, comunícate con el local.') {
+      toastStore.showError(error.value)
+    }
   } finally {
     cargando.value = false
   }

@@ -291,6 +291,14 @@
                 class="btn-secondary-small">
                 + Observación
               </button>
+              <button
+                v-if="turno.clienteId"
+                @click="solicitarToggleCliente(turno)"
+                :class="turno.clienteActivo ? 'btn-delete-small' : 'btn-reactivar-small'"
+                :title="turno.clienteActivo ? 'Desactivar cliente' : 'Reactivar cliente'"
+              >
+                {{ turno.clienteActivo ? 'Desactivar Cliente' : 'Reactivar Cliente' }}
+              </button>
             </div>
           </div>
         </div>
@@ -569,6 +577,16 @@
     @confirm="confirmarCambioEstadoTurno"
     @cancel="cerrarConfirmCambioEstadoTurno"
   />
+
+  <ConfirmModal
+    :show="showConfirmDesactivarCliente"
+    :titulo="turnoPendienteDesactivarCliente?.clienteActivo ? 'Desactivar cliente' : 'Reactivar cliente'"
+    :mensaje="turnoPendienteDesactivarCliente?.clienteActivo ? '¿Estás seguro de desactivar a este cliente? No podrá iniciar sesión ni reservar.' : '¿Estás seguro de reactivar a este cliente? Podrá iniciar sesión y reservar nuevamente.'"
+    :textoConfirmar="turnoPendienteDesactivarCliente?.clienteActivo ? 'Desactivar' : 'Reactivar'"
+    :colorBoton="turnoPendienteDesactivarCliente?.clienteActivo ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'"
+    @confirm="confirmarDesactivarCliente"
+    @cancel="cerrarConfirmDesactivarCliente"
+  />
 </template>
 
 <script setup lang="ts">
@@ -617,6 +635,8 @@ const eliminandoDisponibilidad = ref(false)
 const showConfirmCambioEstadoTurno = ref(false)
 const turnoPendienteCambioEstado = ref<any>(null)
 const nuevoEstadoPendienteTurno = ref('')
+const showConfirmDesactivarCliente = ref(false)
+const turnoPendienteDesactivarCliente = ref<any>(null)
 
 // Detalles de conflicto 409 en el formulario de disponibilidad
 const disponibilidadConflictoDetalles = ref<string[]>([])
@@ -1246,17 +1266,11 @@ async function cambiarEstado(turno: any, nuevoEstado: string) {
   }
   
   try {
-    const response = await (window as any).apiClient.cambiarEstadoTurno(turno.id, {
+    await (window as any).apiClient.cambiarEstadoTurno(turno.id, {
       nuevoEstado,
       observaciones: null
     })
-    
-    // Actualizar turno en la lista
-    const index = turnos.value.findIndex(t => t.id === turno.id)
-    if (index !== -1) {
-      turnos.value[index] = response.data.datos
-    }
-
+    await cargarTurnos()
     await cargarCantidadTurnosSinResolver()
     
     toastStore.showSuccess('Estado actualizado exitosamente')
@@ -1296,6 +1310,39 @@ async function confirmarCambioEstadoTurno() {
 
   cerrarConfirmCambioEstadoTurno()
   await cambiarEstado(turno, nuevoEstado)
+}
+
+function solicitarToggleCliente(turno: any) {
+  if (!turno?.clienteId) return
+  turnoPendienteDesactivarCliente.value = turno
+  showConfirmDesactivarCliente.value = true
+}
+
+function cerrarConfirmDesactivarCliente() {
+  showConfirmDesactivarCliente.value = false
+  turnoPendienteDesactivarCliente.value = null
+}
+
+async function confirmarDesactivarCliente() {
+  if (!turnoPendienteDesactivarCliente.value?.clienteId) return
+
+  const estabaActivo = !!turnoPendienteDesactivarCliente.value.clienteActivo
+  const clienteId = turnoPendienteDesactivarCliente.value.clienteId
+  const nombreCliente = turnoPendienteDesactivarCliente.value.clienteNombre || 'cliente'
+  cerrarConfirmDesactivarCliente()
+
+  try {
+    await (window as any).apiClient.actualizarEstadoCliente(clienteId, !estabaActivo)
+    await cargarTurnos()
+    toastStore.showSuccess(
+      estabaActivo
+        ? `Cliente ${nombreCliente} desactivado correctamente`
+        : `Cliente ${nombreCliente} reactivado correctamente`
+    )
+  } catch (error: any) {
+    console.error('Error al actualizar estado del cliente:', error)
+    toastStore.showError(error.response?.data?.mensaje || 'No se pudo actualizar el estado del cliente')
+  }
 }
 
 function obtenerLabelEstado(estado: string) {
@@ -2382,6 +2429,22 @@ function cerrarSesion() {
 
 .btn-warning-small:hover {
   background: #fde68a;
+}
+
+.btn-reactivar-small {
+  padding: 8px 16px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #22c55e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.btn-reactivar-small:hover {
+  background: #bbf7d0;
 }
 
 .turno-info-modal {

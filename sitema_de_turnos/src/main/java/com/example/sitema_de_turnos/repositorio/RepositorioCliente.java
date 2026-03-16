@@ -54,10 +54,18 @@ public interface RepositorioCliente extends JpaRepository<Cliente, Long> {
             @Param("empresa") Empresa empresa, 
             @Param("identificador") String identificador);
 
+        @Query("SELECT c FROM Cliente c WHERE c.empresa = :empresa AND c.tieneUsuario = true " +
+            "AND (c.email = :identificador OR c.nombreUsuario = :identificador)")
+        Optional<Cliente> findByEmpresaAndEmailOrNombreUsuarioAndTieneUsuarioTrue(
+             @Param("empresa") Empresa empresa,
+             @Param("identificador") String identificador);
+
     /**
      * Listar todos los clientes activos de una empresa
      */
     List<Cliente> findByEmpresaAndActivoTrue(Empresa empresa);
+
+    Optional<Cliente> findByIdAndEmpresa(Long id, Empresa empresa);
 
     /**
      * Verificar si existe un teléfono en una empresa

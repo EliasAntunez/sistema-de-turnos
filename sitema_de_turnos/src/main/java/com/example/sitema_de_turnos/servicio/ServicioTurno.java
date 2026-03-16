@@ -22,7 +22,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -49,6 +53,7 @@ public class ServicioTurno {
     private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
     private final RepositorioPago repositorioPago;
     private final ServicioNotificacion servicioNotificacion;
+    private final ServicioPoliticaCancelacion servicioPoliticaCancelacion;
     private final EmailNotificationService emailNotificationService;
 
         /** Estados terminales que no deben bloquear agenda ni participar en el índice parcial. */
@@ -70,13 +75,62 @@ public class ServicioTurno {
     }
 
     private void validarNoCancelacionRetrospectiva(Turno turno) {
-        LocalDateTime ahoraArgentina = obtenerAhoraArgentina();
+        LocalDateTime ahoraEmpresa = obtenerAhoraEmpresa(turno.getEmpresa()).toLocalDateTime();
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
-        if (inicioTurno.isBefore(ahoraArgentina)) {
+        if (inicioTurno.isBefore(ahoraEmpresa)) {
             throw new ValidacionException(
                 "No se puede cancelar un turno que ya ha pasado. Debe marcarse como Atendido o No Asistió."
             );
         }
+    }
+
+    private Optional<PoliticaCancelacion> obtenerPoliticaCancelacionAplicable(Empresa empresa) {
+        return servicioPoliticaCancelacion
+            .obtenerActivaPorEmpresaYTipo(empresa, TipoPoliticaCancelacion.CANCELACION)
+            .or(() -> servicioPoliticaCancelacion.obtenerActivaPorEmpresaYTipo(empresa, TipoPoliticaCancelacion.AMBOS));
+    }
+
+    private void validarPoliticaCancelacionCliente(Turno turno, LocalDateTime ahoraLocal) {
+        if (tieneBypassPoliticaPorRol()) {
+            return;
+        }
+
+        Integer horasLimiteSnapshot = obtenerHorasLimiteSnapshot(turno);
+        if (horasLimiteSnapshot == null) {
+            return;
+        }
+
+        LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
+        long horasRestantes = Duration.between(ahoraLocal, inicioTurno).toHours();
+
+        if (horasRestantes < horasLimiteSnapshot) {
+            throw new ValidacionException(
+                "No puedes cancelar o reprogramar con menos de " + horasLimiteSnapshot
+                    + " horas de anticipación por políticas del local. Por favor, comunícate con la empresa."
+            );
+        }
+    }
+
+    private Integer obtenerHorasLimiteSnapshot(Turno turno) {
+        if (turno == null) {
+            return null;
+        }
+        Integer horasLimiteAplicada = turno.getHorasLimiteCancelacionAplicada();
+        if (horasLimiteAplicada == null || horasLimiteAplicada <= 0) {
+            return null;
+        }
+        return horasLimiteAplicada;
+    }
+
+    private boolean tieneBypassPoliticaPorRol() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+
+        return authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .anyMatch(rol -> "PROFESIONAL".equals(rol) || "DUENO".equals(rol));
     }
 
     /**
@@ -219,6 +273,9 @@ public class ServicioTurno {
         boolean requiereSena = Boolean.TRUE.equals(servicio.getRequiereSena());
         turno.setEstado(requiereSena ? EstadoTurno.PENDIENTE_PAGO : EstadoTurno.CONFIRMADO);
         turno.setObservaciones(request.getObservaciones());
+        obtenerPoliticaCancelacionAplicable(empresa)
+            .map(PoliticaCancelacion::getHorasLimiteCancelacion)
+            .ifPresent(turno::setHorasLimiteCancelacionAplicada);
 
         try {
             turno = repositorioTurno.save(turno);
@@ -322,7 +379,7 @@ public class ServicioTurno {
             throw new ValidacionException("No se puede reprogramar un turno cancelado o ya atendido");
         }
 
-        // Validar que el turno origen no sea pasado ni esté muy cerca (menos de 1 hora)
+        // Validar que el turno origen no sea pasado
         ZonedDateTime ahoraEmpresa = obtenerAhoraEmpresa(turno.getEmpresa());
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
         LocalDateTime ahoraLocal = ahoraEmpresa.toLocalDateTime();
@@ -332,9 +389,7 @@ public class ServicioTurno {
             throw new ValidacionException("No se puede reprogramar un turno que ya pasó");
         }
 
-        if (inicioTurno.minusHours(1).isBefore(ahoraLocal)) {
-            throw new ValidacionException("No se puede reprogramar un turno con menos de 1 hora de anticipación");
-        }
+        validarPoliticaCancelacionCliente(turno, ahoraLocal);
 
         // Campos solicitados (parse desde strings para compatibilidad de serialización en tests)
         java.time.LocalDate nuevaFecha = request.getFechaAsLocalDate();
@@ -481,7 +536,7 @@ public class ServicioTurno {
     }
 
     /**
-     * Cancelar turno con validación de anticipación mínima (1 hora).
+     * Cancelar turno con validación dinámica de anticipación según política activa.
      * Privado: el acceso externo siempre pasa por cancelarTurnoPorCliente (que valida ownership).
      */
     @Transactional
@@ -499,17 +554,16 @@ public class ServicioTurno {
             throw new ValidacionException("No se puede cancelar un turno ya atendido");
         }
 
-        // Validar anticipación mínima (1 hora)
-        LocalDateTime ahoraLocal = obtenerAhoraArgentina();
+        LocalDateTime ahoraLocal = obtenerAhoraEmpresa(turno.getEmpresa()).toLocalDateTime();
         LocalDateTime inicioTurno = LocalDateTime.of(turno.getFecha(), turno.getHoraInicio());
 
-        if (inicioTurno.minusHours(1).isBefore(ahoraLocal)) {
+        if (inicioTurno.isBefore(ahoraLocal)) {
             throw new ValidacionException(
-                "No se puede cancelar con menos de 1 hora de anticipación. " +
-                "Por favor, comuníquese con la empresa al teléfono: " + 
-                turno.getEmpresa().getTelefono()
+                "No se puede cancelar un turno que ya ha pasado. Debe marcarse como Atendido o No Asistió."
             );
         }
+
+        validarPoliticaCancelacionCliente(turno, ahoraLocal);
 
         turno.setEstado(EstadoTurno.CANCELADO);
         turno.setMotivoCancelacion(motivo);
@@ -564,6 +618,8 @@ public class ServicioTurno {
         response.setBufferMinutos(turno.getBufferMinutos());
         response.setPrecio(turno.getPrecio());
         response.setEstado(turno.getEstado().name());
+        response.setClienteId(turno.getCliente().getId());
+        response.setClienteActivo(turno.getCliente().getActivo());
         response.setClienteNombre(turno.getCliente().getNombre());
         response.setClienteTelefono(turno.getCliente().getTelefono());
         response.setClienteEmail(turno.getCliente().getEmail());

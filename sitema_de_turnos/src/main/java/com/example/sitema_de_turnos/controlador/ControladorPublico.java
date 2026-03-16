@@ -208,11 +208,29 @@ public class ControladorPublico {
             return ResponseEntity.ok(ApiResponse.exito(clienteResponse, "Login exitoso"));
 
         } catch (Exception e) {
-            log.error("❌ [LOGIN-CLIENTE] Error en autenticación - Empresa: {} | Identificador: {} | Error: {} | Tipo: {}", 
-                    empresaSlug, request.getIdentificador(), e.getMessage(), e.getClass().getSimpleName(), e);
+            log.warn("❌ [LOGIN-CLIENTE] Error en autenticación - Empresa: {} | Identificador: {} | Tipo: {}", 
+                    empresaSlug, request.getIdentificador(), e.getClass().getSimpleName());
+            if (log.isDebugEnabled()) {
+                log.debug("[LOGIN-CLIENTE] Detalle técnico de autenticación", e);
+            }
+            if (esCuentaDesactivada(e)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(ApiResponse.error("Tu cuenta ha sido desactivada. Por favor, comunícate con el local."));
+            }
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Email/usuario o contraseña incorrectos"));
         }
+    }
+
+    private boolean esCuentaDesactivada(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof org.springframework.security.authentication.DisabledException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     /**

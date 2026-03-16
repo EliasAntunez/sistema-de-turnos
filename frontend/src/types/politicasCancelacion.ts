@@ -5,7 +5,6 @@ export interface PoliticaCancelacionRequest {
   descripcion: string;
   horasLimiteCancelacion: number;
   penalizacion: 'NINGUNA' | 'ADVERTENCIA' | 'BLOQUEO' | 'MULTA';
-  mensajeCliente?: string;
   activa: boolean;
 }
 
@@ -16,7 +15,6 @@ export interface PoliticaCancelacionResponse {
   descripcion: string;
   horasLimiteCancelacion: number;
   penalizacion: 'NINGUNA' | 'ADVERTENCIA' | 'BLOQUEO' | 'MULTA';
-  mensajeCliente?: string;
   activa: boolean;
   fechaCreacion?: string;
   fechaModificacion?: string;

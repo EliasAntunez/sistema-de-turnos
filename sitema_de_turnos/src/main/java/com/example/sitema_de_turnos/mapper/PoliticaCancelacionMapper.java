@@ -15,7 +15,6 @@ public class PoliticaCancelacionMapper {
         entity.setDescripcion(dto.getDescripcion());
         entity.setHorasLimiteCancelacion(dto.getHorasLimiteCancelacion());
         entity.setPenalizacion(PenalizacionPolitica.valueOf(dto.getPenalizacion()));
-        entity.setMensajeCliente(dto.getMensajeCliente());
         entity.setActiva(dto.isActiva());
         return entity;
     }
@@ -28,7 +27,6 @@ public class PoliticaCancelacionMapper {
         dto.setDescripcion(entity.getDescripcion());
         dto.setHorasLimiteCancelacion(entity.getHorasLimiteCancelacion());
         dto.setPenalizacion(entity.getPenalizacion().name());
-        dto.setMensajeCliente(entity.getMensajeCliente());
         dto.setActiva(entity.getActiva());
         dto.setFechaCreacion(entity.getFechaCreacion() != null ? entity.getFechaCreacion().toString() : null);
         dto.setFechaModificacion(entity.getFechaModificacion() != null ? entity.getFechaModificacion().toString() : null);

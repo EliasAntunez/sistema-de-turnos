@@ -186,6 +186,6 @@ public class ManejadorExcepcionesGlobal {
         
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(RespuestaApi.error("Error interno del servidor: " + ex.getMessage()));
+                .body(RespuestaApi.error("Error interno del servidor"));
     }
 }
