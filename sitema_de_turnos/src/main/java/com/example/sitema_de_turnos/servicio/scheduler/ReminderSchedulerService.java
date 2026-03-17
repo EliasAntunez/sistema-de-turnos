@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -103,13 +102,13 @@ public class ReminderSchedulerService {
             long duration = System.currentTimeMillis() - startTime;
             log.info("✅ Proceso completado en {}ms - Enviados: {} | Errores: {}", 
                     duration, totalEnviados, totalErrores);
+                log.info("✅ Scheduler de recordatorios finalizado: {} recordatorios enviados en total.", totalEnviados);
             
         } catch (Exception e) {
             log.error("❌ Error crítico en scheduler de recordatorios: {}", e.getMessage(), e);
         }
     }
     
-    @Transactional
     private int[] procesarEmpresa(Empresa empresa) {
         int enviados = 0;
         int errores = 0;
@@ -129,7 +128,8 @@ public class ReminderSchedulerService {
             
             // Calcular ventana de tiempo usando timezone de la empresa
             ZoneId timezone = ZoneId.of(empresa.getTimezone());
-            LocalDateTime ahora = LocalDateTime.now(timezone);
+            LocalDateTime ahoraLocal = LocalDateTime.now(timezone);
+            log.debug("Empresa ID {} ({}): Hora local calculada {}", empresa.getId(), timezone.getId(), ahoraLocal);
             
             // ✅ A3: Ventana de recordatorios con límites inferior y superior
             // Lógica: ahora + minMinutos <= turno <= ahora + horasAntes
@@ -139,8 +139,8 @@ public class ReminderSchedulerService {
             // 
             // - Límite SUPERIOR: No enviar si el turno es muy lejano (más de X horas)
             //   Ejemplo: Si hoursBefore=24, un turno en 48 horas NO recibe recordatorio
-            LocalDateTime fechaHoraMin = ahora.plusMinutes(config.getMinMinutesBefore()); // No muy cercano
-            LocalDateTime fechaHoraMax = ahora.plusHours(horasAntes); // No muy lejano
+            LocalDateTime fechaHoraMin = ahoraLocal.plusMinutes(config.getMinMinutesBefore()); // No muy cercano
+            LocalDateTime fechaHoraMax = ahoraLocal.plusHours(horasAntes); // No muy lejano
             
             // ✅ A2: Descomponer fecha/hora para query JPQL portable
             LocalDate fechaMin = fechaHoraMin.toLocalDate();
@@ -270,7 +270,6 @@ public class ReminderSchedulerService {
      * Verificar si el turno ya alcanzó el máximo de reintentos.
      * Transacción corta y específica.
      */
-    @Transactional
     private boolean verificarMaximosReintentosAlcanzados(Turno turno) {
         int intentos = turno.getRecordatorioIntentos() != null ? turno.getRecordatorioIntentos() : 0;
         
@@ -318,7 +317,6 @@ public class ReminderSchedulerService {
      * Transacción corta y específica - solo escribe y commitea rápido.
      * OPTIMIZADO (M1): Recibe objeto Turno, evita findById adicional.
      */
-    @Transactional
     private void actualizarTurnoExitoso(Turno turno, int numeroIntento) {
         turno.setRecordatorioEnviado(true);
         turno.setFechaRecordatorioEnviado(LocalDateTime.now());
@@ -333,7 +331,6 @@ public class ReminderSchedulerService {
      * Transacción corta y específica - solo escribe y commitea rápido.
      * OPTIMIZADO (M1): Recibe objeto Turno, evita findById adicional.
      */
-    @Transactional
     private void actualizarIntentoFallido(Turno turno, int numeroIntento, String errorMsg) {
         turno.setRecordatorioIntentos(numeroIntento);
         
@@ -354,7 +351,6 @@ public class ReminderSchedulerService {
      * Transacción corta y específica.
      * OPTIMIZADO (M1): Recibe objeto Turno, evita findById adicional.
      */
-    @Transactional
     private void marcarInicioProcesamiento(Turno turno) {
         turno.setRecordatorioPrimerIntento(LocalDateTime.now());
         repositorioTurno.save(turno); // save() hace merge automático si está detached
@@ -371,7 +367,6 @@ public class ReminderSchedulerService {
      * Transacción corta y específica.
      * OPTIMIZADO (M1): Recibe objeto Turno, evita findById adicional.
      */
-    @Transactional
     private void resetearMarcaProcesamiento(Turno turno) {
         turno.setRecordatorioPrimerIntento(null);
         repositorioTurno.save(turno); // save() hace merge automático si está detached

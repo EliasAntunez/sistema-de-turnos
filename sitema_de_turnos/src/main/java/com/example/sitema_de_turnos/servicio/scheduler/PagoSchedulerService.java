@@ -6,17 +6,17 @@ import com.example.sitema_de_turnos.modelo.Pago;
 import com.example.sitema_de_turnos.modelo.Turno;
 import com.example.sitema_de_turnos.repositorio.RepositorioPago;
 import com.example.sitema_de_turnos.repositorio.RepositorioTurno;
+import com.example.sitema_de_turnos.servicio.notificacion.EmailNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -27,54 +27,80 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PagoSchedulerService {
 
-    private static final ZoneId ZONA_ARGENTINA = ZoneId.of("America/Argentina/Buenos_Aires");
-    private static final String MOTIVO_CANCELACION_EXPIRACION = "Sistema: Liberado por falta de pago de seña";
+    private static final String MOTIVO_CANCELACION_EXPIRACION = "Expirado automáticamente por falta de pago de la seña.";
 
     private final RepositorioTurno repositorioTurno;
     private final RepositorioPago repositorioPago;
-    private final PagoSchedulerConfig pagoSchedulerConfig;
+    private final EmailNotificationService emailNotificationService;
+    private final TransactionTemplate transactionTemplate;
 
-    @Scheduled(cron = "0 */15 * * * *")
-    @Transactional
+    @Value("${app.turnos.expiration.grace-minutes}")
+    private int graceMinutes;
+
+    @Scheduled(cron = "${app.turnos.expiration.cron}")
     public void expirarPagosPendientes() {
-        ZonedDateTime ahoraArgentina = ZonedDateTime.now(ZONA_ARGENTINA);
-        LocalDateTime ahoraLocal = ahoraArgentina.toLocalDateTime();
-        LocalDate fechaActual = ahoraArgentina.toLocalDate();
-        LocalTime horaActual = ahoraArgentina.toLocalTime();
-        LocalDateTime limiteCreacion = ahoraLocal.minusHours(pagoSchedulerConfig.getExpiracionHoras());
+        LocalDateTime ahoraUtc = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime limiteCreacion = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(graceMinutes);
 
         List<Turno> turnosExpirados = repositorioTurno
             .findTurnosPendientesPagoExpirados(
                 EstadoTurno.PENDIENTE_PAGO,
-                limiteCreacion,
-                fechaActual,
-                horaActual
+                limiteCreacion
             );
 
-        if (turnosExpirados.isEmpty()) {
-            return;
-        }
+        List<Turno> turnosLiberadosPersistidos = actualizarEstadosExpirados(turnosExpirados, ahoraUtc);
 
-        List<Long> turnoIds = turnosExpirados.stream().map(Turno::getId).toList();
-        Map<Long, Pago> pagosPorTurno = repositorioPago.findByTurnoIds(turnoIds)
-            .stream()
-            .collect(Collectors.toMap(pago -> pago.getTurno().getId(), Function.identity()));
-
-        for (Turno turno : turnosExpirados) {
-            turno.setEstado(EstadoTurno.CANCELADO);
-            turno.setMotivoCancelacion(MOTIVO_CANCELACION_EXPIRACION);
-            turno.setCanceladoPor("SISTEMA");
-            turno.setFechaCancelacion(ahoraLocal);
-
-            Pago pago = pagosPorTurno.get(turno.getId());
-            if (pago != null && pago.getEstado() == EstadoPago.PENDIENTE) {
-                pago.setEstado(EstadoPago.RECHAZADO);
+        for (Turno turno : turnosLiberadosPersistidos) {
+            try {
+                emailNotificationService.enviarCorreoTurnoExpirado(turno);
+            } catch (Exception e) {
+                log.error("❌ Error enviando correo de turno expirado para turno {}: {}", turno.getId(), e.getMessage(), e);
             }
         }
 
-        repositorioTurno.saveAll(turnosExpirados);
-        repositorioPago.saveAll(pagosPorTurno.values());
+        log.info("✅ Limpieza completada: {} turnos expirados liberados.", turnosLiberadosPersistidos.size());
+    }
 
-        log.info("⏰ Scheduler de pagos: {} turnos PENDIENTE_PAGO expirados y cancelados", turnosExpirados.size());
+    protected List<Turno> actualizarEstadosExpirados(List<Turno> turnosExpirados, LocalDateTime ahoraUtc) {
+        return transactionTemplate.execute(status -> {
+            if (turnosExpirados == null || turnosExpirados.isEmpty()) {
+                return List.of();
+            }
+
+            List<Long> turnoIds = turnosExpirados.stream().map(Turno::getId).toList();
+            Map<Long, Pago> pagosPorTurno = repositorioPago.findByTurnoIds(turnoIds)
+                .stream()
+                .collect(Collectors.toMap(pago -> pago.getTurno().getId(), Function.identity()));
+
+            List<Turno> turnosActualizados = new ArrayList<>();
+            List<Pago> pagosActualizados = new ArrayList<>();
+
+            for (Turno turno : turnosExpirados) {
+                try {
+                    turno.setEstado(EstadoTurno.CANCELADO);
+                    turno.setMotivoCancelacion(MOTIVO_CANCELACION_EXPIRACION);
+                    turno.setCanceladoPor("SISTEMA");
+                    turno.setFechaCancelacion(ahoraUtc);
+                    turnosActualizados.add(turno);
+
+                    Pago pago = pagosPorTurno.get(turno.getId());
+                    if (pago != null && pago.getEstado() == EstadoPago.PENDIENTE) {
+                        pago.setEstado(EstadoPago.RECHAZADO);
+                        pagosActualizados.add(pago);
+                    }
+                } catch (Exception e) {
+                    log.error("❌ Error preparando expiración para turno {}: {}", turno.getId(), e.getMessage(), e);
+                }
+            }
+
+            if (!turnosActualizados.isEmpty()) {
+                repositorioTurno.saveAll(turnosActualizados);
+            }
+            if (!pagosActualizados.isEmpty()) {
+                repositorioPago.saveAll(pagosActualizados);
+            }
+
+            return turnosActualizados;
+        });
     }
 }

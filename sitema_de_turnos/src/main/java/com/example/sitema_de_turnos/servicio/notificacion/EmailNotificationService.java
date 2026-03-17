@@ -43,6 +43,7 @@ public class EmailNotificationService implements NotificationService {
     private static final String TEMPLATE_CONFIRMACION_PATH = "/templates/confirmacion-turno-email.html";
     private static final String TEMPLATE_REPROGRAMACION_PROFESIONAL = "reprogramacion-por-profesional";
     private static final String TEMPLATE_REPROGRAMACION_CLIENTE = "reprogramacion-por-cliente";
+    private static final String TEMPLATE_TURNO_EXPIRADO = "turno-expirado";
     private static final DateTimeFormatter FORMATTER_FECHA_TURNO = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter FORMATTER_HORA_TURNO = DateTimeFormatter.ofPattern("HH:mm");
     
@@ -152,6 +153,52 @@ public class EmailNotificationService implements NotificationService {
     public void enviarCorreoReprogramacionPorCliente(Turno turno) {
         enviarCorreoReprogramacionTurno(turno, TEMPLATE_REPROGRAMACION_CLIENTE,
             "✅ Reprogramación confirmada - ");
+    }
+
+    @Async("notificacionesExecutor")
+    public void enviarCorreoTurnoExpirado(Turno turno) {
+        String emailDestino = turno != null && turno.getCliente() != null ? turno.getCliente().getEmail() : "desconocido";
+        try {
+            if (!enabled) {
+                log.warn("⚠️ Sistema de email deshabilitado - No se enviará expiración para turno {}",
+                        turno != null ? turno.getId() : null);
+                return;
+            }
+
+            validarDatosTurno(turno);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(emailFrom, emailFromName);
+            helper.setTo(turno.getCliente().getEmail());
+            helper.setSubject("⚠️ Tu turno fue cancelado por falta de pago - " + turno.getEmpresa().getNombre());
+
+            String fecha = turno.getFecha().format(FORMATTER_FECHA_TURNO);
+            String horaInicio = turno.getHoraInicio().format(FORMATTER_HORA_TURNO);
+            String horaFin = turno.getHoraInicio().plusMinutes(turno.getDuracionMinutos()).format(FORMATTER_HORA_TURNO);
+            String slugEmpresa = turno.getEmpresa() != null ? turno.getEmpresa().getSlug() : null;
+            String frontendBase = frontendUrl != null ? frontendUrl.replaceAll("/+$", "") : "";
+            String urlReserva = frontendBase + "/empresa/" + slugEmpresa;
+
+            Context context = new Context(new Locale("es", "AR"));
+            context.setVariable("clienteNombre", turno.getCliente().getNombre());
+            context.setVariable("empresaNombre", turno.getEmpresa().getNombre());
+            context.setVariable("servicioNombre", turno.getServicio().getNombre());
+            context.setVariable("fecha", fecha);
+            context.setVariable("horaInicio", horaInicio);
+            context.setVariable("horaFin", horaFin);
+            context.setVariable("urlReserva", urlReserva);
+
+            String html = templateEngine.process(TEMPLATE_TURNO_EXPIRADO, context);
+            helper.setText(html, true);
+            mailSender.send(message);
+
+            log.info("✅ Correo de expiración de turno enviado - Turno {} - Email: {}",
+                    turno.getId(), turno.getCliente().getEmail());
+        } catch (Exception e) {
+            log.error("Error al enviar correo de expiración a {}: ", emailDestino, e);
+        }
     }
 
     private void enviarCorreoReprogramacionTurno(Turno turno, String templateNombre, String prefijoAsunto) {

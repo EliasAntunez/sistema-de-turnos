@@ -192,7 +192,7 @@
               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
             >
               <option value="">Todos los estados</option>
-              <option value="PENDIENTE_PAGO">Pendiente de pago</option>
+              <option value="PENDIENTE_PAGO">Seña pendiente</option>
               <option value="PENDIENTE_CONFIRMACION">Pendiente de confirmación</option>
               <option value="CONFIRMADO">Confirmado</option>
               <option value="ATENDIDO">Atendido</option>
@@ -247,7 +247,7 @@
                 </span>
               </div>
               <span :class="['estado-badge', `estado-${turno.estado.toLowerCase()}`]">
-                {{ turno.estado }}
+                {{ obtenerLabelEstado(turno.estado) }}
               </span>
             </div>
             <div class="turno-body">
@@ -1573,7 +1573,7 @@ async function confirmarDesactivarCliente() {
 function obtenerLabelEstado(estado: string) {
   switch (estado) {
     case 'PENDIENTE_CONFIRMACION': return 'Pendiente de confirmación'
-    case 'PENDIENTE_PAGO': return 'Pendiente de pago'
+    case 'PENDIENTE_PAGO': return 'Seña pendiente'
     case 'CONFIRMADO': return 'Confirmado'
     case 'ATENDIDO': return 'Atendido'
     case 'NO_ASISTIO': return 'No asistió'

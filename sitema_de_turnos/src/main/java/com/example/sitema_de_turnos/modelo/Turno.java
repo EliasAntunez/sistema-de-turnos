@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 
 @Data
 @NoArgsConstructor
@@ -179,12 +180,12 @@ public class Turno {
 
     @PrePersist
     protected void onCreate() {
-        fechaCreacion = LocalDateTime.now();
-        fechaActualizacion = LocalDateTime.now();
+        fechaCreacion = LocalDateTime.now(ZoneOffset.UTC);
+        fechaActualizacion = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     @PreUpdate
     protected void onUpdate() {
-        fechaActualizacion = LocalDateTime.now();
+        fechaActualizacion = LocalDateTime.now(ZoneOffset.UTC);
     }
 }
