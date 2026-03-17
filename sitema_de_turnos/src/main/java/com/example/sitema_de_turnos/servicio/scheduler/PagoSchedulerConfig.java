@@ -8,6 +8,6 @@ import org.springframework.stereotype.Component;
 @Getter
 public class PagoSchedulerConfig {
 
-    @Value("${app.pagos.expiracion-horas:24}")
-    private int expiracionHoras;
+    @Value("${app.turnos.expiration.grace-minutes:120}")
+    private int graceMinutes;
 }

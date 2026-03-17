@@ -58,7 +58,7 @@
               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
             >
               <option value="">Todos los estados</option>
-              <option value="PENDIENTE_PAGO">Pendiente de pago</option>
+              <option value="PENDIENTE_PAGO">Seña pendiente</option>
               <option value="PENDIENTE_CONFIRMACION">Pendiente de confirmación</option>
               <option value="CONFIRMADO">Confirmado</option>
               <option value="ATENDIDO">Atendido</option>
@@ -122,7 +122,7 @@
                   v-if="turno.estado === 'PENDIENTE_PAGO'"
                   class="mt-3 p-3 rounded-md border border-amber-200 bg-amber-50"
                 >
-                  <p class="text-sm font-semibold text-amber-800">Tu turno está pendiente de pago de seña.</p>
+                  <p class="text-sm font-semibold text-amber-800">Tu turno tiene la seña pendiente.</p>
                   <p class="text-sm text-amber-900 mt-1 whitespace-pre-line">{{ obtenerDatosBancariosTurno(turno) }}</p>
                   <button
                     v-if="obtenerTelefonoEmpresaTurno(turno)"
@@ -512,7 +512,7 @@ function formatearFecha(fecha: string): string {
 
 function getEstadoTexto(estado: string): string {
   const estados: { [key: string]: string } = {
-    'PENDIENTE_PAGO': 'Pendiente de pago',
+    'PENDIENTE_PAGO': 'Seña pendiente',
     'PENDIENTE_CONFIRMACION': 'Pendiente de confirmación',
     'RESERVADO': 'Reservado',
     'CONFIRMADO': 'Confirmado',

@@ -327,7 +327,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
            "LEFT JOIN FETCH p.usuario " +
            "LEFT JOIN FETCH t.cliente " +
            "LEFT JOIN FETCH t.servicio " +
-           "WHERE e.id = :empresaId " +
+            "WHERE t.empresa.id = :empresaId " +
            "AND t.estado = :estado " +
            "AND (t.recordatorioEnviado = false OR t.recordatorioEnviado IS NULL) " +
            "AND t.recordatorioPrimerIntento IS NULL " +  // ✅ A4: Previene duplicados
@@ -431,19 +431,16 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
         @Param("horaFin") LocalTime horaFin
     );
 
-    @Query("SELECT t FROM Turno t " +
-           "WHERE t.estado = :estado " +
-           "AND (" +
-               "t.fechaCreacion <= :fechaCreacionLimite " +
-               "OR t.fecha < :fechaActual " +
-               "OR (t.fecha = :fechaActual AND t.horaInicio <= :horaActual)" +
-           ") " +
-           "ORDER BY t.fecha ASC, t.horaInicio ASC")
+        @Query("SELECT DISTINCT t FROM Turno t " +
+            "LEFT JOIN FETCH t.cliente " +
+            "LEFT JOIN FETCH t.empresa " +
+            "LEFT JOIN FETCH t.servicio " +
+            "WHERE t.estado = :estado " +
+            "AND t.fechaCreacion <= :limite " +
+            "ORDER BY t.fecha ASC, t.horaInicio ASC")
     List<Turno> findTurnosPendientesPagoExpirados(
         @Param("estado") EstadoTurno estado,
-        @Param("fechaCreacionLimite") LocalDateTime fechaCreacionLimite,
-        @Param("fechaActual") LocalDate fechaActual,
-        @Param("horaActual") LocalTime horaActual
+        @Param("limite") LocalDateTime limite
     );
 
     @Query("SELECT COUNT(t.id) FROM Turno t " +
