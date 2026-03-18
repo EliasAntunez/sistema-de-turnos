@@ -10,6 +10,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificacionesStore } from '@/stores/notificaciones'
 import { useToastStore } from '@/composables/useToast'
+import { solicitarPermisoYObtenerToken, escucharNotificacionesForeground } from '@/firebase'
 import UnifiedNavbar from '@/components/UnifiedNavbar.vue'
 import ClienteNavbar from '@/components/ClienteNavbar.vue'
 
@@ -17,6 +18,42 @@ const authStore = useAuthStore()
 const notificacionesStore = useNotificacionesStore()
 const toastStore = useToastStore()
 const route = useRoute()
+let foregroundListenerActivo = false
+let detenerForegroundListener: (() => void) | null = null
+
+async function registrarTokenPushEnBackendConFetch(token: string): Promise<void> {
+  const response = await fetch('http://localhost:8080/api/notificaciones/token', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      token,
+      userAgent: navigator.userAgent
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`Error al registrar token push: HTTP ${response.status}`)
+  }
+}
+
+async function inicializarFcmParaProfesional(): Promise<void> {
+  try {
+    const token = await solicitarPermisoYObtenerToken()
+    if (!token) return
+
+    await registrarTokenPushEnBackendConFetch(token)
+
+    if (!foregroundListenerActivo) {
+      detenerForegroundListener = await escucharNotificacionesForeground()
+      foregroundListenerActivo = true
+    }
+  } catch (error) {
+    console.error('Error al inicializar FCM para profesional', error)
+  }
+}
 
 /**
  * Ciclo de vida global del WebSocket.
@@ -28,10 +65,20 @@ const route = useRoute()
 watch(
   () => authStore.autenticado,
   async (estaAutenticado) => {
-    if (estaAutenticado && authStore.hasRole('PROFESIONAL')) {
-      await notificacionesStore.inicializar()
-    } else if (!estaAutenticado) {
-      notificacionesStore.desconectar()
+    try {
+      if (estaAutenticado && authStore.hasRole('PROFESIONAL')) {
+        await notificacionesStore.inicializar()
+        await inicializarFcmParaProfesional()
+      } else if (!estaAutenticado) {
+        notificacionesStore.desconectar()
+        if (detenerForegroundListener) {
+          detenerForegroundListener()
+          detenerForegroundListener = null
+        }
+        foregroundListenerActivo = false
+      }
+    } catch (error) {
+      console.error('Error en watcher de autenticación', error)
     }
   },
   { immediate: true }
@@ -59,6 +106,11 @@ onMounted(() => {
 })
 onUnmounted(() => {
   window.removeEventListener('nueva-notificacion', onNuevaNotificacionGlobal as EventListener)
+  if (detenerForegroundListener) {
+    detenerForegroundListener()
+    detenerForegroundListener = null
+  }
+  foregroundListenerActivo = false
 })
 
 const showClientNavbar = computed(() => !!route.meta?.clientView)

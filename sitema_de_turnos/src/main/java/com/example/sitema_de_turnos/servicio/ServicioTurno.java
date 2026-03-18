@@ -1203,11 +1203,11 @@ public class ServicioTurno {
      */
     private void enviarNotificacionNuevoTurno(Turno turno) {
         try {
-            String titulo = "Nuevo turno asignado";
+            String titulo = "Nuevo Turno ✅";
             String mensaje = String.format(
-                "Nuevo turno: %s con %s para %s a las %s",
-                turno.getServicio().getNombre(),
+                "%s reservó %s para el %s a las %s.",
                 turno.getCliente().getNombre(),
+                turno.getServicio().getNombre(),
                 turno.getFecha().format(FORMATTER_FECHA),
                 turno.getHoraInicio().format(FORMATTER_HORA)
             );
@@ -1244,13 +1244,13 @@ public class ServicioTurno {
                 : TipoNotificacion.CANCELACION_EMPRESA;
 
             String titulo = "CLIENTE".equals(canceladoPor) 
-                ? "Turno cancelado por el cliente" 
-                : "Turno cancelado por la empresa";
+                ? "Turno Cancelado ❌" 
+                : "Turno Cancelado 🏢";
 
             String mensaje = String.format(
-                "Turno cancelado: %s con %s previsto para %s a las %s. Motivo: %s",
-                turno.getServicio().getNombre(),
+                "%s canceló el turno de %s del %s a las %s. Motivo: %s",
                 turno.getCliente().getNombre(),
+                turno.getServicio().getNombre(),
                 turno.getFecha().format(FORMATTER_FECHA),
                 turno.getHoraInicio().format(FORMATTER_HORA),
                 turno.getMotivoCancelacion() != null ? turno.getMotivoCancelacion() : "No especificado"
@@ -1280,11 +1280,11 @@ public class ServicioTurno {
      */
     private void enviarNotificacionReprogramacion(Turno turno, LocalDateTime fechaHoraAnterior, LocalDateTime fechaHoraNueva) {
         try {
-            String titulo = "Turno reprogramado por el cliente";
+            String titulo = "Turno Reprogramado 📅";
             String mensaje = String.format(
-                "Turno reprogramado: %s con %s. Anterior: %s a las %s. Nuevo: %s a las %s",
-                turno.getServicio().getNombre(),
+                "%s modificó su turno de %s de %s %s a %s %s.",
                 turno.getCliente().getNombre(),
+                turno.getServicio().getNombre(),
                 fechaHoraAnterior.toLocalDate().format(FORMATTER_FECHA),
                 fechaHoraAnterior.toLocalTime().format(FORMATTER_HORA),
                 fechaHoraNueva.toLocalDate().format(FORMATTER_FECHA),

@@ -64,6 +64,10 @@ class NotificacionesService {
   async marcarTodasComoLeidas(): Promise<void> {
     await api.put('/profesional/notificaciones/leer-todas')
   }
+
+  async registrarTokenPush(token: string, userAgent?: string): Promise<void> {
+    await api.post('/notificaciones/token', { token, userAgent })
+  }
 }
 
 export const notificacionesService = new NotificacionesService()

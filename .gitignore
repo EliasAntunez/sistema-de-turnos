@@ -99,6 +99,8 @@ frontend/build/
 
 # Misc
 frontend/.DS_Store
+frontend/.env
+frontend/.env.*
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local
@@ -153,3 +155,6 @@ tmp/
 logs/
 **/logs/
 *.gz
+
+
+firebase-service-account.json
