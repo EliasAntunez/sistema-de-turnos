@@ -37,6 +37,7 @@ public class ServicioNotificacion {
     private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
+    private final FirebaseMessagingService firebaseMessagingService;
     
     // ✅ B8: Días de retención configurables desde properties
     @Value("${app.notifications.retention-days:90}")
@@ -84,6 +85,13 @@ public class ServicioNotificacion {
 
         // Enviar por WebSocket
         enviarPorWebSocket(notificacion);
+
+        // Enviar push por FCM (aislado para no afectar flujo principal)
+        try {
+            firebaseMessagingService.enviarPush(profesional.getUsuario(), titulo, mensaje);
+        } catch (Exception e) {
+            log.error("Error al enviar notificación push por Firebase", e);
+        }
 
         return notificacion;
     }

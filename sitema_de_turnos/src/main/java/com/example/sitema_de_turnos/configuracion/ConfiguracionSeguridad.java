@@ -108,7 +108,8 @@ public class ConfiguracionSeguridad {
                         "/api/publico/**",        // Endpoints públicos
                         "/api/auth/login",        // Login usuarios no requiere CSRF
                         "/api/auth/logout",       // Logout manejado por Spring Security
-                        "/api/auth/perfil"        // Perfil para verificar sesión
+                        "/api/auth/perfil",       // Perfil para verificar sesión
+                        "/api/notificaciones/token" // Registro token FCM por sesión (cookie)
                     );
             })
             
@@ -183,6 +184,9 @@ public class ConfiguracionSeguridad {
                 
                 // Endpoints de Cliente
                 .requestMatchers("/api/cliente/**").hasAuthority("CLIENTE")
+
+                // Endpoints de notificaciones push (sesión requerida)
+                .requestMatchers("/api/notificaciones/**").authenticated()
                 
                 // Cualquier otra petición requiere autenticación
                 .anyRequest().authenticated()

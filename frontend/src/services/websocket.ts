@@ -20,6 +20,7 @@ export type NotificacionCallback = (notificacion: NotificacionWebSocket) => void
  */
 class WebSocketService {
   private client: Client | null = null
+  private rawSocket: WebSocket | null = null
   private connected: boolean = false
   private reconnectAttempts: number = 0
   private maxReconnectAttempts: number = 5
@@ -60,7 +61,9 @@ class WebSocketService {
     this.client = new Client({
       // Usar SockJS como transporte (fallback si WebSocket no está disponible)
       webSocketFactory: () => {
-        return new SockJS(wsUrl) as any
+        const socket = new SockJS(wsUrl) as any
+        this.rawSocket = socket
+        return socket
       },
       
       // Configuración de reconexión automática
@@ -193,10 +196,19 @@ class WebSocketService {
     }
     
     if (this.client) {
+      try {
+        if (this.rawSocket && this.rawSocket.readyState === WebSocket.OPEN) {
+          this.rawSocket.close()
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn('⚠️ Error al cerrar rawSocket:', error)
+      }
+
       this.client.deactivate()
       this.client = null
     }
     
+    this.rawSocket = null
     this.connected = false
     this.callback = null // M3: Limpiar callback único
     this.profesionalId = null
