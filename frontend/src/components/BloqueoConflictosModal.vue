@@ -2,7 +2,12 @@
   <div v-if="show" class="modal-overlay" @click="handleCerrar">
     <div class="modal modal-medium" @click.stop>
       <div class="modal-header">
-        <h2>⚠️ Conflictos con Turnos Existentes</h2>
+        <h2 class="flex items-center gap-2">
+          <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008Zm8.25-.75a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z" />
+          </svg>
+          Conflictos con Turnos Existentes
+        </h2>
         <button @click="handleCerrar" class="btn-close">&times;</button>
       </div>
       <div class="modal-body">
@@ -13,7 +18,11 @@
 
         <!-- Banner de advertencia por violación de política (informativo) -->
         <div v-if="conflictosData?.hayViolacionPolitica" class="politica-warning">
-          <span class="politica-icono">🔔</span>
+          <span class="politica-icono">
+            <svg class="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75v-.7V9a6 6 0 1 0-12 0v.05c0 .232 0 .467-.002.7a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.08 5.454 1.31m5.717 0a24.255 24.255 0 0 1-5.717 0m5.717 0a3 3 0 1 1-5.717 0" />
+            </svg>
+          </span>
           <div class="politica-texto">
             <strong>Advertencia: algunos turnos violan la política de cancelación.</strong>
             <p>Se recomienda informar al cliente con anticipación.</p>
@@ -34,7 +43,12 @@
                 {{ turno.estado }}
               </span>
               <span v-if="turno.violaPolitica" class="politica-badge" title="Viola política de cancelación">
-                ⚠️ Viola política
+                <span class="flex items-center gap-1">
+                  <svg class="h-4 w-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008Zm8.25-.75a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z" />
+                  </svg>
+                  Viola política
+                </span>
               </span>
             </div>
             <p v-if="turno.violaPolitica && turno.descripcionViolacion" class="descripcion-violacion">
@@ -45,7 +59,11 @@
 
         <!-- Aviso: opción de reprogramar desde Mis Turnos -->
         <div class="reprogramar-info">
-          <span class="reprogramar-info-icono">💡</span>
+          <span class="reprogramar-info-icono">
+            <svg class="h-5 w-5 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a3.75 3.75 0 1 0-3.75-3.75c0 1.197.56 2.266 1.433 2.953.517.407.817 1.028.817 1.672V18m1.5 0h-3m3 0h3" />
+            </svg>
+          </span>
           <p>
             Si querés reprogramar los turnos, podés hacerlo desde
             <strong>Mis Turnos</strong> una vez creado el bloqueo.
@@ -60,7 +78,12 @@
           </button>
           <button @click="cancelarEnRango" class="btn-cancelar" :disabled="submitting">
             <span v-if="submitting">Procesando...</span>
-            <span v-else>❌ Cancelar Turnos en el Rango</span>
+            <span v-else class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+              Cancelar Turnos en el Rango
+            </span>
           </button>
         </div>
       </div>

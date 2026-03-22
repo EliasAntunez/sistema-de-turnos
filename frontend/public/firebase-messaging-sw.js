@@ -14,6 +14,24 @@ try {
 
   const messaging = firebase.messaging()
 
+  function getPushEmoji(titulo) {
+    const tituloLower = (titulo || '').toLowerCase()
+
+    if (tituloLower.includes('nuevo') || tituloLower.includes('reserva') || tituloLower.includes('pago') || tituloLower.includes('seña') || tituloLower.includes('sena')) {
+      return '✅'
+    }
+
+    if (tituloLower.includes('cancelado') || tituloLower.includes('rechazado') || tituloLower.includes('inasistencia')) {
+      return '❌'
+    }
+
+    if (tituloLower.includes('reprogramado') || tituloLower.includes('cambio')) {
+      return '🔄'
+    }
+
+    return '🔔'
+  }
+
   messaging.onBackgroundMessage((payload) => {
     const tieneNotificationNativa = Boolean(payload?.notification?.title || payload?.notification?.body)
     if (tieneNotificationNativa) {
@@ -21,9 +39,10 @@ try {
     }
 
     const notification = payload?.notification || {}
-    const title = notification.title || 'Sistema de Turnos'
+    const titleBase = notification.title || payload?.data?.title || 'Sistema de Turnos'
+    const title = `${getPushEmoji(titleBase)} ${titleBase}`
     const options = {
-      body: notification.body || 'Tienes una nueva notificación',
+      body: notification.body || payload?.data?.body || 'Tienes una nueva notificación',
       icon: '/favicon.ico',
       badge: '/favicon.ico',
       data: payload?.data || {}

@@ -19,7 +19,11 @@
             pasoActual === 1 ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 
             pasoActual > 1 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
           ]">
-            <span v-if="pasoActual > 1">✓</span>
+            <span v-if="pasoActual > 1" class="inline-flex">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" />
+              </svg>
+            </span>
             <span v-else>1</span>
           </div>
           <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
@@ -34,7 +38,11 @@
             pasoActual === 2 ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 
             pasoActual > 2 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
           ]">
-            <span v-if="pasoActual > 2">✓</span>
+            <span v-if="pasoActual > 2" class="inline-flex">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" />
+              </svg>
+            </span>
             <span v-else>2</span>
           </div>
           <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
@@ -49,7 +57,11 @@
             pasoActual === 3 ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 
             pasoActual > 3 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
           ]">
-            <span v-if="pasoActual > 3">✓</span>
+            <span v-if="pasoActual > 3" class="inline-flex">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" />
+              </svg>
+            </span>
             <span v-else>3</span>
           </div>
           <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
@@ -64,7 +76,11 @@
             pasoActual === 4 ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 
             pasoActual > 4 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
           ]">
-            <span v-if="pasoActual > 4">✓</span>
+            <span v-if="pasoActual > 4" class="inline-flex">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" />
+              </svg>
+            </span>
             <span v-else>4</span>
           </div>
           <span class="text-xs sm:text-sm font-medium text-gray-700 text-center hidden sm:block">
@@ -104,7 +120,12 @@
           <h3>{{ servicio.nombre }}</h3>
           <p v-if="servicio.descripcion" class="descripcion">{{ servicio.descripcion }}</p>
           <div class="servicio-details">
-            <span class="duracion">⏱️ {{ servicio.duracionMinutos }} min</span>
+            <span class="duracion flex items-center gap-1">
+              <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z" />
+              </svg>
+              {{ servicio.duracionMinutos }} min
+            </span>
             <span class="precio">{{ formatearMonedaARS(servicio.precio) }}</span>
           </div>
           <div class="mt-2">
@@ -112,9 +133,12 @@
               v-if="servicio.requiereSena"
               class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200"
             >
+              <svg class="h-4 w-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008Zm8.25-.75a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z" />
+              </svg>
               {{ servicio.montoSena != null
-                ? `⚠️ Requiere seña de ${formatearMonedaARS(servicio.montoSena)}`
-                : '⚠️ Requiere seña' }}
+                ? `Requiere seña de ${formatearMonedaARS(servicio.montoSena)}`
+                : 'Requiere seña' }}
             </span>
             <span
               v-else
@@ -187,7 +211,12 @@
       <h2>Selecciona un horario</h2>
       <button class="btn-secondary btn-back" @click="volverPaso(3)">← Volver</button>
       
-      <p class="fecha-seleccionada">📅 {{ fechaSeleccionadaFormateada }}</p>
+      <p class="fecha-seleccionada flex items-center justify-center gap-2">
+        <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+        </svg>
+        {{ fechaSeleccionadaFormateada }}
+      </p>
       
       <div v-if="cargandoSlots" class="loading">Cargando horarios disponibles...</div>
       <div v-else-if="slots.length === 0" class="empty-state">
@@ -269,7 +298,12 @@
           </div>
         </div>
         <button @click="confirmarReserva" class="btn-primary btn-confirmar" :disabled="cargando">
-          <span v-if="!cargando">✓ Confirmar Turno</span>
+          <span v-if="!cargando" class="inline-flex items-center gap-2">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" />
+            </svg>
+            Confirmar Turno
+          </span>
           <span v-else>Procesando...</span>
         </button>
       </div>
@@ -325,7 +359,12 @@
     <!-- Modal de confirmación final -->
     <div v-if="mostrarModalFinal" class="modal-overlay" @click="cerrarModal">
       <div class="modal-content" @click.stop>
-        <h2>✅ ¡Turno reservado exitosamente!</h2>
+        <h2 class="flex items-center gap-2">
+          <svg class="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m6 2.25a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+          ¡Turno reservado exitosamente!
+        </h2>
         
         <div v-if="turnoCreado" class="resumen-completo">
           <div class="turno-numero">
@@ -351,14 +390,18 @@
         </div>
         
         <div v-if="!clienteAutenticado" class="cta-cuenta">
-          <div class="cta-icon">🎯</div>
+          <div class="cta-icon">
+            <svg class="h-12 w-12 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25 12 12m0 0 .75.75M12 12l-.75.75M12 12l.75-.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
           <h3>¿Querés gestionar tus turnos más fácil?</h3>
           <p>Creá tu cuenta y:</p>
           <ul>
-            <li>✓ Visualizá todos tus turnos en un solo lugar</li>
-            <li>✓ Cancelá o modificá turnos cuando quieras</li>
-            <li>✓ Recibí recordatorios automáticos</li>
-            <li>✓ Accedé a tu historial completo</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" /></svg>Visualizá todos tus turnos en un solo lugar</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" /></svg>Cancelá o modificá turnos cuando quieras</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" /></svg>Recibí recordatorios automáticos</li>
+            <li class="flex items-center gap-2"><svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75 10.5 18l9-13.5" /></svg>Accedé a tu historial completo</li>
           </ul>
           <button class="btn-secondary" @click="irCrearCuenta">Crear mi cuenta gratis</button>
         </div>
@@ -370,96 +413,6 @@
       </div>
     </div>
 
-    <!-- Modal de teléfono registrado (detección pasiva) -->
-    <div v-if="mostrarModalTelefonoRegistrado" class="modal-overlay" @click="cerrarModalTelefono">
-      <div class="modal-content modal-telefono-registrado" @click.stop>
-        <div class="flex items-center mb-4">
-          <svg class="w-12 h-12 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <h3 class="text-lg font-bold text-gray-900">Número ya en el sistema</h3>
-            <p class="text-sm text-gray-600 mt-1">
-              El número {{ telefonoConflicto }} ya existe en nuestra base de datos.
-            </p>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <p class="text-gray-700">
-            <template v-if="telefonoInfoData && telefonoInfoData.tieneUsuario">
-              Detectamos que este número está asociado a una cuenta registrada{{ telefonoInfoData.nombreEnmascarado ? ' (' + telefonoInfoData.nombreEnmascarado + ')' : '' }}. Por motivos de seguridad no podemos asociar una reserva a una cuenta registrada sin que el titular inicie sesión.
-            </template>
-            <template v-else>
-              Detectamos que este número corresponde a un cliente existente en la empresa{{ telefonoInfoData && telefonoInfoData.nombreEnmascarado ? ' (' + telefonoInfoData.nombreEnmascarado + ')' : '' }}. Si continuás, la reserva se asociará a ese cliente.
-            </template>
-          </p>
-        </div>
-
-        <div class="options-container mb-4">
-          <div class="option-card">
-            <div class="option-icon">🔐</div>
-            <h4 v-if="telefonoInfoData && telefonoInfoData.tieneUsuario">Iniciar Sesión (Recomendado)</h4>
-            <h4 v-else>Completar registro</h4>
-            <p v-if="telefonoInfoData && telefonoInfoData.tieneUsuario">Ingresá para gestionar tus turnos y ver tu historial.</p>
-            <p v-else>Completá tus datos para asociar la reserva a tu perfil y acceder a tu historial.</p>
-          </div>
-          <div v-if="!clienteAutenticado && (!telefonoInfoData || !telefonoInfoData.tieneUsuario)" class="option-card">
-            <div class="option-icon">🔗</div>
-            <h4>Continuar y asociar</h4>
-            <p>Reservá ahora: la reserva se vinculará al cliente existente con este teléfono.</p>
-          </div>
-        </div>
-
-          <div class="flex gap-3">
-          <button 
-            v-if="telefonoInfoData && telefonoInfoData.tieneUsuario"
-            @click="irALoginDesdeConflicto"
-            class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 font-medium transition-colors shadow-sm"
-          >
-            Iniciar Sesión
-          </button>
-          <button 
-            v-else-if="!clienteAutenticado"
-            @click="irARegistroDesdeConflicto"
-            class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 font-medium transition-colors shadow-sm"
-          >
-            Completar registro
-          </button>
-
-          <button 
-            v-if="!clienteAutenticado && (!telefonoInfoData || !telefonoInfoData.tieneUsuario)"
-            @click="continuarYAsociar"
-            class="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-md hover:bg-gray-300 font-medium transition-colors"
-          >
-            Continuar y asociar
-          </button>
-          <button 
-            v-else-if="!clienteAutenticado && telefonoInfoData && telefonoInfoData.tieneUsuario"
-            disabled
-            title="Debés iniciar sesión para asociar este número a una cuenta registrada."
-            class="flex-1 bg-gray-100 text-gray-400 px-4 py-3 rounded-md font-medium"
-          >
-            Asociar (requiere login)
-          </button>
-           <button 
-            v-else-if="clienteAutenticado"
-            disabled
-            title="No podés asociar a una cuenta que ya está iniciada."
-            class="flex-1 bg-gray-100 text-gray-400 px-4 py-3 rounded-md font-medium"
-          >
-            Asociar (ya conectado)
-          </button>
-        </div>
-
-        <button 
-          @click="cerrarModalTelefono"
-          class="mt-3 w-full text-gray-500 hover:text-gray-700 text-sm underline"
-        >
-          Usar otro número / Cancelar
-        </button>
-      </div>
-    </div>
     </main>
 
     <!-- Footer -->
@@ -537,7 +490,6 @@ async function abrirModalPoliticas() {
   }
   try {
     const politicas = await publicoService.obtenerPoliticasCancelacionActivas(empresaSlug.value)
-    if (import.meta.env.DEV) console.log('[Politicas] Respuesta backend:', politicas)
     if (!Array.isArray(politicas)) {
       console.error('[Politicas] El formato de la respuesta no es un array:', politicas)
       politicasActivas.value = []
@@ -617,11 +569,6 @@ function confirmarIrAlLogin409() {
 function descartarModal409() {
   mostrarModal409Email.value = false
 }
-
-// Modal de teléfono registrado
-const mostrarModalTelefonoRegistrado = ref(false)
-const telefonoConflicto = ref('')
-const telefonoInfoData = ref<{ existe: boolean; tieneUsuario: boolean; nombreEnmascarado?: string } | null>(null)
 
 // Computed
 const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -975,41 +922,6 @@ async function procesarReserva() {
 function cerrarModal() {
   mostrarModalFinal.value = false
   // Opcionalmente, podrías redirigir o resetear el formulario aquí
-}
-
-function cerrarModalTelefono() {
-  mostrarModalTelefonoRegistrado.value = false
-  // Limpiar estado del modal
-  telefonoConflicto.value = ''
-  telefonoInfoData.value = null
-}
-
-function irALoginDesdeConflicto() {
-  // Redirigir a la página de login de cliente, pasando el número de teléfono
-  router.push({
-    name: 'LoginCliente',
-    params: { empresaSlug: empresaSlug.value },
-    query: { 
-      redirect: `/reservar/${empresaSlug.value}`, // Volver a este componente después del login
-      telefono: telefonoConflicto.value
-    }
-  })
-}
-
-function irARegistroDesdeConflicto() {
-  // Redirigir a la página de registro de cliente, pasando el número de teléfono
-  router.push({
-    name: 'RegistroCliente',
-    params: { empresaSlug: empresaSlug.value },
-    query: { telefono: telefonoConflicto.value }
-  })
-}
-
-function continuarYAsociar() {
-  // Cerrar el modal y proceder con la reserva.
-  // El backend se encargará de asociar la reserva al cliente existente.
-  cerrarModalTelefono()
-  procesarReserva() // Vuelve a intentar la reserva
 }
 
 function finalizarYSalir() {
@@ -2005,7 +1917,9 @@ const clienteAutenticado = computed(() => clienteStore.isAuthenticated && client
 }
 
 .cta-icon {
-  font-size: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 8px;
 }
 
@@ -2123,227 +2037,6 @@ const clienteAutenticado = computed(() => clienteStore.isAuthenticated && client
     padding: 15px;
     margin: 20px 0;
   }
-}
-
-/* Modal de teléfono registrado - responsive */
-.modal-telefono-registrado {
-  max-width: 550px;
-}
-
-.modal-telefono-registrado .flex {
-  display: flex;
-}
-
-.modal-telefono-registrado .items-center {
-  align-items: center;
-}
-
-.modal-telefono-registrado .mb-4 {
-  margin-bottom: 1rem;
-}
-
-.modal-telefono-registrado .mb-3 {
-  margin-bottom: 0.75rem;
-}
-
-.modal-telefono-registrado .mr-3 {
-  margin-right: 0.75rem;
-}
-
-.modal-telefono-registrado .mt-1 {
-  margin-top: 0.25rem;
-}
-
-.modal-telefono-registrado .w-12 {
-  width: 3rem;
-  flex-shrink: 0;
-}
-
-.modal-telefono-registrado .h-12 {
-  height: 3rem;
-}
-
-.modal-telefono-registrado .text-blue-500 {
-  color: #3b82f6;
-}
-
-.modal-telefono-registrado .text-lg {
-  font-size: 1.125rem;
-  line-height: 1.3;
-}
-
-.modal-telefono-registrado .text-sm {
-  font-size: 0.875rem;
-  line-height: 1.4;
-}
-
-.modal-telefono-registrado .text-gray-900 {
-  color: #111827;
-}
-
-.modal-telefono-registrado .text-gray-700 {
-  color: #374151;
-}
-
-.modal-telefono-registrado .text-gray-600 {
-  color: #4b5563;
-}
-
-.modal-telefono-registrado .text-gray-500 {
-  color: #6b7280;
-}
-
-.modal-telefono-registrado .text-gray-400 {
-  color: #9ca3af;
-}
-
-.modal-telefono-registrado .font-bold {
-  font-weight: 700;
-}
-
-.modal-telefono-registrado .font-medium {
-  font-weight: 500;
-}
-
-.options-container {
-  display: grid;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-@media (min-width: 640px) {
-  .options-container {
-    margin-bottom: 1.5rem;
-  }
-}
-
-.option-card {
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
-  transition: all 0.2s;
-}
-
-@media (min-width: 640px) {
-  .option-card {
-    padding: 1rem;
-  }
-}
-
-.option-card:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
-}
-
-.option-icon {
-  font-size: 1.75rem;
-  margin-bottom: 0.5rem;
-}
-
-@media (min-width: 640px) {
-  .option-icon {
-    font-size: 2rem;
-  }
-}
-
-.option-card h4 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0.5rem 0;
-  line-height: 1.3;
-}
-
-@media (min-width: 640px) {
-  .option-card h4 {
-    font-size: 1rem;
-  }
-}
-
-.option-card p {
-  font-size: 0.8rem;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.4;
-}
-
-@media (min-width: 640px) {
-  .option-card p {
-    font-size: 0.875rem;
-  }
-}
-
-.modal-telefono-registrado .gap-3 {
-  gap: 0.75rem;
-}
-
-.modal-telefono-registrado .flex-1 {
-  flex: 1;
-  min-width: 0;
-}
-
-.modal-telefono-registrado .bg-blue-600 {
-  background-color: #2563eb;
-}
-
-.modal-telefono-registrado .text-white {
-  color: white;
-}
-
-.modal-telefono-registrado .px-4 {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-.modal-telefono-registrado .py-3 {
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-}
-
-.modal-telefono-registrado .rounded-md {
-  border-radius: 0.5rem;
-}
-
-.modal-telefono-registrado .hover\:bg-blue-700:hover {
-  background-color: #1d4ed8;
-}
-
-.modal-telefono-registrado .bg-gray-200 {
-  background-color: #e5e7eb;
-}
-
-.modal-telefono-registrado .bg-gray-100 {
-  background-color: #f3f4f6;
-}
-
-.modal-telefono-registrado .hover\:bg-gray-300:hover {
-  background-color: #d1d5db;
-}
-
-.modal-telefono-registrado .shadow-sm {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.modal-telefono-registrado .transition-colors {
-  transition-property: color, background-color, border-color;
-  transition-duration: 200ms;
-}
-
-.modal-telefono-registrado .mt-3 {
-  margin-top: 0.75rem;
-}
-
-.modal-telefono-registrado .w-full {
-  width: 100%;
-}
-
-.modal-telefono-registrado .hover\:text-gray-700:hover {
-  color: #374151;
-}
-
-.modal-telefono-registrado .underline {
-  text-decoration: underline;
 }
 
 /* Estilos para prevenir zoom en iOS al hacer focus en inputs */

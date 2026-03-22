@@ -1,100 +1,226 @@
 <template>
-  <div class="dueno-container">
+  <div class="min-h-screen bg-slate-50 pb-24 md:pb-8 md:pl-64">
+    <!-- Navegación Desktop: Sidebar -->
+    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-slate-200 bg-white md:flex md:flex-col">
+      <div class="border-b border-slate-100 px-4 py-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Panel Dueño</p>
+        <h2 class="mt-1 truncate text-base font-bold text-slate-900">{{ nombreEmpresa }}</h2>
+      </div>
+      <nav class="flex-1 space-y-1 p-3">
+        <button
+          @click="activeTab = 'profesionales'"
+          :class="[
+            'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors',
+            activeTab === 'profesionales' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5m10 0v-2a3 3 0 10-6 0v2m6 0H7m5-10a3 3 0 110 6 3 3 0 010-6z" />
+          </svg>
+          <span>Profesionales</span>
+        </button>
+        <button
+          @click="activeTab = 'servicios'"
+          :class="[
+            'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors',
+            activeTab === 'servicios' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-4-9 4m18 0v9l-9 4m9-13.5l-9 4m0 0l-9-4m9 4v9" />
+          </svg>
+          <span>Servicios</span>
+        </button>
+        <button
+          @click="activeTab = 'horarios'"
+          :class="[
+            'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors',
+            activeTab === 'horarios' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 9h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>Horarios</span>
+        </button>
+        <button
+          @click="activeTab = 'politicas'"
+          :class="[
+            'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors',
+            activeTab === 'politicas' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Políticas</span>
+        </button>
+        <button
+          @click="activeTab = 'configuracion'"
+          :class="[
+            'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors',
+            activeTab === 'configuracion' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 3h1.5a.75.75 0 01.75.75v1.02a7.969 7.969 0 012.08.86l.72-.72a.75.75 0 011.06 0l1.06 1.06a.75.75 0 010 1.06l-.72.72c.37.64.66 1.34.86 2.08h1.02a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.02a7.969 7.969 0 01-.86 2.08l.72.72a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06 0l-.72-.72a7.969 7.969 0 01-2.08.86v1.02a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.02a7.969 7.969 0 01-2.08-.86l-.72.72a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 010-1.06l.72-.72a7.969 7.969 0 01-.86-2.08H3.75a.75.75 0 01-.75-.75v-1.5a.75.75 0 01.75-.75h1.02c.2-.74.49-1.44.86-2.08l-.72-.72a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 0l.72.72c.64-.37 1.34-.66 2.08-.86V3.75a.75.75 0 01.75-.75z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Configuración</span>
+        </button>
+      </nav>
+    </aside>
+
     <!-- Header -->
-    <header class="dueno-header">
-      <!-- Mostrar el nombre de la empresa del dueño -->
-      <h1>{{ nombreEmpresa }}</h1>
-      <div class="user-info" ref="userMenuRef">
+    <header class="sticky top-0 z-30 border-b border-slate-700 bg-slate-900 text-white">
+      <div class="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+        <h1 class="min-w-0 truncate text-base font-semibold sm:text-lg">{{ nombreEmpresa }}</h1>
+        <div class="relative flex items-center gap-2" ref="userMenuRef">
         <button
           v-if="authStore.isProfesional"
           @click="router.push('/profesional')"
-          class="btn-switch-rol"
+          class="inline-flex items-center gap-2 rounded-md border border-amber-400/50 bg-amber-400 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-amber-300 sm:text-sm"
           title="Ir a mi agenda de profesional"
         >
-          📅 Mi Agenda
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 9h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="hidden sm:inline">Mi Agenda</span>
+          <span class="sm:hidden">Agenda</span>
         </button>
 
-        <button class="user-menu-trigger" @click.stop="toggleUserMenu">
-          <span>{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
-          <span class="user-menu-arrow">▾</span>
+        <button
+          class="inline-flex max-w-[11rem] items-center gap-2 rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 sm:max-w-none sm:text-sm"
+          @click.stop="toggleUserMenu"
+        >
+          <span class="truncate">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+          <svg class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.939a.75.75 0 111.08 1.04l-4.25 4.511a.75.75 0 01-1.08 0L5.21 8.269a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
         </button>
 
-        <div v-if="showUserMenu" class="user-menu-dropdown" @click.stop>
-          <button class="user-menu-item" @click="abrirModalEditarEmpresa">Editar Empresa</button>
-          <button class="user-menu-item user-menu-item-danger" @click="handleLogout">Cerrar Sesión</button>
+        <div
+          v-if="showUserMenu"
+          class="absolute right-0 top-full z-50 mt-2 w-56 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
+          @click.stop
+        >
+          <button class="block w-full px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50" @click="abrirModalEditarEmpresa">Editar Empresa</button>
+          <button class="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50" @click="handleLogout">Cerrar Sesión</button>
         </div>
+      </div>
       </div>
     </header>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <button 
-        :class="['tab', { active: activeTab === 'profesionales' }]" 
-        @click="activeTab = 'profesionales'"
-      >
-        Profesionales
-      </button>
-      <button 
-        :class="['tab', { active: activeTab === 'servicios' }]" 
-        @click="activeTab = 'servicios'"
-      >
-        Servicios
-      </button>
-      <button 
-        :class="['tab', { active: activeTab === 'horarios' }]" 
-        @click="activeTab = 'horarios'"
-      >
-        Horarios de la Empresa
-      </button>
-      <button 
-        :class="['tab', { active: activeTab === 'politicas' }]" 
-        @click="activeTab = 'politicas'"
-      >
-        Políticas de Cancelación
-      </button>
-      <button 
-        :class="['tab', { active: activeTab === 'configuracion' }]" 
-        @click="activeTab = 'configuracion'"
-      >
-        Configuración
-      </button>
-    </div>
+    <!-- Navegación Móvil: Bottom Bar -->
+    <nav class="fixed bottom-0 left-0 z-50 w-full border-t border-slate-200 bg-white md:hidden">
+      <div class="grid grid-cols-5">
+        <button
+          @click="activeTab = 'profesionales'"
+          :class="[
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            activeTab === 'profesionales' ? 'text-amber-500' : 'text-slate-500'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5V4H2v16h5m10 0v-2a3 3 0 10-6 0v2m6 0H7m5-10a3 3 0 110 6 3 3 0 010-6z" />
+          </svg>
+          <span>Profes</span>
+        </button>
+        <button
+          @click="activeTab = 'servicios'"
+          :class="[
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            activeTab === 'servicios' ? 'text-amber-500' : 'text-slate-500'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-4-9 4m18 0v9l-9 4m9-13.5l-9 4m0 0l-9-4m9 4v9" />
+          </svg>
+          <span>Servicios</span>
+        </button>
+        <button
+          @click="activeTab = 'horarios'"
+          :class="[
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            activeTab === 'horarios' ? 'text-amber-500' : 'text-slate-500'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 9h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>Horarios</span>
+        </button>
+        <button
+          @click="activeTab = 'politicas'"
+          :class="[
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            activeTab === 'politicas' ? 'text-amber-500' : 'text-slate-500'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Políticas</span>
+        </button>
+        <button
+          @click="activeTab = 'configuracion'"
+          :class="[
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            activeTab === 'configuracion' ? 'text-amber-500' : 'text-slate-500'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 3h1.5a.75.75 0 01.75.75v1.02a7.969 7.969 0 012.08.86l.72-.72a.75.75 0 011.06 0l1.06 1.06a.75.75 0 010 1.06l-.72.72c.37.64.66 1.34.86 2.08h1.02a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.02a7.969 7.969 0 01-.86 2.08l.72.72a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06 0l-.72-.72a7.969 7.969 0 01-2.08.86v1.02a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.02a7.969 7.969 0 01-2.08-.86l-.72.72a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 010-1.06l.72-.72a7.969 7.969 0 01-.86-2.08H3.75a.75.75 0 01-.75-.75v-1.5a.75.75 0 01.75-.75h1.02c.2-.74.49-1.44.86-2.08l-.72-.72a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 0l.72.72c.64-.37 1.34-.66 2.08-.86V3.75a.75.75 0 01.75-.75z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Config.</span>
+        </button>
+      </div>
+    </nav>
 
     <!-- Tab: Profesionales -->
-    <main v-if="activeTab === 'profesionales'" class="dueno-content">
-      <div class="section-header">
-        <h2>Profesionales de la Empresa</h2>
-        <button @click="openModal()" class="btn-add">+ Agregar Profesional</button>
+    <main v-if="activeTab === 'profesionales'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.742-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.203-.576-5.964-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a5.971 5.971 0 0 0-.94 3.197m0 0A9.094 9.094 0 0 1 2.25 18.24a3 3 0 0 1 4.682-2.72m.94 3.198a5.971 5.971 0 0 1 .94-3.197M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
+          Profesionales de la Empresa
+        </h2>
+        <button @click="openModal()" class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">+ Agregar Profesional</button>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loading" class="loading">Cargando...</div>
+      <div v-if="loading" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm">Cargando...</div>
 
       <!-- Profesionales Grid -->
-      <div v-else-if="profesionales.length > 0" class="profesionales-grid">
-        <div v-for="profesional in profesionales" :key="profesional.id" class="profesional-card">
-          <div class="card-header">
-            <h3>{{ profesional.nombre }} {{ profesional.apellido }}</h3>
-            <span :class="['badge-status', profesional.activo ? 'activo' : 'inactivo']">
+      <div v-else-if="profesionales.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+        <div v-for="profesional in profesionales" :key="profesional.id" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+          <div class="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+            <h3 class="text-base font-semibold text-slate-900">{{ profesional.nombre }} {{ profesional.apellido }}</h3>
+            <span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', profesional.activo ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20']">
               {{ profesional.activo ? 'Activo' : 'Inactivo' }}
             </span>
           </div>
-          <div class="card-body">
-            <div class="info-item">
-              <strong>Email:</strong> {{ profesional.email }}
+          <div class="space-y-2 text-sm text-slate-600">
+            <div>
+              <strong class="text-slate-800">Email:</strong> {{ profesional.email }}
             </div>
-            <div class="info-item">
-              <strong>Teléfono:</strong> {{ profesional.telefono || 'No especificado' }}
+            <div>
+              <strong class="text-slate-800">Teléfono:</strong> {{ profesional.telefono || 'No especificado' }}
             </div>
-            <div class="info-item" v-if="profesional.descripcion">
-              <strong>Descripción:</strong> {{ profesional.descripcion }}
+            <div v-if="profesional.descripcion">
+              <strong class="text-slate-800">Descripción:</strong> {{ profesional.descripcion }}
             </div>
           </div>
-          <div class="card-actions">
-            <button @click="openModal(profesional)" class="btn-edit">Editar</button>
+          <div class="mt-5 grid grid-cols-2 gap-2">
+            <button @click="openModal(profesional)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Editar</button>
             <button 
               @click="confirmarToggleProfesional(profesional)" 
-              :class="profesional.activo ? 'btn-delete' : 'btn-activate'"
+              :class="[
+                'rounded-lg px-3 py-2 text-sm font-semibold transition',
+                profesional.activo
+                  ? 'bg-white text-rose-600 border border-rose-200 hover:bg-rose-50'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              ]"
             >
               {{ profesional.activo ? 'Desactivar' : 'Activar' }}
             </button>
@@ -103,53 +229,61 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="empty-state">
-        <p>No hay profesionales registrados</p>
-        <p class="empty-hint">Haz clic en "Agregar Profesional" para comenzar</p>
+      <div v-else class="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <p class="text-base font-medium text-slate-700">No hay profesionales registrados</p>
+        <p class="mt-1 text-sm text-slate-500">Haz clic en "Agregar Profesional" para comenzar</p>
       </div>
     </main>
 
     <!-- Tab: Servicios -->
-    <main v-if="activeTab === 'servicios'" class="dueno-content">
-      <div class="section-header">
-        <h2>Servicios de la Empresa</h2>
-        <button @click="openModalServicio()" class="btn-add">+ Agregar Servicio</button>
+    <main v-if="activeTab === 'servicios'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5v9m0 0-9 4.5m9-4.5-9-4.5m9 4.5V7.5m-9 13.5V12m0 9-9-4.5m9 4.5V12m0 0L3 7.5m0 0l9-4.5 9 4.5M3 7.5v9m0 0 9 4.5" /></svg>
+          Servicios de la Empresa
+        </h2>
+        <button @click="openModalServicio()" class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">+ Agregar Servicio</button>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loadingServicios" class="loading">Cargando...</div>
+      <div v-if="loadingServicios" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm">Cargando...</div>
 
       <!-- Servicios Grid -->
-      <div v-else-if="servicios.length > 0" class="profesionales-grid">
-        <div v-for="servicio in servicios" :key="servicio.id" class="profesional-card">
-          <div class="card-header">
-            <h3>{{ servicio.nombre }}</h3>
-            <span :class="['badge-status', servicio.activo ? 'activo' : 'inactivo']">
+      <div v-else-if="servicios.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+        <div v-for="servicio in servicios" :key="servicio.id" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+          <div class="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+            <h3 class="text-base font-semibold text-slate-900">{{ servicio.nombre }}</h3>
+            <span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', servicio.activo ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20']">
               {{ servicio.activo ? 'Activo' : 'Inactivo' }}
             </span>
           </div>
-          <div class="card-body">
-            <div class="info-item" v-if="servicio.descripcion">
-              <strong>Descripción:</strong> {{ servicio.descripcion }}
+          <div class="space-y-2 text-sm text-slate-600">
+            <div v-if="servicio.descripcion">
+              <strong class="text-slate-800">Descripción:</strong> {{ servicio.descripcion }}
             </div>
-            <div class="info-item">
-              <strong>Duración:</strong> {{ servicio.duracionMinutos }} minutos
+            <div>
+              <strong class="text-slate-800">Duración:</strong> {{ servicio.duracionMinutos }} minutos
             </div>
-            <div class="info-item">
-              <strong>Precio:</strong> {{ formatearMonedaARS(servicio.precio) }}
+            <div>
+              <strong class="text-slate-800">Precio:</strong> {{ formatearMonedaARS(servicio.precio) }}
             </div>
-            <div class="info-item">
-              <strong>Requiere seña:</strong> {{ servicio.requiereSena ? 'Sí' : 'No' }}
+            <div>
+              <strong class="text-slate-800">Requiere seña:</strong> {{ servicio.requiereSena ? 'Sí' : 'No' }}
             </div>
-            <div v-if="servicio.requiereSena && servicio.montoSena !== null" class="info-item">
-              <strong>Monto seña:</strong> {{ formatearMonedaARS(servicio.montoSena) }}
+            <div v-if="servicio.requiereSena && servicio.montoSena !== null">
+              <strong class="text-slate-800">Monto seña:</strong> {{ formatearMonedaARS(servicio.montoSena) }}
             </div>
           </div>
-          <div class="card-actions">
-            <button @click="openModalServicio(servicio)" class="btn-edit">Editar</button>
+          <div class="mt-5 grid grid-cols-2 gap-2">
+            <button @click="openModalServicio(servicio)" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Editar</button>
             <button 
               @click="confirmarToggleServicioActivo(servicio)" 
-              :class="servicio.activo ? 'btn-delete' : 'btn-activate'"
+              :class="[
+                'rounded-lg px-3 py-2 text-sm font-semibold transition',
+                servicio.activo
+                  ? 'bg-white text-rose-600 border border-rose-200 hover:bg-rose-50'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              ]"
             >
               {{ servicio.activo ? 'Desactivar' : 'Activar' }}
             </button>
@@ -158,53 +292,63 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="empty-state">
-        <p>No hay servicios registrados</p>
-        <p class="empty-hint">Haz clic en "Agregar Servicio" para comenzar</p>
+      <div v-else class="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <p class="text-base font-medium text-slate-700">No hay servicios registrados</p>
+        <p class="mt-1 text-sm text-slate-500">Haz clic en "Agregar Servicio" para comenzar</p>
       </div>
     </main>
 
     <!-- Tab: Horarios de la Empresa -->
-    <main v-if="activeTab === 'horarios'" class="dueno-content">
-      <div class="section-header">
-        <h2>Horarios de Atención</h2>
-        <button @click="openModalHorario()" class="btn-add">+ Agregar Horario</button>
+    <main v-if="activeTab === 'horarios'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25" /></svg>
+          Horarios de Atención
+        </h2>
+        <button @click="openModalHorario()" class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">+ Agregar Horario</button>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loadingHorarios" class="loading">Cargando...</div>
+      <div v-if="loadingHorarios" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm">Cargando...</div>
 
       <!-- Horarios por Día -->
-      <div v-else-if="horariosAgrupados && Object.keys(horariosAgrupados).length > 0" class="horarios-container">
-        <div v-for="(dia, index) in diasSemana" :key="dia" class="horario-dia-card">
-          <div class="dia-header">
-            <div class="dia-header-left">
-              <h3>{{ nombresDias[dia] }}</h3>
-              <span v-if="horariosAgrupados[dia] && horariosAgrupados[dia].length > 0" class="count-badge">
+      <div v-else-if="horariosAgrupados && Object.keys(horariosAgrupados).length > 0" class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div v-for="(dia, index) in diasSemana" :key="dia" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-semibold text-slate-800">{{ nombresDias[dia] }}</h3>
+              <span v-if="horariosAgrupados[dia] && horariosAgrupados[dia].length > 0" class="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
                 {{ horariosAgrupados[dia].length }} {{ horariosAgrupados[dia].length === 1 ? 'horario' : 'horarios' }}
               </span>
             </div>
             <button 
               v-if="horariosAgrupados[dia] && horariosAgrupados[dia].length > 0"
               @click="abrirModalCopiar(dia)" 
-              class="btn-copiar-horarios"
+              class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"
               title="Copiar a otros días">
-              📋 Copiar
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.125c0-.621.504-1.125 1.125-1.125h3.972m0 0l4.992 4.992m-4.992-4.992v4.992h4.992M18.75 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+              Copiar
             </button>
           </div>
-          <div class="dia-body">
-            <div v-if="horariosAgrupados[dia] && horariosAgrupados[dia].length > 0" class="horarios-list">
-              <div v-for="horario in horariosAgrupados[dia]" :key="horario.id" class="horario-item">
-                <div class="horario-info">
-                  <span class="horario-time">{{ horario.horaInicio }} - {{ horario.horaFin }}</span>
+          <div>
+            <div v-if="horariosAgrupados[dia] && horariosAgrupados[dia].length > 0">
+              <div v-for="horario in horariosAgrupados[dia]" :key="horario.id" class="flex items-center justify-between border-b border-slate-100 px-4 py-3 last:border-0">
+                <div>
+                  <span class="text-sm font-semibold text-slate-800">{{ horario.horaInicio }} - {{ horario.horaFin }}</span>
                 </div>
-                <div class="horario-actions">
-                  <button @click="openModalHorario(horario)" class="btn-edit-small">✏️</button>
-                  <button @click="confirmarEliminarHorario(horario)" class="btn-delete-small">🗑️</button>
+                <div class="flex items-center gap-1">
+                  <button @click="openModalHorario(horario)" class="rounded-md p-1.5 text-slate-600 transition hover:bg-slate-100" title="Editar horario">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                  </button>
+                  <button @click="confirmarEliminarHorario(horario)" class="rounded-md p-1.5 text-rose-600 transition hover:bg-rose-50" title="Eliminar horario">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                  </button>
                 </div>
               </div>
             </div>
-            <div v-else class="no-horarios">
+            <div v-else class="px-4 py-6 text-center text-sm text-slate-500">
               <span>Sin horarios configurados</span>
             </div>
           </div>
@@ -212,198 +356,260 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="empty-state">
-        <p>No hay horarios configurados</p>
-        <p class="empty-hint">Configura los horarios de atención de tu empresa por día de la semana</p>
+      <div v-else class="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <p class="text-base font-medium text-slate-700">No hay horarios configurados</p>
+        <p class="mt-1 text-sm text-slate-500">Configura los horarios de atención de tu empresa por día de la semana</p>
       </div>
     </main>
 
     <!-- Tab: Políticas de Cancelación -->
-<main v-if="activeTab === 'politicas'" class="dueno-content">
-  <div class="section-header">
-    <h2>Políticas de Cancelación e Inasistencias</h2>
-    <button class="btn-add" @click="openModalPolitica()">+ Nueva Política</button>
-  </div>
-  <!-- Loading State -->
-  <div v-if="loadingPoliticas" class="loading">Cargando...</div>
+    <main v-if="activeTab === 'politicas'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m6 2.25a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          Políticas de Cancelación e Inasistencias
+        </h2>
+        <button class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800" @click="openModalPolitica()">+ Nueva Política</button>
+      </div>
+      <!-- Loading State -->
+      <div v-if="loadingPoliticas" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm">Cargando...</div>
 
-  <!-- Políticas Grid -->
-  <div v-else-if="politicas.length > 0" class="profesionales-grid">
-     <div v-for="politica in politicas.filter(p => p.empresaId === empresaId)" :key="politica.id" class="profesional-card">
-      <div class="card-header">
-        <h3>{{ politica.tipo === 'CANCELACION' ? 'Cancelación' : (politica.tipo === 'INASISTENCIA' ? 'Inasistencia' : 'Ambos') }}</h3>
-        <span :class="['badge-status', politica.activa ? 'activo' : 'inactivo']">
-          {{ politica.activa ? 'Activa' : 'Inactiva' }}
-        </span>
-      </div>
-      <div class="card-body">
-        <div class="info-item card-descripcion" :title="politica.descripcion">
-          <strong>Descripción:</strong>
-          <span class="truncate-text">{{ politica.descripcion }}</span>
+      <!-- Políticas Grid -->
+      <div v-else-if="politicas.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+        <div v-for="politica in politicas.filter(p => p.empresaId === empresaId)" :key="politica.id" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+          <div class="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+            <h3 class="text-base font-semibold text-slate-900">{{ politica.tipo === 'CANCELACION' ? 'Cancelación' : (politica.tipo === 'INASISTENCIA' ? 'Inasistencia' : 'Ambos') }}</h3>
+            <span :class="['inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', politica.activa ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20']">
+              {{ politica.activa ? 'Activa' : 'Inactiva' }}
+            </span>
+          </div>
+          <div class="space-y-2 text-sm text-slate-600">
+            <div class="card-descripcion" :title="politica.descripcion">
+              <strong class="text-slate-800">Descripción:</strong>
+              <span class="truncate-text">{{ politica.descripcion }}</span>
+            </div>
+            <div>
+              <strong class="text-slate-800">Horas límite:</strong> {{ politica.horasLimiteCancelacion }} horas
+            </div>
+            <div v-if="politica.fechaCreacion">
+              <strong class="text-slate-800">Creada:</strong> {{ formatearFecha(politica.fechaCreacion) }}
+            </div>
+          </div>
+          <div class="mt-5 grid grid-cols-2 gap-2">
+            <button 
+              @click="openModalPolitica(politica)" 
+              class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Editar
+            </button>
+            <button 
+              @click="confirmarTogglePoliticaActiva(politica)" 
+              :class="[
+                'rounded-lg px-3 py-2 text-sm font-semibold transition',
+                politica.activa
+                  ? 'bg-white text-rose-600 border border-rose-200 hover:bg-rose-50'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              ]"
+            >
+              {{ politica.activa ? 'Desactivar' : 'Activar' }}
+            </button>
+          </div>
         </div>
-        <div class="info-item">
-          <strong>Horas límite:</strong> {{ politica.horasLimiteCancelacion }} horas
-        </div>
-        <div class="info-item" v-if="politica.fechaCreacion">
-          <strong>Creada:</strong> {{ formatearFecha(politica.fechaCreacion) }}
-        </div>
       </div>
-      <div class="card-actions">
-        <button 
-          @click="confirmarTogglePoliticaActiva(politica)" 
-          :class="politica.activa ? 'btn-delete' : 'btn-activate'"
-        >
-          {{ politica.activa ? 'Desactivar' : 'Activar' }}
-        </button>
-        <button 
-          @click="openModalPolitica(politica)" 
-          class="btn-edit"
-        >
-          Editar
-        </button>
-      </div>
-    </div>
-  </div>
 
-  <!-- Empty State -->
-  <div v-else class="empty-state">
-    <p>No hay políticas registradas</p>
-    <p class="empty-hint">Haz clic en "Nueva Política" para comenzar</p>
-  </div>
-</main>
+      <!-- Empty State -->
+      <div v-else class="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <p class="text-base font-medium text-slate-700">No hay políticas registradas</p>
+        <p class="mt-1 text-sm text-slate-500">Haz clic en "Nueva Política" para comenzar</p>
+      </div>
+    </main>
 
     <!-- Tab: Configuración -->
-    <main v-if="activeTab === 'configuracion'" class="dueno-content">
-      <div class="section-header">
-        <h2>Configuración de la Empresa</h2>
+    <main v-if="activeTab === 'configuracion'" class="mx-auto w-full max-w-4xl px-4 py-6">
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+          </svg>
+          Configuración de la Empresa
+        </h2>
       </div>
 
       <!-- Loading State -->
-      <div v-if="loadingConfiguracion" class="loading">Cargando configuración...</div>
+      <div v-if="loadingConfiguracion" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm">Cargando configuración...</div>
 
       <!-- Formulario de Configuración -->
-      <div v-else class="configuracion-container">
-        <form @submit.prevent="submitConfiguracion" class="configuracion-form">
+      <div v-else>
+        <form @submit.prevent="submitConfiguracion" class="space-y-6">
           
           <!-- Sección: Configuración Operativa -->
-          <div class="config-section">
-            <h3 class="section-title">⚙️ Configuración Operativa</h3>
-            
-            <div class="form-row">
-              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.bufferPorDefecto }">
-                <label>Buffer por defecto (minutos)</label>
-                <input 
-                  v-model.number="formDataConfiguracion.bufferPorDefecto" 
-                  type="number" 
-                  min="0"
-                  max="120"
-                  required
-                  placeholder="5"
-                />
-                <small>Tiempo de descanso entre turnos consecutivos</small>
-                <span v-if="fieldErrorsConfiguracion.bufferPorDefecto" class="field-error">
-                  {{ fieldErrorsConfiguracion.bufferPorDefecto }}
-                </span>
-              </div>
+          <section class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <svg class="h-5 w-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 3h1.5a.75.75 0 01.75.75v1.02a7.969 7.969 0 012.08.86l.72-.72a.75.75 0 011.06 0l1.06 1.06a.75.75 0 010 1.06l-.72.72c.37.64.66 1.34.86 2.08h1.02a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.02a7.969 7.969 0 01-.86 2.08l.72.72a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06 0l-.72-.72a7.969 7.969 0 01-2.08.86v1.02a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.02a7.969 7.969 0 01-2.08-.86l-.72.72a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 010-1.06l.72-.72a7.969 7.969 0 01-.86-2.08H3.75a.75.75 0 01-.75-.75v-1.5a.75.75 0 01.75-.75h1.02c.2-.74.49-1.44.86-2.08l-.72-.72a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 0l.72.72c.64-.37 1.34-.66 2.08-.86V3.75a.75.75 0 01.75-.75z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <h3 class="font-semibold text-slate-800">Configuración Operativa</h3>
+            </div>
+            <div class="space-y-6 p-6">
+              <div class="flex flex-col gap-0">
+                <div class="flex flex-col gap-4 border-b border-slate-100 py-5 last:border-0 md:flex-row md:items-center" :class="{ 'has-error': fieldErrorsConfiguracion.bufferPorDefecto }">
+                  <div class="md:w-1/3">
+                    <label class="text-sm font-semibold text-slate-800">Buffer por defecto (minutos)</label>
+                    <p class="mt-1 text-xs text-slate-500">Tiempo de descanso entre turnos consecutivos</p>
+                  </div>
+                  <div class="flex flex-col md:w-2/3">
+                    <input 
+                      v-model.number="formDataConfiguracion.bufferPorDefecto" 
+                      type="number" 
+                      min="0"
+                      max="120"
+                      required
+                      placeholder="5"
+                      class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm"
+                    />
+                    <span v-if="fieldErrorsConfiguracion.bufferPorDefecto" class="field-error">
+                      {{ fieldErrorsConfiguracion.bufferPorDefecto }}
+                    </span>
+                  </div>
+                </div>
 
-              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos }">
-                <label>Anticipación mínima (minutos)</label>
-                <input 
-                  v-model.number="formDataConfiguracion.tiempoMinimoAnticipacionMinutos" 
-                  type="number" 
-                  min="0"
-                  max="1440"
-                  required
-                  placeholder="30"
-                />
-                <small>Tiempo mínimo para reservar antes del turno</small>
-                <span v-if="fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos" class="field-error">
-                  {{ fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos }}
-                </span>
-              </div>
+                <div class="flex flex-col gap-4 border-b border-slate-100 py-5 last:border-0 md:flex-row md:items-center" :class="{ 'has-error': fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos }">
+                  <div class="md:w-1/3">
+                    <label class="text-sm font-semibold text-slate-800">Anticipación mínima (minutos)</label>
+                    <p class="mt-1 text-xs text-slate-500">Tiempo mínimo para reservar antes del turno</p>
+                  </div>
+                  <div class="flex flex-col md:w-2/3">
+                    <input 
+                      v-model.number="formDataConfiguracion.tiempoMinimoAnticipacionMinutos" 
+                      type="number" 
+                      min="0"
+                      max="1440"
+                      required
+                      placeholder="30"
+                      class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm"
+                    />
+                    <span v-if="fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos" class="field-error">
+                      {{ fieldErrorsConfiguracion.tiempoMinimoAnticipacionMinutos }}
+                    </span>
+                  </div>
+                </div>
 
-              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.diasMaximosReserva }">
-                <label>Días máximos de reserva</label>
-                <input 
-                  v-model.number="formDataConfiguracion.diasMaximosReserva" 
-                  type="number" 
-                  min="1"
-                  max="365"
-                  required
-                  placeholder="30"
-                />
-                <small>Hasta cuántos días adelante pueden reservar</small>
-                <span v-if="fieldErrorsConfiguracion.diasMaximosReserva" class="field-error">
-                  {{ fieldErrorsConfiguracion.diasMaximosReserva }}
-                </span>
+                <div class="flex flex-col gap-4 border-b border-slate-100 py-5 last:border-0 md:flex-row md:items-center" :class="{ 'has-error': fieldErrorsConfiguracion.diasMaximosReserva }">
+                  <div class="md:w-1/3">
+                    <label class="text-sm font-semibold text-slate-800">Días máximos de reserva</label>
+                    <p class="mt-1 text-xs text-slate-500">Hasta cuántos días adelante pueden reservar</p>
+                  </div>
+                  <div class="flex flex-col md:w-2/3">
+                    <input 
+                      v-model.number="formDataConfiguracion.diasMaximosReserva" 
+                      type="number" 
+                      min="1"
+                      max="365"
+                      required
+                      placeholder="30"
+                      class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm"
+                    />
+                    <span v-if="fieldErrorsConfiguracion.diasMaximosReserva" class="field-error">
+                      {{ fieldErrorsConfiguracion.diasMaximosReserva }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Sección: Recordatorios -->
-          <div class="config-section">
-            <h3 class="section-title">📧 Recordatorios por Email</h3>
-            
-            <div class="form-row">
-              <div class="form-group" :class="{ 'has-error': fieldErrorsConfiguracion.horasAntesRecordatorio }">
-                <label>Enviar recordatorio con (horas de anticipación)</label>
-                <input 
-                  v-model.number="formDataConfiguracion.horasAntesRecordatorio" 
-                  type="number" 
-                  min="1"
-                  max="168"
-                  required
-                  placeholder="24"
-                />
-                <small>1 hora mínimo, 168 horas (7 días) máximo</small>
-                <span v-if="fieldErrorsConfiguracion.horasAntesRecordatorio" class="field-error">
-                  {{ fieldErrorsConfiguracion.horasAntesRecordatorio }}
-                </span>
-              </div>
+          <section class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <svg class="h-5 w-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 7.5v9a2.25 2.25 0 01-2.25 2.25h-15A2.25 2.25 0 012.25 16.5v-9m19.5 0A2.25 2.25 0 0019.5 5.25h-15A2.25 2.25 0 002.25 7.5m19.5 0v.243a2.25 2.25 0 01-.965 1.852l-7.5 5.25a2.25 2.25 0 01-2.57 0l-7.5-5.25A2.25 2.25 0 012.25 7.743V7.5" />
+              </svg>
+              <h3 class="font-semibold text-slate-800">Recordatorios por Email</h3>
+            </div>
+            <div class="space-y-6 p-6">
+              <div class="flex flex-col gap-0">
+                <div class="flex flex-col gap-4 border-b border-slate-100 py-5 last:border-0 md:flex-row md:items-center">
+                  <div class="md:w-1/3">
+                    <label class="text-sm font-semibold text-slate-800">Estado de recordatorios</label>
+                    <p class="mt-1 text-xs text-slate-500">Habilita o deshabilita el envío de recordatorios automáticos</p>
+                  </div>
+                  <div class="flex flex-col md:w-2/3">
+                    <label class="inline-flex items-center gap-3 self-start">
+                      <input 
+                        v-model="formDataConfiguracion.enviarRecordatorios" 
+                        type="checkbox"
+                        class="peer sr-only"
+                      />
+                      <span class="relative h-6 w-11 rounded-full bg-slate-300 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all peer-checked:bg-emerald-600 peer-checked:after:translate-x-5"></span>
+                      <span class="text-sm font-medium text-slate-700">
+                        {{ formDataConfiguracion.enviarRecordatorios ? 'Recordatorios Activos' : 'Recordatorios Desactivados' }}
+                      </span>
+                    </label>
+                  </div>
+                </div>
 
-              <div class="form-group form-group-switch">
-                <label class="switch-label">
-                  <input 
-                    v-model="formDataConfiguracion.enviarRecordatorios" 
-                    type="checkbox"
-                    class="switch-input"
-                  />
-                  <span class="switch-slider"></span>
-                  <span class="switch-text">
-                    {{ formDataConfiguracion.enviarRecordatorios ? 'Recordatorios Activos' : 'Recordatorios Desactivados' }}
-                  </span>
-                </label>
-                <small>Habilita o deshabilita el envío de recordatorios automáticos</small>
+                <div v-if="formDataConfiguracion.enviarRecordatorios" class="flex flex-col gap-4 border-b border-slate-100 py-5 last:border-0 md:flex-row md:items-center" :class="{ 'has-error': fieldErrorsConfiguracion.horasAntesRecordatorio }">
+                  <div class="md:w-1/3">
+                    <label class="text-sm font-semibold text-slate-800">Enviar recordatorio con (horas de anticipación)</label>
+                    <p class="mt-1 text-xs text-slate-500">1 hora mínimo, 168 horas (7 días) máximo</p>
+                  </div>
+                  <div class="flex flex-col md:w-2/3">
+                    <input 
+                      v-model.number="formDataConfiguracion.horasAntesRecordatorio" 
+                      type="number" 
+                      min="1"
+                      max="168"
+                      required
+                      placeholder="24"
+                      class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm"
+                    />
+                    <span v-if="fieldErrorsConfiguracion.horasAntesRecordatorio" class="field-error">
+                      {{ fieldErrorsConfiguracion.horasAntesRecordatorio }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div class="config-section">
-            <h3 class="section-title">💳 Datos para Señas por Transferencia</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Datos bancarios (opcional)</label>
-                <textarea
-                  v-model="formDataConfiguracion.datosBancarios"
-                  rows="4"
-                  placeholder="Ej: Alias: mi.negocio.cobros\nCBU: 0000003100012345678901\nTitular: Mi Empresa SRL"
-                ></textarea>
-                <small>Este texto se mostrará al cliente en Mis Turnos cuando tenga una reserva en pendiente de pago.</small>
+          <section class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <svg class="h-5 w-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5m-18 7.5h4.5m-4.5 3h3m-1.5-15h15a1.5 1.5 0 011.5 1.5v13.5a1.5 1.5 0 01-1.5 1.5h-15a1.5 1.5 0 01-1.5-1.5V5.25a1.5 1.5 0 011.5-1.5z" />
+              </svg>
+              <h3 class="font-semibold text-slate-800">Datos para Señas por Transferencia</h3>
+            </div>
+            <div class="space-y-6 p-6">
+              <div class="flex flex-col gap-4 border-b border-slate-100 py-5 last:border-0 md:flex-row md:items-center">
+                <div class="md:w-1/3">
+                  <label class="text-sm font-semibold text-slate-800">Datos bancarios (opcional)</label>
+                  <p class="mt-1 text-xs text-slate-500">Este texto se mostrará al cliente en Mis Turnos cuando tenga una reserva en pendiente de pago.</p>
+                </div>
+                <div class="flex flex-col md:w-2/3">
+                  <textarea
+                    v-model="formDataConfiguracion.datosBancarios"
+                    rows="4"
+                    placeholder="Ej: Alias: mi.negocio.cobros\nCBU: 0000003100012345678901\nTitular: Mi Empresa SRL"
+                    class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm"
+                  ></textarea>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Error Message -->
-          <div v-if="errorConfiguracion" class="error-message">{{ errorConfiguracion }}</div>
+          <div v-if="errorConfiguracion" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{{ errorConfiguracion }}</div>
 
           <!-- Botones de Acción -->
-          <div class="form-actions">
+          <div class="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
             <button 
               type="submit" 
-              class="btn-submit-config" 
-              :disabled="submittingConfiguracion"
+              class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60" 
+              :disabled="!canSubmitConfiguracion"
             >
-              {{ submittingConfiguracion ? 'Guardando...' : '💾 Guardar Configuración' }}
+              <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75H6.375a1.125 1.125 0 0 0-1.125 1.125v14.25c0 .621.504 1.125 1.125 1.125h11.25c.621 0 1.125-.504 1.125-1.125V7.5L15 3.75H9Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75V7.5h6V3.75M9.75 12h4.5m-4.5 3h4.5" /></svg>
+              {{ submittingConfiguracion ? 'Guardando...' : 'Guardar Configuración' }}
             </button>
           </div>
         </form>
@@ -411,98 +617,102 @@
     </main>
 
         <!-- Modal Form Empresa -->
-        <div v-if="showModalEmpresa" class="modal-overlay" @click="cerrarModalEditarEmpresa">
-          <div class="modal" @click.stop>
-            <div class="modal-header">
-              <h2>Editar Empresa</h2>
-              <button @click="cerrarModalEditarEmpresa" class="btn-close">&times;</button>
+        <div v-if="showModalEmpresa" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm sm:p-0" @click="cerrarModalEditarEmpresa">
+          <div class="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-2xl overscroll-contain" @click.stop>
+            <div class="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+              <h2 class="text-lg font-semibold text-slate-800">Editar Empresa</h2>
+              <button @click="cerrarModalEditarEmpresa" class="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" type="button" aria-label="Cerrar modal">
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+                </svg>
+              </button>
             </div>
-            <form @submit.prevent="submitFormEmpresa" class="modal-form">
-              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.nombre }">
-                <label>Nombre *</label>
+            <form @submit.prevent="submitFormEmpresa" class="space-y-4 p-6">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Nombre *</label>
                 <input
                   v-model="formDataEmpresa.nombre"
                   type="text"
                   required
-                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="Nombre de la empresa"
                 />
-                <span v-if="fieldErrorsEmpresa.nombre" class="field-error">{{ fieldErrorsEmpresa.nombre }}</span>
+                <p v-if="fieldErrorsEmpresa.nombre" class="mt-1 text-xs text-rose-500">{{ fieldErrorsEmpresa.nombre }}</p>
               </div>
 
-              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.email }">
-                <label>Email</label>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Email</label>
                 <input
                   v-model="formDataEmpresa.email"
                   type="email"
-                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="contacto@empresa.com"
                 />
-                <span v-if="fieldErrorsEmpresa.email" class="field-error">{{ fieldErrorsEmpresa.email }}</span>
+                <p v-if="fieldErrorsEmpresa.email" class="mt-1 text-xs text-rose-500">{{ fieldErrorsEmpresa.email }}</p>
               </div>
 
-              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.telefono }">
-                <label>Teléfono</label>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Teléfono</label>
                 <input
                   v-model="formDataEmpresa.telefono"
                   type="tel"
-                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="Solo números (10-15 dígitos)"
                 />
-                <span v-if="fieldErrorsEmpresa.telefono" class="field-error">{{ fieldErrorsEmpresa.telefono }}</span>
+                <p v-if="fieldErrorsEmpresa.telefono" class="mt-1 text-xs text-rose-500">{{ fieldErrorsEmpresa.telefono }}</p>
               </div>
 
-              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.direccion }">
-                <label>Dirección</label>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Dirección</label>
                 <input
                   v-model="formDataEmpresa.direccion"
                   type="text"
-                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="Dirección comercial"
                 />
-                <span v-if="fieldErrorsEmpresa.direccion" class="field-error">{{ fieldErrorsEmpresa.direccion }}</span>
+                <p v-if="fieldErrorsEmpresa.direccion" class="mt-1 text-xs text-rose-500">{{ fieldErrorsEmpresa.direccion }}</p>
               </div>
 
-              <div class="form-row">
-                <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.ciudad }">
-                  <label>Ciudad</label>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-slate-700">Ciudad</label>
                   <input
                     v-model="formDataEmpresa.ciudad"
                     type="text"
-                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                     placeholder="Ciudad"
                   />
-                  <span v-if="fieldErrorsEmpresa.ciudad" class="field-error">{{ fieldErrorsEmpresa.ciudad }}</span>
+                  <p v-if="fieldErrorsEmpresa.ciudad" class="mt-1 text-xs text-rose-500">{{ fieldErrorsEmpresa.ciudad }}</p>
                 </div>
 
-                <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.provincia }">
-                  <label>Provincia</label>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-slate-700">Provincia</label>
                   <input
                     v-model="formDataEmpresa.provincia"
                     type="text"
-                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                     placeholder="Provincia"
                   />
-                  <span v-if="fieldErrorsEmpresa.provincia" class="field-error">{{ fieldErrorsEmpresa.provincia }}</span>
+                  <p v-if="fieldErrorsEmpresa.provincia" class="mt-1 text-xs text-rose-500">{{ fieldErrorsEmpresa.provincia }}</p>
                 </div>
               </div>
 
-              <div class="form-group" :class="{ 'has-error': fieldErrorsEmpresa.descripcion }">
-                <label>Descripción</label>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Descripción</label>
                 <textarea
                   v-model="formDataEmpresa.descripcion"
                   rows="3"
-                  class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                   placeholder="Descripción breve de la empresa"
                 ></textarea>
-                <span v-if="fieldErrorsEmpresa.descripcion" class="field-error">{{ fieldErrorsEmpresa.descripcion }}</span>
+                <p v-if="fieldErrorsEmpresa.descripcion" class="mt-1 text-xs text-rose-500">{{ fieldErrorsEmpresa.descripcion }}</p>
               </div>
 
-              <div v-if="errorEmpresa" class="error-message">{{ errorEmpresa }}</div>
+              <div v-if="errorEmpresa" class="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{{ errorEmpresa }}</div>
 
-              <div class="modal-actions">
-                <button type="button" @click="cerrarModalEditarEmpresa" class="btn-cancel">Cancelar</button>
-                <button type="submit" class="btn-submit" :disabled="!canSubmitEmpresa">
+              <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 -mx-6 -mb-6">
+                <button type="button" @click="cerrarModalEditarEmpresa" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">Cancelar</button>
+                <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50" :disabled="!canSubmitEmpresa">
                   {{ submittingEmpresa ? 'Guardando...' : 'Guardar' }}
                 </button>
               </div>
@@ -511,55 +721,60 @@
         </div>
 
 <!-- Modal Form Políticas -->
-<div v-if="showModalPolitica" class="modal-overlay" @click="closeModalPolitica">
-  <div class="modal" @click.stop>
-    <div class="modal-header">
-      <h2>Nueva Política de Cancelación</h2>
-      <button @click="closeModalPolitica" class="btn-close">&times;</button>
+<div v-if="showModalPolitica" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm sm:p-0" @click="closeModalPolitica">
+  <div class="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-2xl overscroll-contain" @click.stop>
+    <div class="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+      <h2 class="text-lg font-semibold text-slate-800">Nueva Política de Cancelación</h2>
+      <button @click="closeModalPolitica" class="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" type="button" aria-label="Cerrar modal">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+        </svg>
+      </button>
     </div>
-    <form @submit.prevent="submitFormPolitica" class="modal-form">
-      <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.descripcion }">
-        <label>Descripción *</label>
+    <form @submit.prevent="submitFormPolitica" class="space-y-4 p-6">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Descripción *</label>
         <textarea 
           v-model="formDataPolitica.descripcion" 
           required 
           rows="3"
+          class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           placeholder="Descripción de la política de cancelación"
         ></textarea>
-        <span v-if="fieldErrorsPolitica.descripcion" class="field-error">{{ fieldErrorsPolitica.descripcion }}</span>
+        <p v-if="fieldErrorsPolitica.descripcion" class="mt-1 text-xs text-rose-500">{{ fieldErrorsPolitica.descripcion }}</p>
       </div>
-      <div class="form-row">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div
           v-if="formDataPolitica.tipo !== 'INASISTENCIA'"
-          class="form-group"
-          :class="{ 'has-error': fieldErrorsPolitica.horasLimiteCancelacion }"
+          class=""
         >
-          <label>Horas límite para cancelar *</label>
+          <label class="mb-1 block text-sm font-medium text-slate-700">Horas límite para cancelar *</label>
           <input 
             v-model.number="formDataPolitica.horasLimiteCancelacion" 
             type="number" 
             min="1" 
+            class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
             placeholder="24"
           />
-          <span v-if="fieldErrorsPolitica.horasLimiteCancelacion" class="field-error">{{ fieldErrorsPolitica.horasLimiteCancelacion }}</span>
+          <p v-if="fieldErrorsPolitica.horasLimiteCancelacion" class="mt-1 text-xs text-rose-500">{{ fieldErrorsPolitica.horasLimiteCancelacion }}</p>
         </div>
 
-        <div class="form-group" :class="{ 'has-error': fieldErrorsPolitica.tipo }">
-          <label>Tipo de política *</label>
-          <select v-model="formDataPolitica.tipo" required>
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700">Tipo de política *</label>
+          <select v-model="formDataPolitica.tipo" required class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
             <option value="CANCELACION">Cancelación</option>
             <option value="INASISTENCIA">Inasistencia</option>
             <option value="AMBOS">Ambos</option>
           </select>
-          <span v-if="fieldErrorsPolitica.tipo" class="field-error">{{ fieldErrorsPolitica.tipo }}</span>
+          <p v-if="fieldErrorsPolitica.tipo" class="mt-1 text-xs text-rose-500">{{ fieldErrorsPolitica.tipo }}</p>
         </div>
       </div>
 
-      <div v-if="errorPolitica" class="error-message">{{ errorPolitica }}</div>
+      <div v-if="errorPolitica" class="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{{ errorPolitica }}</div>
 
-      <div class="modal-actions">
-        <button type="button" @click="closeModalPolitica" class="btn-cancel">Cancelar</button>
-        <button type="submit" class="btn-submit" :disabled="submittingPolitica">
+      <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 -mx-6 -mb-6">
+        <button type="button" @click="closeModalPolitica" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">Cancelar</button>
+        <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50" :disabled="!canSubmitPolitica">
           {{ submittingPolitica ? 'Guardando...' : (editingPolitica ? 'Actualizar' : 'Crear') }}
         </button>
       </div>
@@ -568,120 +783,136 @@
 </div>
     
     <!-- Modal Form Profesionales -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h2>{{ editingProfesional ? 'Editar' : 'Nuevo' }} Profesional</h2>
-          <button @click="closeModal" class="btn-close">&times;</button>
+    <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm sm:p-0" @click="closeModal">
+      <div class="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-2xl overscroll-contain" @click.stop>
+        <div class="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+          <h2 class="text-lg font-semibold text-slate-800">{{ editingProfesional ? 'Editar' : 'Nuevo' }} Profesional</h2>
+          <button @click="closeModal" class="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" type="button" aria-label="Cerrar modal">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+            </svg>
+          </button>
         </div>
-        <form @submit.prevent="submitForm" class="modal-form">
-          <div class="form-row">
-            <div class="form-group" :class="{ 'has-error': fieldErrors.nombre }">
-              <label>Nombre *</label>
+        <form @submit.prevent="submitForm" class="space-y-4 p-6">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Nombre *</label>
               <input 
                 v-model="formData.nombre" 
                 type="text" 
                 required
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="Nombre"
               />
-              <span v-if="fieldErrors.nombre" class="field-error">{{ fieldErrors.nombre }}</span>
+              <p v-if="fieldErrors.nombre" class="mt-1 text-xs text-rose-500">{{ fieldErrors.nombre }}</p>
             </div>
-            <div class="form-group" :class="{ 'has-error': fieldErrors.apellido }">
-              <label>Apellido *</label>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Apellido *</label>
               <input 
                 v-model="formData.apellido" 
                 type="text" 
                 required
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="Apellido"
               />
-              <span v-if="fieldErrors.apellido" class="field-error">{{ fieldErrors.apellido }}</span>
+              <p v-if="fieldErrors.apellido" class="mt-1 text-xs text-rose-500">{{ fieldErrors.apellido }}</p>
             </div>
           </div>
 
-          <div class="form-group" :class="{ 'has-error': fieldErrors.email }">
-            <label>Email *</label>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Email *</label>
             <input 
               v-model="formData.email" 
               type="email" 
               required
+              class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="email@ejemplo.com"
             />
-            <span v-if="fieldErrors.email" class="field-error">{{ fieldErrors.email }}</span>
+            <p v-if="fieldErrors.email" class="mt-1 text-xs text-rose-500">{{ fieldErrors.email }}</p>
           </div>
 
-          <div class="form-group" :class="{ 'has-error': fieldErrors.contrasena }">
-            <label>{{ editingProfesional ? 'Nueva Contraseña (opcional)' : 'Contraseña *' }}</label>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">{{ editingProfesional ? 'Nueva Contraseña (opcional)' : 'Contraseña *' }}</label>
             <input 
               v-model="formData.contrasena" 
               type="password" 
               :required="!editingProfesional"
+              class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Contraseña (mínimo 8 caracteres)"
             />
-            <span v-if="fieldErrors.contrasena" class="field-error">{{ fieldErrors.contrasena }}</span>
+            <p v-if="fieldErrors.contrasena" class="mt-1 text-xs text-rose-500">{{ fieldErrors.contrasena }}</p>
           </div>
 
-          <div class="form-row">
-            <div class="form-group" :class="{ 'has-error': fieldErrors.telefono }">
-              <label>Teléfono</label>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Teléfono</label>
               <input 
                 v-model="formData.telefono" 
                 type="tel" 
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="Solo números (10-15 dígitos)"
               />
-              <span v-if="fieldErrors.telefono" class="field-error">{{ fieldErrors.telefono }}</span>
+              <p v-if="fieldErrors.telefono" class="mt-1 text-xs text-rose-500">{{ fieldErrors.telefono }}</p>
             </div>
           </div>
 
-          <div class="form-group" :class="{ 'has-error': fieldErrors.descripcion }">
-            <label>Descripción</label>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Descripción</label>
             <textarea 
               v-model="formData.descripcion" 
               rows="3"
+              class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Descripción adicional del profesional"
             ></textarea>
-            <span v-if="fieldErrors.descripcion" class="field-error">{{ fieldErrors.descripcion }}</span>
+            <p v-if="fieldErrors.descripcion" class="mt-1 text-xs text-rose-500">{{ fieldErrors.descripcion }}</p>
           </div>
 
           <!-- Gestión de Servicios (solo al editar) -->
-          <div v-if="editingProfesional" class="form-group">
-            <label>Servicios Disponibles</label>
+          <div v-if="editingProfesional" class="space-y-3">
+            <label class="mb-1 block text-sm font-medium text-slate-700">Servicios Disponibles</label>
             <button 
               type="button" 
               @click="cargarServiciosProfesional" 
-              class="btn-secondary"
+              class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50"
               :disabled="cargandoServicios"
             >
               {{ cargandoServicios ? 'Cargando...' : 'Gestionar Servicios' }}
             </button>
             
-            <div v-if="serviciosProfesional.length > 0" class="servicios-profesional-list">
+            <div v-if="serviciosProfesional.length > 0" class="max-h-[300px] overflow-y-auto rounded-lg border border-slate-200">
               <div 
                 v-for="servicio in serviciosProfesional" 
                 :key="servicio.servicioId" 
-                class="servicio-item"
-                :class="{ 'desactivado': !servicio.disponible }"
+                class="flex items-center justify-between border-b border-slate-200 px-4 py-3 last:border-0"
+                :class="!servicio.disponible ? 'bg-rose-50/50 opacity-70' : 'bg-white'"
               >
-                <div class="servicio-info">
-                  <strong>{{ servicio.nombre }}</strong>
-                  <span class="servicio-meta">{{ servicio.duracionMinutos }} min - {{ formatearMonedaARS(servicio.precio) }}</span>
+                <div class="flex flex-1 flex-col gap-1">
+                  <strong class="text-sm text-slate-800">{{ servicio.nombre }}</strong>
+                  <span class="text-xs text-slate-500">{{ servicio.duracionMinutos }} min - {{ formatearMonedaARS(servicio.precio) }}</span>
                 </div>
                 <button 
                   type="button"
                   @click="confirmarToggleServicioProfesional(servicio)"
-                  :class="['btn-toggle', servicio.disponible ? 'activo' : 'inactivo']"
+                  :class="[
+                    'rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-50',
+                    servicio.disponible ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                  ]"
                   :disabled="submittingToggle"
                 >
-                  {{ servicio.disponible ? (submittingToggle ? 'Guardando...' : 'Desactivar') : (submittingToggle ? 'Guardando...' : 'Activar') }}
+                  {{ servicio.disponible 
+                      ? (submittingToggle && servicioProfesionalPendienteToggle?.servicioId === servicio.servicioId ? 'Guardando...' : 'Desactivar') 
+                      : (submittingToggle && servicioProfesionalPendienteToggle?.servicioId === servicio.servicioId ? 'Guardando...' : 'Activar') 
+                  }}
                 </button>
               </div>
             </div>
           </div>
 
-          <div v-if="error" class="error-message">{{ error }}</div>
+          <div v-if="error" class="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{{ error }}</div>
 
-          <div class="modal-actions">
-            <button type="button" @click="closeModal" class="btn-cancel">Cancelar</button>
-            <button type="submit" class="btn-submit" :disabled="submitting">
+          <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 -mx-6 -mb-6">
+            <button type="button" @click="closeModal" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50" :disabled="!canSubmitProfesional">
               {{ submitting ? 'Guardando...' : (editingProfesional ? 'Actualizar' : 'Crear') }}
             </button>
           </div>
@@ -690,102 +921,113 @@
     </div>
 
     <!-- Modal Form Servicios -->
-    <div v-if="showModalServicio" class="modal-overlay" @click="closeModalServicio">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h2>{{ editingServicio ? 'Editar' : 'Nuevo' }} Servicio</h2>
-          <button @click="closeModalServicio" class="btn-close">&times;</button>
+    <div v-if="showModalServicio" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm sm:p-0" @click="closeModalServicio">
+      <div class="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-2xl overscroll-contain" @click.stop>
+        <div class="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+          <h2 class="text-lg font-semibold text-slate-800">{{ editingServicio ? 'Editar' : 'Nuevo' }} Servicio</h2>
+          <button @click="closeModalServicio" class="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" type="button" aria-label="Cerrar modal">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+            </svg>
+          </button>
         </div>
-        <form @submit.prevent="submitFormServicio" class="modal-form">
-          <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.nombre }">
-            <label>Nombre del Servicio *</label>
+        <form @submit.prevent="submitFormServicio" class="space-y-4 p-6">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Nombre del Servicio *</label>
             <input 
               v-model="formDataServicio.nombre" 
               type="text" 
               required
+              class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Ej: Corte de cabello"
             />
-            <span v-if="fieldErrorsServicio.nombre" class="field-error">{{ fieldErrorsServicio.nombre }}</span>
+            <p v-if="fieldErrorsServicio.nombre" class="mt-1 text-xs text-rose-500">{{ fieldErrorsServicio.nombre }}</p>
           </div>
 
-          <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.descripcion }">
-            <label>Descripción</label>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Descripción</label>
             <textarea 
               v-model="formDataServicio.descripcion" 
               rows="3"
+              class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Descripción del servicio"
             ></textarea>
-            <span v-if="fieldErrorsServicio.descripcion" class="field-error">{{ fieldErrorsServicio.descripcion }}</span>
+            <p v-if="fieldErrorsServicio.descripcion" class="mt-1 text-xs text-rose-500">{{ fieldErrorsServicio.descripcion }}</p>
           </div>
 
-          <div class="form-row">
-            <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.duracionMinutos }">
-              <label>Duración (minutos) *</label>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Duración (minutos) *</label>
               <input 
                 v-model.number="formDataServicio.duracionMinutos" 
                 type="number" 
                 required
                 min="1"
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="45"
               />
-              <span v-if="fieldErrorsServicio.duracionMinutos" class="field-error">{{ fieldErrorsServicio.duracionMinutos }}</span>
+              <p v-if="fieldErrorsServicio.duracionMinutos" class="mt-1 text-xs text-rose-500">{{ fieldErrorsServicio.duracionMinutos }}</p>
             </div>
 
-            <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.precio }">
-              <label>Precio ($) *</label>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Precio ($) *</label>
               <input 
                 v-model.number="formDataServicio.precio" 
                 type="number" 
                 required
                 min="0"
                 step="0.01"
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
                 placeholder="5000"
               />
-              <span v-if="fieldErrorsServicio.precio" class="field-error">{{ fieldErrorsServicio.precio }}</span>
+              <p v-if="fieldErrorsServicio.precio" class="mt-1 text-xs text-rose-500">{{ fieldErrorsServicio.precio }}</p>
             </div>
           </div>
 
-          <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.bufferMinutos }">
-            <label>Buffer (minutos)</label>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Tiempo entre turnos (minutos)</label>
             <input 
               v-model.number="formDataServicio.bufferMinutos" 
               type="number" 
               min="0"
+              class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               placeholder="Tiempo de preparación después del servicio (opcional)"
             />
-            <small class="field-hint">Si no se especifica, se usará el buffer del profesional o de la empresa</small>
-            <span v-if="fieldErrorsServicio.bufferMinutos" class="field-error">{{ fieldErrorsServicio.bufferMinutos }}</span>
+            <small class="mt-1 block text-xs text-slate-500">Si no se especifica, se usará el buffer del profesional o de la empresa</small>
+            <p v-if="fieldErrorsServicio.bufferMinutos" class="mt-1 text-xs text-rose-500">{{ fieldErrorsServicio.bufferMinutos }}</p>
           </div>
 
-          <div class="form-group">
-            <label class="checkbox-label">
+          <div>
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
               <input
                 v-model="formDataServicio.requiereSena"
                 type="checkbox"
+                class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
               />
               <span>Requiere seña para confirmar la reserva</span>
             </label>
           </div>
 
-          <div class="form-group" :class="{ 'has-error': fieldErrorsServicio.montoSena }">
-            <label>Monto de seña ($)</label>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Monto de seña ($)</label>
             <input
               v-model.number="formDataServicio.montoSena"
               type="number"
               min="0"
               step="0.01"
               :disabled="!formDataServicio.requiereSena"
+              class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 disabled:bg-slate-100 disabled:text-slate-500"
               placeholder="Ej: 3000"
             />
-            <small class="field-hint">Solo se habilita si el servicio requiere seña</small>
-            <span v-if="fieldErrorsServicio.montoSena" class="field-error">{{ fieldErrorsServicio.montoSena }}</span>
+            <small class="mt-1 block text-xs text-slate-500">Solo se habilita si el servicio requiere seña</small>
+            <p v-if="fieldErrorsServicio.montoSena" class="mt-1 text-xs text-rose-500">{{ fieldErrorsServicio.montoSena }}</p>
           </div>
 
-          <div v-if="errorServicio" class="error-message">{{ errorServicio }}</div>
+          <div v-if="errorServicio" class="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{{ errorServicio }}</div>
 
-          <div class="modal-actions">
-            <button type="button" @click="closeModalServicio" class="btn-cancel">Cancelar</button>
-            <button type="submit" class="btn-submit" :disabled="submittingServicio">
+          <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 -mx-6 -mb-6">
+            <button type="button" @click="closeModalServicio" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50" :disabled="!canSubmitServicio">
               {{ submittingServicio ? 'Guardando...' : (editingServicio ? 'Actualizar' : 'Crear') }}
             </button>
           </div>
@@ -794,55 +1036,61 @@
     </div>
 
     <!-- Modal Form Horarios -->
-    <div v-if="showModalHorario" class="modal-overlay" @click="closeModalHorario">
-      <div class="modal modal-small" @click.stop>
-        <div class="modal-header">
-          <h2>{{ editingHorario ? 'Editar' : 'Nuevo' }} Horario</h2>
-          <button @click="closeModalHorario" class="btn-close">&times;</button>
+    <div v-if="showModalHorario" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm sm:p-0" @click="closeModalHorario">
+      <div class="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-2xl overscroll-contain" @click.stop>
+        <div class="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+          <h2 class="text-lg font-semibold text-slate-800">{{ editingHorario ? 'Editar' : 'Nuevo' }} Horario</h2>
+          <button @click="closeModalHorario" class="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" type="button" aria-label="Cerrar modal">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+            </svg>
+          </button>
         </div>
-        <form @submit.prevent="submitFormHorario" class="modal-form">
-          <div class="form-group" :class="{ 'has-error': fieldErrorsHorario.diaSemana }">
-            <label>Día de la Semana *</label>
-            <select v-model="formDataHorario.diaSemana" required>
+        <form @submit.prevent="submitFormHorario" class="space-y-4 p-6">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Día de la Semana *</label>
+            <select v-model="formDataHorario.diaSemana" required class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500">
               <option value="">Seleccione un día</option>
               <option v-for="dia in diasSemana" :key="dia" :value="dia">
                 {{ nombresDias[dia] }}
               </option>
             </select>
-            <span v-if="fieldErrorsHorario.diaSemana" class="field-error">{{ fieldErrorsHorario.diaSemana }}</span>
+            <p v-if="fieldErrorsHorario.diaSemana" class="mt-1 text-xs text-rose-500">{{ fieldErrorsHorario.diaSemana }}</p>
           </div>
 
-          <div class="form-row">
-            <div class="form-group" :class="{ 'has-error': fieldErrorsHorario.horaInicio }">
-              <label>Hora Inicio *</label>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Hora Inicio *</label>
               <input 
                 v-model="formDataHorario.horaInicio" 
                 type="time" 
                 required
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               />
-              <span v-if="fieldErrorsHorario.horaInicio" class="field-error">{{ fieldErrorsHorario.horaInicio }}</span>
+              <p v-if="fieldErrorsHorario.horaInicio" class="mt-1 text-xs text-rose-500">{{ fieldErrorsHorario.horaInicio }}</p>
             </div>
-            <div class="form-group" :class="{ 'has-error': fieldErrorsHorario.horaFin }">
-              <label>Hora Fin *</label>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Hora Fin *</label>
               <input 
                 v-model="formDataHorario.horaFin" 
                 type="time" 
                 required
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
               />
-              <span v-if="fieldErrorsHorario.horaFin" class="field-error">{{ fieldErrorsHorario.horaFin }}</span>
+              <p v-if="fieldErrorsHorario.horaFin" class="mt-1 text-xs text-rose-500">{{ fieldErrorsHorario.horaFin }}</p>
             </div>
           </div>
 
-          <div v-if="errorHorario" class="error-message">
+          <div v-if="errorHorario" class="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">
             <p>{{ errorHorario }}</p>
-            <ul v-if="horarioConflictoDetalles.length" class="lista-bloqueantes" style="margin-top:0.5rem;">
+            <ul v-if="horarioConflictoDetalles.length" class="mt-2 list-disc pl-5 text-sm text-rose-700">
               <li v-for="item in horarioConflictoDetalles" :key="item">{{ item }}</li>
             </ul>
           </div>
 
-          <div class="modal-actions">
-            <button type="button" @click="closeModalHorario" class="btn-cancel">Cancelar</button>
-            <button type="submit" class="btn-submit" :disabled="submittingHorario">
+          <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 -mx-6 -mb-6">
+            <button type="button" @click="closeModalHorario" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">Cancelar</button>
+            <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50" :disabled="!canSubmitHorario">
               {{ submittingHorario ? 'Guardando...' : (editingHorario ? 'Actualizar' : 'Crear') }}
             </button>
           </div>
@@ -851,44 +1099,53 @@
     </div>
 
     <!-- Modal Copiar Horarios -->
-    <div v-if="showModalCopiar" class="modal-overlay" @click="cerrarModalCopiar">
-      <div class="modal modal-small" @click.stop>
-        <div class="modal-header">
-          <h2>Copiar Horarios de {{ nombresDias[diaFuenteCopia] }}</h2>
-          <button @click="cerrarModalCopiar" class="btn-close">&times;</button>
+    <div v-if="showModalCopiar" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm sm:p-0" @click="cerrarModalCopiar">
+      <div class="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white shadow-2xl overscroll-contain" @click.stop>
+        <div class="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+          <h2 class="text-lg font-semibold text-slate-800">Copiar Horarios de {{ nombresDias[diaFuenteCopia] }}</h2>
+          <button @click="cerrarModalCopiar" class="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" type="button" aria-label="Cerrar modal">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l8 8M14 6l-8 8" />
+            </svg>
+          </button>
         </div>
-        <div class="modal-form">
-          <div class="form-group">
-            <label>Seleccione los días destino:</label>
-            <div class="checkbox-group">
-              <label v-for="dia in diasSemana" :key="dia" class="checkbox-label">
+        <div class="space-y-4 p-6">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-slate-700">Seleccione los días destino:</label>
+            <div class="mt-2 flex flex-col gap-2">
+              <label v-for="dia in diasSemana" :key="dia" class="flex items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-slate-50">
                 <input 
                   type="checkbox" 
                   :value="dia"
                   v-model="diasDestinoSeleccionados"
                   :disabled="dia === diaFuenteCopia"
+                  class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500 disabled:opacity-50"
                 />
-                <span :class="{ 'disabled-day': dia === diaFuenteCopia }">
+                <span :class="dia === diaFuenteCopia ? 'text-slate-400' : 'text-slate-700'" class="text-sm">
                   {{ nombresDias[dia] }}
-                  <span v-if="dia === diaFuenteCopia" class="badge-fuente">(fuente)</span>
+                  <span v-if="dia === diaFuenteCopia" class="ml-1 text-xs italic text-slate-500">(fuente)</span>
                 </span>
               </label>
             </div>
           </div>
 
-          <div v-if="diasConConflicto.length > 0" class="warning-message">
-            ⚠️ Los siguientes días ya tienen horarios configurados y serán reemplazados:
-            <strong>{{ diasConConflicto.map(d => nombresDias[d]).join(', ') }}</strong>
+          <div v-if="diasConConflicto.length > 0" class="rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
+            <div class="flex items-start gap-2">
+              <svg class="h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>Los siguientes días ya tienen horarios configurados y serán reemplazados: <strong>{{ diasConConflicto.map(d => nombresDias[d]).join(', ') }}</strong></span>
+            </div>
           </div>
 
-          <div v-if="errorCopiar" class="error-message">{{ errorCopiar }}</div>
+          <div v-if="errorCopiar" class="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{{ errorCopiar }}</div>
 
-          <div class="modal-actions">
-            <button type="button" @click="cerrarModalCopiar" class="btn-cancel">Cancelar</button>
+          <div class="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4 -mx-6 -mb-6">
+            <button type="button" @click="cerrarModalCopiar" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">Cancelar</button>
             <button 
               type="button" 
               @click="confirmarCopiarHorarios" 
-              class="btn-submit" 
+              class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50" 
               :disabled="submittingCopiar || diasDestinoSeleccionados.length === 0">
               {{ submittingCopiar ? 'Copiando...' : (diasConConflicto.length > 0 ? 'Reemplazar y Copiar' : 'Copiar Horarios') }}
             </button>
@@ -903,7 +1160,7 @@
     titulo="Eliminar Horario"
     :mensaje="`¿Estás seguro de eliminar el horario de ${nombresDias[horarioPendienteEliminar?.diaSemana]} (${horarioPendienteEliminar?.horaInicio} - ${horarioPendienteEliminar?.horaFin})?\nEsta acción no se puede deshacer.`"
     textoConfirmar="Eliminar"
-    colorBoton="bg-red-600 hover:bg-red-700"
+    colorBoton="bg-rose-600 hover:bg-rose-700"
     @confirm="ejecutarEliminarHorario"
     @cancel="cerrarConfirmDeleteHorario"
   />
@@ -913,7 +1170,7 @@
     :titulo="`${profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar'} Profesional`"
     :mensaje="`¿Estás seguro de ${profesionalPendienteToggle?.activo ? 'desactivar' : 'activar'} a ${profesionalPendienteToggle?.nombre} ${profesionalPendienteToggle?.apellido}?`"
     :textoConfirmar="profesionalPendienteToggle?.activo ? 'Desactivar' : 'Activar'"
-    :colorBoton="profesionalPendienteToggle?.activo ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    :colorBoton="profesionalPendienteToggle?.activo ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'"
     @confirm="ejecutarToggleProfesional"
     @cancel="cerrarConfirmToggleProfesional"
   />
@@ -923,7 +1180,7 @@
     titulo="Eliminar Política"
     mensaje="¿Estás seguro de eliminar esta política? Esta acción no se puede deshacer."
     textoConfirmar="Eliminar"
-    colorBoton="bg-red-600 hover:bg-red-700"
+    colorBoton="bg-rose-600 hover:bg-rose-700"
     @confirm="ejecutarEliminarPolitica"
     @cancel="cerrarConfirmDeletePolitica"
   />
@@ -933,7 +1190,7 @@
     :titulo="`${servicioPendienteToggle?.activo ? 'Desactivar' : 'Activar'} Servicio`"
     :mensaje="servicioPendienteToggle?.activo ? `¿Estás seguro de que deseas desactivar el servicio ${servicioPendienteToggle?.nombre}? Dejará de estar disponible para nuevas reservas.` : `¿Estás seguro de que deseas activar el servicio ${servicioPendienteToggle?.nombre}?`"
     :textoConfirmar="submittingToggleServicio ? 'Guardando...' : (servicioPendienteToggle?.activo ? 'Desactivar' : 'Activar')"
-    :colorBoton="servicioPendienteToggle?.activo ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    :colorBoton="servicioPendienteToggle?.activo ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'"
     @confirm="ejecutarToggleServicioActivo"
     @cancel="cerrarConfirmToggleServicio"
   />
@@ -943,7 +1200,7 @@
     :titulo="`${politicaPendienteToggle?.activa ? 'Desactivar' : 'Activar'} Política`"
     :mensaje="politicaPendienteToggle?.activa ? '¿Estás seguro de que deseas desactivar esta política de cancelación? Dejará de aplicarse a los nuevos turnos.' : '¿Estás seguro de que deseas activar esta política de cancelación? Comenzará a aplicarse a los nuevos turnos.'"
     :textoConfirmar="submittingTogglePolitica ? 'Guardando...' : (politicaPendienteToggle?.activa ? 'Desactivar' : 'Activar')"
-    :colorBoton="politicaPendienteToggle?.activa ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    :colorBoton="politicaPendienteToggle?.activa ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'"
     @confirm="ejecutarTogglePoliticaActiva"
     @cancel="cerrarConfirmTogglePolitica"
   />
@@ -953,7 +1210,7 @@
     :titulo="`${servicioProfesionalPendienteToggle?.disponible ? 'Desactivar' : 'Activar'} Servicio en Agenda`"
     :mensaje="`¿Confirmas ${servicioProfesionalPendienteToggle?.disponible ? 'desactivar' : 'activar'} ${servicioProfesionalPendienteToggle?.nombre} para ${editingProfesional?.nombre} ${editingProfesional?.apellido}?`"
     :textoConfirmar="submittingToggle ? 'Guardando...' : (servicioProfesionalPendienteToggle?.disponible ? 'Desactivar' : 'Activar')"
-    :colorBoton="servicioProfesionalPendienteToggle?.disponible ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+    :colorBoton="servicioProfesionalPendienteToggle?.disponible ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'"
     @confirm="ejecutarToggleServicioProfesional"
     @cancel="cerrarConfirmToggleServicioProfesional"
   />
@@ -974,6 +1231,63 @@ import { useToastStore } from '../composables/useToast'
 import Toast from '../components/Toast.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
 import { formatCurrencyARS as formatearMonedaARS } from '../utils/currency'
+
+type FieldErrors = Record<string, string>
+
+interface Profesional {
+  id: number
+  nombre: string
+  apellido: string
+  email: string
+  telefono?: string | null
+  descripcion?: string | null
+  activo: boolean
+}
+
+interface ProfesionalForm {
+  nombre: string
+  apellido: string
+  email: string
+  contrasena: string
+  telefono: string
+  descripcion: string
+}
+
+interface ServicioProfesionalItem {
+  servicioId: number
+  nombre: string
+  duracionMinutos: number
+  precio: number
+  disponible: boolean
+}
+
+interface HorarioEmpresa {
+  id: number
+  diaSemana: string
+  horaInicio: string
+  horaFin: string
+}
+
+interface HorarioForm {
+  diaSemana: string
+  horaInicio: string
+  horaFin: string
+}
+
+interface ApiErrorLike {
+  response?: {
+    status?: number
+    data?: {
+      errores?: FieldErrors
+      mensaje?: string
+      message?: string
+      error?: string
+      turnosAfectados?: string[]
+      profesionalesAfectados?: string[]
+    }
+  }
+  message?: string
+}
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1015,8 +1329,6 @@ const formDataEmpresa = ref({
 // Tab activo
 const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas' | 'configuracion'>('profesionales')
 
-// Estado para el formulario de política de cancelación
-const mostrarFormularioPolitica = ref(false)
 // Estado para Políticas de Cancelación
 const politicas = ref<PoliticaCancelacionResponse[]>([])
 const loadingPoliticas = ref(false)
@@ -1024,7 +1336,7 @@ const showModalPolitica = ref(false)
 const errorPolitica = ref('')
 const submittingPolitica = ref(false)
 const submittingTogglePolitica = ref(false)
-const fieldErrorsPolitica = ref<Record<string, string>>({})
+const fieldErrorsPolitica = ref<FieldErrors>({})
 
 const formDataPolitica = ref<PoliticaCancelacionRequest>({
   tipo: 'CANCELACION',
@@ -1034,19 +1346,36 @@ const formDataPolitica = ref<PoliticaCancelacionRequest>({
   activa: true
 })
 
+const politicaOriginal = ref<PoliticaCancelacionRequest>({
+  tipo: 'CANCELACION',
+  descripcion: '',
+  horasLimiteCancelacion: 24,
+  penalizacion: 'ADVERTENCIA',
+  activa: true
+})
+
 // Estado para Profesionales
-const profesionales = ref<any[]>([])
-const serviciosProfesional = ref<any[]>([])
+const profesionales = ref<Profesional[]>([])
+const serviciosProfesional = ref<ServicioProfesionalItem[]>([])
 const cargandoServicios = ref(false)
 const submittingToggle = ref(false)
 const loading = ref(false)
 const showModal = ref(false)
-const editingProfesional = ref<any>(null)
+const editingProfesional = ref<Profesional | null>(null)
 const error = ref('')
 const submitting = ref(false)
-const fieldErrors = ref<Record<string, string>>({})
+const fieldErrors = ref<FieldErrors>({})
 
-const formData = ref({
+const formData = ref<ProfesionalForm>({
+  nombre: '',
+  apellido: '',
+  email: '',
+  contrasena: '',
+  telefono: '',
+  descripcion: ''
+})
+
+const profesionalOriginal = ref({
   nombre: '',
   apellido: '',
   email: '',
@@ -1065,7 +1394,7 @@ const servicioPendienteToggle = ref<ServicioResponse | null>(null)
 const submittingToggleServicio = ref(false)
 const errorServicio = ref('')
 const submittingServicio = ref(false)
-const fieldErrorsServicio = ref<Record<string, string>>({})
+const fieldErrorsServicio = ref<FieldErrors>({})
 
 const formDataServicio = ref<ServicioRequest>({
   nombre: '',
@@ -1077,30 +1406,50 @@ const formDataServicio = ref<ServicioRequest>({
   montoSena: null
 })
 
+const servicioOriginal = ref<ServicioRequest>({
+  nombre: '',
+  descripcion: '',
+  duracionMinutos: 0,
+  bufferMinutos: undefined,
+  precio: 0,
+  requiereSena: false,
+  montoSena: null
+})
+
 // Estado para Horarios
-const horarios = ref<any[]>([])
+const horarios = ref<HorarioEmpresa[]>([])
 const loadingHorarios = ref(false)
 const showModalHorario = ref(false)
-const editingHorario = ref<any>(null)
+const editingHorario = ref<HorarioEmpresa | null>(null)
 const errorHorario = ref('')
 const submittingHorario = ref(false)
-const fieldErrorsHorario = ref<Record<string, string>>({})
+const fieldErrorsHorario = ref<FieldErrors>({})
 
 // Estado para modal de confirmación de eliminación de horario
 const showConfirmDeleteHorario = ref(false)
-const horarioPendienteEliminar = ref<any>(null)
-const eliminandoHorario = ref(false)
+const horarioPendienteEliminar = ref<HorarioEmpresa>({
+  id: 0,
+  diaSemana: 'LUNES',
+  horaInicio: '',
+  horaFin: ''
+})
 
 const showConfirmTogglePolitica = ref(false)
 const politicaPendienteToggle = ref<PoliticaCancelacionResponse | null>(null)
 
 const showConfirmToggleServicioProfesional = ref(false)
-const servicioProfesionalPendienteToggle = ref<any>(null)
+const servicioProfesionalPendienteToggle = ref<ServicioProfesionalItem | null>(null)
 
 // Detalles de conflicto 409 en el formulario de horario
 const horarioConflictoDetalles = ref<string[]>([])
 
-const formDataHorario = ref({
+const formDataHorario = ref<HorarioForm>({
+  diaSemana: '',
+  horaInicio: '',
+  horaFin: ''
+})
+
+const horarioOriginal = ref({
   diaSemana: '',
   horaInicio: '',
   horaFin: ''
@@ -1118,7 +1467,7 @@ const nombresDias: Record<string, string> = {
 }
 
 // Agrupar horarios por día
-const horariosAgrupados = ref<Record<string, any[]>>({})
+const horariosAgrupados = ref<Record<string, HorarioEmpresa[]>>({})
 
 // Estado para Copiar Horarios
 const showModalCopiar = ref(false)
@@ -1138,7 +1487,7 @@ const diasConConflicto = computed(() => {
 const loadingConfiguracion = ref(false)
 const submittingConfiguracion = ref(false)
 const errorConfiguracion = ref('')
-const fieldErrorsConfiguracion = ref<Record<string, string>>({})
+const fieldErrorsConfiguracion = ref<FieldErrors>({})
 
 const formDataConfiguracion = ref({
   bufferPorDefecto: 5,
@@ -1150,22 +1499,49 @@ const formDataConfiguracion = ref({
   datosBancarios: '' as string | null
 })
 
+const configuracionOriginal = ref({
+  bufferPorDefecto: 5,
+  tiempoMinimoAnticipacionMinutos: 30,
+  diasMaximosReserva: 30,
+  horasAntesRecordatorio: 24,
+  enviarRecordatorios: true,
+  timezone: 'America/Argentina/Buenos_Aires',
+  datosBancarios: '' as string | null
+})
+
 function agruparHorariosPorDia() {
-  const agrupados: Record<string, any[]> = {}
+  const agrupados: Record<string, HorarioEmpresa[]> = {}
   diasSemana.forEach(dia => {
     agrupados[dia] = horarios.value.filter(h => h.diaSemana === dia)
   })
   horariosAgrupados.value = agrupados
 }
 
+function extractApiErrorInfo(err: unknown, fallbackMessage: string): { fieldErrors?: FieldErrors; message: string } {
+  const apiError = err as ApiErrorLike
+  const data = apiError?.response?.data
+  if (data?.errores) {
+    return { fieldErrors: data.errores, message: 'Por favor corrija los errores en el formulario.' }
+  }
+  return {
+    message: data?.mensaje || data?.message || data?.error || apiError?.message || fallbackMessage
+  }
+}
+
+function extractApiErrorMessage(err: unknown, fallbackMessage: string): string {
+  return extractApiErrorInfo(err, fallbackMessage).message
+}
+
 onMounted(async () => {
   document.addEventListener('click', handleClickOutsideUserMenu)
   await cargarNombreEmpresa()
-  cargarProfesionales()
-  cargarServicios()
-  cargarHorarios()
-  await cargarPoliticasCancelacion()
-  cargarConfiguracion()
+  await Promise.all([
+    cargarProfesionales(),
+    cargarServicios(),
+    cargarHorarios(),
+    cargarPoliticasCancelacion(),
+    cargarConfiguracion()
+  ])
 })
 
 onBeforeUnmount(() => {
@@ -1191,6 +1567,65 @@ const formEmpresaDirty = computed(() => {
 const formEmpresaValido = computed(() => Object.keys(fieldErrorsEmpresa.value).length === 0)
 const canSubmitEmpresa = computed(() => formEmpresaDirty.value && formEmpresaValido.value && !submittingEmpresa.value)
 
+// --- 1. Profesional ---
+const formProfesionalDirty = computed(() => JSON.stringify(formData.value) !== JSON.stringify(profesionalOriginal.value))
+const formProfesionalValido = computed(() => {
+  const nombre = (formData.value.nombre ?? '').trim()
+  const apellido = (formData.value.apellido ?? '').trim()
+  const email = (formData.value.email ?? '').trim()
+  const contrasena = (formData.value.contrasena ?? '').trim()
+  const baseValido = nombre.length > 0 && apellido.length > 0 && EMAIL_REGEX.test(email)
+  return editingProfesional.value ? baseValido : (baseValido && contrasena.length > 0)
+})
+const canSubmitProfesional = computed(() => formProfesionalDirty.value && formProfesionalValido.value && !submitting.value)
+
+// --- 2. Servicio ---
+const formServicioDirty = computed(() => JSON.stringify(formDataServicio.value) !== JSON.stringify(servicioOriginal.value))
+const formServicioValido = computed(() => {
+  const nombre = (formDataServicio.value.nombre ?? '').trim()
+  const duracionValida = Number(formDataServicio.value.duracionMinutos) > 0
+  const precioValido = Number(formDataServicio.value.precio) >= 0
+  if (formDataServicio.value.requiereSena) {
+    return nombre.length > 0 && duracionValida && precioValido && Number(formDataServicio.value.montoSena) > 0
+  }
+  return nombre.length > 0 && duracionValida && precioValido
+})
+const canSubmitServicio = computed(() => formServicioDirty.value && formServicioValido.value && !submittingServicio.value)
+
+// --- 3. Horario ---
+const formHorarioDirty = computed(() => JSON.stringify(formDataHorario.value) !== JSON.stringify(horarioOriginal.value))
+const formHorarioValido = computed(() => {
+  return (formDataHorario.value.diaSemana ?? '').trim().length > 0
+    && (formDataHorario.value.horaInicio ?? '').trim().length > 0
+    && (formDataHorario.value.horaFin ?? '').trim().length > 0
+})
+const canSubmitHorario = computed(() => formHorarioDirty.value && formHorarioValido.value && !submittingHorario.value)
+
+// --- 4. Política ---
+const formPoliticaDirty = computed(() => JSON.stringify(formDataPolitica.value) !== JSON.stringify(politicaOriginal.value))
+const formPoliticaValida = computed(() => {
+  const descripcion = (formDataPolitica.value.descripcion ?? '').trim()
+  if (formDataPolitica.value.tipo === 'INASISTENCIA') {
+    return descripcion.length > 0
+  }
+  return descripcion.length > 0 && Number(formDataPolitica.value.horasLimiteCancelacion) >= 1
+})
+const canSubmitPolitica = computed(() => formPoliticaDirty.value && formPoliticaValida.value && !submittingPolitica.value)
+
+// --- 5. Configuración ---
+const formConfiguracionDirty = computed(() => JSON.stringify(formDataConfiguracion.value) !== JSON.stringify(configuracionOriginal.value))
+const formConfiguracionValida = computed(() => {
+  const bufferValido = Number(formDataConfiguracion.value.bufferPorDefecto) >= 0 && Number(formDataConfiguracion.value.bufferPorDefecto) <= 120
+  const anticipacionValida = Number(formDataConfiguracion.value.tiempoMinimoAnticipacionMinutos) >= 0 && Number(formDataConfiguracion.value.tiempoMinimoAnticipacionMinutos) <= 1440
+  const diasValido = Number(formDataConfiguracion.value.diasMaximosReserva) >= 1 && Number(formDataConfiguracion.value.diasMaximosReserva) <= 365
+  if (!formDataConfiguracion.value.enviarRecordatorios) {
+    return bufferValido && anticipacionValida && diasValido
+  }
+  const recordatorioValido = Number(formDataConfiguracion.value.horasAntesRecordatorio) >= 1 && Number(formDataConfiguracion.value.horasAntesRecordatorio) <= 168
+  return bufferValido && anticipacionValida && diasValido && recordatorioValido
+})
+const canSubmitConfiguracion = computed(() => formConfiguracionDirty.value && formConfiguracionValida.value && !submittingConfiguracion.value)
+
 function toggleUserMenu() {
   showUserMenu.value = !showUserMenu.value
 }
@@ -1202,15 +1637,16 @@ function handleClickOutsideUserMenu(event: MouseEvent) {
   }
 }
 
-function mapearEmpresaAFormulario(data: any) {
+function mapearEmpresaAFormulario(data: unknown) {
+  const empresa = (data && typeof data === 'object') ? (data as Record<string, unknown>) : {}
   const mapped = {
-    nombre: data?.nombre ?? '',
-    descripcion: data?.descripcion ?? '',
-    direccion: data?.direccion ?? '',
-    ciudad: data?.ciudad ?? '',
-    provincia: data?.provincia ?? '',
-    telefono: data?.telefono ?? '',
-    email: data?.email ?? ''
+    nombre: (empresa.nombre as string | undefined) ?? '',
+    descripcion: (empresa.descripcion as string | undefined) ?? '',
+    direccion: (empresa.direccion as string | undefined) ?? '',
+    ciudad: (empresa.ciudad as string | undefined) ?? '',
+    provincia: (empresa.provincia as string | undefined) ?? '',
+    telefono: (empresa.telefono as string | undefined) ?? '',
+    email: (empresa.email as string | undefined) ?? ''
   }
 
   empresaOriginal.value = { ...mapped }
@@ -1241,7 +1677,7 @@ function normalizarCampoOpcional(value: string) {
 }
 
 function validarFormularioEmpresa(): Record<string, string> {
-  const errores: Record<string, string> = {}
+  const errores: FieldErrors = {}
   const nombre = normalizarCampoTexto(formDataEmpresa.value.nombre)
   const descripcion = normalizarCampoTexto(formDataEmpresa.value.descripcion)
   const direccion = normalizarCampoTexto(formDataEmpresa.value.direccion)
@@ -1313,15 +1749,12 @@ async function submitFormEmpresa() {
 
     cerrarModalEditarEmpresa()
     toast.showSuccess('Empresa actualizada correctamente')
-  } catch (err: any) {
-    if (err.response?.data?.errores) {
-      fieldErrorsEmpresa.value = err.response.data.errores
-      errorEmpresa.value = 'Por favor corrija los errores en el formulario.'
-    } else if (err.response?.data?.mensaje) {
-      errorEmpresa.value = err.response.data.mensaje
-    } else {
-      errorEmpresa.value = 'Error al actualizar la empresa. Intente nuevamente.'
+  } catch (err: unknown) {
+    const { fieldErrors, message } = extractApiErrorInfo(err, 'Error al actualizar la empresa. Intente nuevamente.')
+    if (fieldErrors) {
+      fieldErrorsEmpresa.value = fieldErrors
     }
+    errorEmpresa.value = message
   } finally {
     submittingEmpresa.value = false
   }
@@ -1331,23 +1764,20 @@ async function submitFormEmpresa() {
 async function cargarNombreEmpresa() {
   try {
     const response = await api.get('/dueno/empresa')
-    let data = response.data
+    let data: unknown = response.data
     if (typeof data === 'string') {
       try {
         data = JSON.parse(data)
-        if (import.meta.env.DEV) console.warn('[FRONTEND] Se forzó parseo de string a objeto:', data)
-      } catch (e) {
-        console.error('[FRONTEND] Error al parsear data:', e, data)
+      } catch (parseError: unknown) {
+        console.error('[FRONTEND] Error al parsear data:', parseError)
         data = {}
       }
     }
-    nombreEmpresa.value = data?.nombre || 'Mi Empresa'
-    empresaId.value = data?.id || null
+    const empresa = (data && typeof data === 'object') ? (data as Record<string, unknown>) : {}
+    nombreEmpresa.value = (empresa.nombre as string | undefined) || 'Mi Empresa'
+    empresaId.value = (empresa.id as number | undefined) || null
     mapearEmpresaAFormulario(data)
-    if (!empresaId.value) {
-      if (import.meta.env.DEV) console.warn('[FRONTEND] No se obtuvo el id de la empresa en la respuesta:', data)
-    }
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('[FRONTEND] Error al obtener empresa:', err)
     nombreEmpresa.value = 'Mi Empresa'
     empresaId.value = null
@@ -1361,9 +1791,7 @@ async function cargarPoliticasCancelacion() {
   loadingPoliticas.value = true
   errorPolitica.value = ''
   try {
-    if (import.meta.env.DEV) console.log('[FRONTEND] empresaId antes de cargar políticas:', empresaId.value)
     if (!empresaId.value) {
-      if (import.meta.env.DEV) console.warn('[FRONTEND] No se pudo obtener el id de la empresa para cargar políticas')
       politicas.value = []
       toast.showError('No se pudo obtener el id de la empresa.')
       return
@@ -1374,15 +1802,13 @@ async function cargarPoliticasCancelacion() {
     if (typeof politicasData === 'string') {
       try {
         politicasData = JSON.parse(politicasData)
-        if (import.meta.env.DEV) console.warn('[FRONTEND] Se forzó parseo de string a array de políticas:', politicasData)
-      } catch (e) {
-        console.error('[FRONTEND] Error al parsear políticas:', e, politicasData)
+      } catch (parseError: unknown) {
+        console.error('[FRONTEND] Error al parsear políticas:', parseError)
         politicasData = []
       }
     }
-    if (import.meta.env.DEV) console.log('[FRONTEND] Respuesta de getTodasPorEmpresa:', politicasData)
     politicas.value = Array.isArray(politicasData) ? politicasData : []
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[FRONTEND] Error al cargar políticas:', err)
     politicas.value = []
     toast.showError('Error al cargar las políticas de cancelación.')
@@ -1415,6 +1841,7 @@ function openModalPolitica(politica?: PoliticaCancelacionResponse) {
     };
       editingPolitica.value = null;
     }
+  politicaOriginal.value = { ...formDataPolitica.value }
   showModalPolitica.value = true
 }
 
@@ -1471,16 +1898,13 @@ async function submitFormPolitica() {
     await cargarPoliticasCancelacion()
     showModalPolitica.value = false
     toast.showSuccess(wasEditing ? 'Política actualizada correctamente' : 'Política creada correctamente')
-  } catch (err: any) {
-    console.error('Error al guardar política:', err);
-    if (err.response?.data?.errores) {
-      fieldErrorsPolitica.value = err.response.data.errores
-      errorPolitica.value = 'Por favor corrija los errores en el formulario.'
-    } else if (err.response?.data?.mensaje) {
-      errorPolitica.value = err.response.data.mensaje
-    } else {
-      errorPolitica.value = 'Error al crear la política.'
+  } catch (err: unknown) {
+    console.error('Error al guardar política:', err)
+    const { fieldErrors, message } = extractApiErrorInfo(err, 'Error al crear la política.')
+    if (fieldErrors) {
+      fieldErrorsPolitica.value = fieldErrors
     }
+    errorPolitica.value = message
   } finally {
     submittingPolitica.value = false
   }
@@ -1511,9 +1935,9 @@ async function ejecutarTogglePoliticaActiva() {
     }
     cerrarConfirmTogglePolitica()
     await cargarPoliticasCancelacion()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cambiar estado de política:', err)
-    toast.showError(err?.response?.data?.mensaje || err?.message || 'Error al cambiar el estado de la política.')
+    toast.showError(extractApiErrorMessage(err, 'Error al cambiar el estado de la política.'))
   } finally {
     submittingTogglePolitica.value = false
   }
@@ -1539,25 +1963,15 @@ async function ejecutarEliminarPolitica() {
     await PoliticasService.eliminar(politicaPendienteEliminar.value)
     await cargarPoliticasCancelacion()
     toast.showSuccess('Política eliminada correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al eliminar política:', err)
-    toast.showError(err?.response?.data?.mensaje || 'Error al eliminar la política.')
+    toast.showError(extractApiErrorMessage(err, 'Error al eliminar la política.'))
   } finally {
     politicaPendienteEliminar.value = null
   }
 }
 
 // ==================== FUNCIONES AUXILIARES ====================
-
-function formatearPenalizacion(penalizacion: string): string {
-  const formatos: Record<string, string> = {
-    'NINGUNA': 'Ninguna',
-    'ADVERTENCIA': 'Advertencia',
-    'BLOQUEO': 'Bloqueo temporal',
-    'MULTA': 'Multa económica'
-  }
-  return formatos[penalizacion] || penalizacion
-}
 
 function formatearFecha(fecha: string): string {
   if (!fecha) return ''
@@ -1579,7 +1993,7 @@ async function cargarProfesionales() {
     const response = await api.get('/dueno/profesionales')
     // El backend retorna directamente el array, no envuelto en ApiResponse
     profesionales.value = Array.isArray(response.data) ? response.data : []
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar profesionales:', err)
     profesionales.value = [] // Limpiar en caso de error
     error.value = 'Error al cargar la lista de profesionales'
@@ -1590,7 +2004,7 @@ async function cargarProfesionales() {
 
 
 
-function openModal(profesional: any = null) {
+function openModal(profesional: Profesional | null = null) {
   editingProfesional.value = profesional
   serviciosProfesional.value = [] // Limpiar servicios al abrir modal
   if (profesional) {
@@ -1612,6 +2026,7 @@ function openModal(profesional: any = null) {
       descripcion: ''
     }
   }
+  profesionalOriginal.value = { ...formData.value }
   error.value = ''
   fieldErrors.value = {}
   showModal.value = true
@@ -1632,7 +2047,7 @@ async function cargarServiciosProfesional() {
   try {
     const response = await api.get(`/dueno/profesionales/${editingProfesional.value.id}/servicios`)
     serviciosProfesional.value = response.data.datos
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar servicios:', err)
     toast.showError('Error al cargar servicios del profesional')
   } finally {
@@ -1640,7 +2055,7 @@ async function cargarServiciosProfesional() {
   }
 }
 
-async function toggleServicio(servicio: any) {
+async function toggleServicio(servicio: ServicioProfesionalItem) {
   if (!editingProfesional.value) return
   
   submittingToggle.value = true
@@ -1652,15 +2067,15 @@ async function toggleServicio(servicio: any) {
     
     // Actualizar localmente
     servicio.disponible = !servicio.disponible
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cambiar servicio:', err)
-    toast.showError(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
+    toast.showError(extractApiErrorMessage(err, 'Error al cambiar el estado del servicio'))
   } finally {
     submittingToggle.value = false
   }
 }
 
-function confirmarToggleServicioProfesional(servicio: any) {
+function confirmarToggleServicioProfesional(servicio: ServicioProfesionalItem) {
   servicioProfesionalPendienteToggle.value = servicio
   showConfirmToggleServicioProfesional.value = true
 }
@@ -1704,35 +2119,22 @@ async function submitForm() {
     closeModal()
     await cargarProfesionales()
     toast.showSuccess(wasEditing ? 'Profesional actualizado correctamente' : 'Profesional creado correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error completo:', err)
-    console.error('Response data:', err.response?.data)
-    console.error('Response status:', err.response?.status)
-    
-    // Extraer y asignar errores por campo
-    if (err.response?.data?.errores) {
-      // Formato ErrorValidacion con errores por campo
-      fieldErrors.value = err.response.data.errores
-      error.value = 'Por favor corrija los errores en el formulario'
-    } else if (err.response?.data?.mensaje) {
-      // Formato RespuestaApi con mensaje general
-      error.value = err.response.data.mensaje
-    } else if (err.response?.data?.error) {
-      error.value = err.response.data.error
-    } else if (typeof err.response?.data === 'string') {
-      error.value = err.response.data
-    } else {
-      error.value = 'Error al guardar el profesional. Por favor intente nuevamente.'
+    const { fieldErrors: apiFieldErrors, message } = extractApiErrorInfo(err, 'Error al guardar el profesional. Por favor intente nuevamente.')
+    if (apiFieldErrors) {
+      fieldErrors.value = apiFieldErrors
     }
+    error.value = message
   } finally {
     submitting.value = false
   }
 }
 
-const profesionalPendienteToggle = ref<any>(null)
+const profesionalPendienteToggle = ref<Profesional | null>(null)
 const showConfirmToggleProfesional = ref(false)
 
-function confirmarToggleProfesional(profesional: any) {
+function confirmarToggleProfesional(profesional: Profesional) {
   profesionalPendienteToggle.value = profesional
   showConfirmToggleProfesional.value = true
 }
@@ -1756,13 +2158,9 @@ async function ejecutarToggleProfesional() {
       toast.showSuccess(`Profesional ${profesional.nombre} ${profesional.apellido} activado correctamente`, 5000)
     }
     await cargarProfesionales()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`Error al ${accion} profesional:`, err)
-    const mensajeError = err.response?.data?.mensaje 
-      || err.response?.data?.error 
-      || err.message 
-      || `Error al ${accion} el profesional`
-    toast.showError(mensajeError)
+    toast.showError(extractApiErrorMessage(err, `Error al ${accion} el profesional`))
   } finally {
     profesionalPendienteToggle.value = null
   }
@@ -1789,7 +2187,7 @@ async function cargarServicios() {
   loadingServicios.value = true
   try {
     servicios.value = await servicioService.obtenerServicios()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar servicios:', err)
     servicios.value = [] // Limpiar in caso de error
     errorServicio.value = 'Error al cargar la lista de servicios'
@@ -1821,6 +2219,7 @@ function openModalServicio(servicio: ServicioResponse | null = null) {
       montoSena: null
     }
   }
+  servicioOriginal.value = { ...formDataServicio.value }
   errorServicio.value = ''
   fieldErrorsServicio.value = {}
   showModalServicio.value = true
@@ -1866,19 +2265,13 @@ async function submitFormServicio() {
     closeModalServicio()
     await cargarServicios()
     toast.showSuccess(wasEditing ? 'Servicio actualizado correctamente' : 'Servicio creado correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error completo:', err)
-    
-    if (err.response?.data?.errores) {
-      fieldErrorsServicio.value = err.response.data.errores
-      errorServicio.value = 'Por favor corrija los errores en el formulario'
-    } else if (err.response?.data?.mensaje) {
-      errorServicio.value = err.response.data.mensaje
-    } else if (err.response?.data?.error) {
-      errorServicio.value = err.response.data.error
-    } else {
-      errorServicio.value = 'Error al guardar el servicio. Por favor intente nuevamente.'
+    const { fieldErrors, message } = extractApiErrorInfo(err, 'Error al guardar el servicio. Por favor intente nuevamente.')
+    if (fieldErrors) {
+      fieldErrorsServicio.value = fieldErrors
     }
+    errorServicio.value = message
   } finally {
     submittingServicio.value = false
   }
@@ -1897,9 +2290,9 @@ async function toggleServicioActivo(servicio: ServicioResponse) {
     }
     cerrarConfirmToggleServicio()
     await cargarServicios()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cambiar estado del servicio:', err)
-    toast.showError(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
+    toast.showError(extractApiErrorMessage(err, 'Error al cambiar el estado del servicio'))
   } finally {
     submittingToggleServicio.value = false
   }
@@ -1929,7 +2322,7 @@ async function cargarHorarios() {
     // El backend retorna directamente el array
     horarios.value = Array.isArray(response.data) ? response.data : []
     agruparHorariosPorDia()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar horarios:', err)
     horarios.value = []
     agruparHorariosPorDia()
@@ -1939,7 +2332,7 @@ async function cargarHorarios() {
   }
 }
 
-function openModalHorario(horario: any = null) {
+function openModalHorario(horario: HorarioEmpresa | null = null) {
   if (horario) {
     editingHorario.value = horario
     formDataHorario.value = {
@@ -1955,6 +2348,7 @@ function openModalHorario(horario: any = null) {
       horaFin: ''
     }
   }
+  horarioOriginal.value = { ...formDataHorario.value }
   fieldErrorsHorario.value = {}
   errorHorario.value = ''
   showModalHorario.value = true
@@ -1989,13 +2383,15 @@ async function submitFormHorario() {
     await cargarHorarios()
     closeModalHorario()
     toast.showSuccess(wasEditing ? 'Horario actualizado correctamente' : 'Horario creado correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al guardar horario:', err)
     horarioConflictoDetalles.value = []
+    const apiError = err as ApiErrorLike
+    const status = apiError.response?.status
+    const data = apiError.response?.data
     
-    if (err.response?.status === 409) {
+    if (status === 409) {
       // Conflicto de disponibilidad de profesionales o turnos activos
-      const data = err.response.data
       if (data?.turnosAfectados?.length) {
         errorHorario.value = data.mensaje || 'No se puede guardar el horario: hay turnos afectados.'
         horarioConflictoDetalles.value = data.turnosAfectados as string[]
@@ -2005,8 +2401,8 @@ async function submitFormHorario() {
       } else {
         errorHorario.value = data?.mensaje || 'El horario no puede modificarse porque hay conflictos activos.'
       }
-    } else if (err.response?.status === 400) {
-      const mensaje = err.response.data.mensaje || err.response.data.message
+    } else if (status === 400) {
+      const mensaje = data?.mensaje || data?.message
       errorHorario.value = mensaje || 'Error al validar los datos del horario'
     } else {
       errorHorario.value = 'Error al guardar el horario'
@@ -2016,29 +2412,34 @@ async function submitFormHorario() {
   }
 }
 
-function confirmarEliminarHorario(horario: any) {
+function confirmarEliminarHorario(horario: HorarioEmpresa) {
   horarioPendienteEliminar.value = horario
   showConfirmDeleteHorario.value = true
 }
 
 function cerrarConfirmDeleteHorario() {
   showConfirmDeleteHorario.value = false
-  horarioPendienteEliminar.value = null
+  horarioPendienteEliminar.value = {
+    id: 0,
+    diaSemana: 'LUNES',
+    horaInicio: '',
+    horaFin: ''
+  }
 }
 
 async function ejecutarEliminarHorario() {
-  if (!horarioPendienteEliminar.value) return
-  eliminandoHorario.value = true
+  if (!horarioPendienteEliminar.value.id) return
   try {
     await api.eliminarHorarioEmpresa(horarioPendienteEliminar.value.id)
     await cargarHorarios()
     cerrarConfirmDeleteHorario()
     toast.showSuccess('Horario eliminado correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al eliminar horario:', err)
     cerrarConfirmDeleteHorario()
-    if (err.response?.status === 409) {
-      const data = err.response.data
+    const apiError = err as ApiErrorLike
+    if (apiError.response?.status === 409) {
+      const data = apiError.response?.data
       if (data?.turnosAfectados?.length) {
         toast.showErrorConDetalles(
           data.mensaje || 'No se puede eliminar el horario por turnos activos.',
@@ -2055,8 +2456,6 @@ async function ejecutarEliminarHorario() {
     } else {
       toast.showError('Error inesperado al eliminar el horario. Intente nuevamente.')
     }
-  } finally {
-    eliminandoHorario.value = false
   }
 }
 
@@ -2098,11 +2497,12 @@ async function confirmarCopiarHorarios() {
     await cargarHorarios()
     cerrarModalCopiar()
     toast.showSuccess('Horarios copiados correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al copiar horarios:', err)
+    const apiError = err as ApiErrorLike
     
-    if (err.response?.status === 400) {
-      const mensaje = err.response.data.mensaje || err.response.data.message
+    if (apiError.response?.status === 400) {
+      const mensaje = apiError.response.data?.mensaje || apiError.response.data?.message
       errorCopiar.value = mensaje || 'Error al copiar los horarios'
     } else {
       errorCopiar.value = 'Error al copiar los horarios'
@@ -2132,7 +2532,8 @@ async function cargarConfiguracion() {
       timezone: data.timezone ?? 'America/Argentina/Buenos_Aires',
       datosBancarios: data.datosBancarios ?? ''
     }
-  } catch (err: any) {
+    configuracionOriginal.value = { ...formDataConfiguracion.value }
+  } catch (err: unknown) {
     console.error('Error al cargar configuración:', err)
     errorConfiguracion.value = 'Error al cargar la configuración de la empresa'
   } finally {
@@ -2146,25 +2547,20 @@ async function submitConfiguracion() {
   fieldErrorsConfiguracion.value = {}
   
   try {
-    const response = await api.actualizarConfiguracion(formDataConfiguracion.value)
+    await api.actualizarConfiguracion(formDataConfiguracion.value)
     
     // Mostrar mensaje de éxito
     toast.showSuccess('Configuración guardada exitosamente')
     
     // Recargar configuración para reflejar cambios
     await cargarConfiguracion()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al guardar configuración:', err)
-    
-    // Manejar errores de validación por campo
-    if (err.response?.data?.errores) {
-      fieldErrorsConfiguracion.value = err.response.data.errores
-      errorConfiguracion.value = 'Por favor corrija los errores en el formulario'
-    } else if (err.response?.data?.mensaje) {
-      errorConfiguracion.value = err.response.data.mensaje
-    } else {
-      errorConfiguracion.value = 'Error al guardar la configuración. Por favor intente nuevamente.'
+    const { fieldErrors, message } = extractApiErrorInfo(err, 'Error al guardar la configuración. Por favor intente nuevamente.')
+    if (fieldErrors) {
+      fieldErrorsConfiguracion.value = fieldErrors
     }
+    errorConfiguracion.value = message
   } finally {
     submittingConfiguracion.value = false
   }
@@ -2172,1194 +2568,5 @@ async function submitConfiguracion() {
 
 </script>
 
-<style scoped>
-.dueno-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding-bottom: 2rem;
-}
-
-.card-descripcion .truncate-text,
-.card-mensaje .truncate-text {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;
-  max-width: 100%;
-}
-.card-body {
-  min-height: 80px;
-}
-
-.dueno-header {
-  background: white;
-  padding: 1.5rem 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dueno-header h1 {
-  font-size: 1.5rem;
-  color: #2d3748;
-  margin: 0;
-}
-
-/* Tabs */
-.tabs {
-  background: white;
-  display: flex;
-  gap: 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.tab {
-  flex: 1;
-  padding: 1rem 2rem;
-  border: none;
-  background: transparent;
-  color: #718096;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s;
-}
-
-.tab:hover {
-  background: #f7fafc;
-  color: #667eea;
-}
-
-.tab.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
-  background: #f7fafc;
-}
-
-.user-info {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.btn-switch-rol {
-  background: #4c51bf;
-  color: white;
-  border: none;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.btn-switch-rol:hover {
-  background: #434190;
-  transform: translateY(-2px);
-}
-
-.user-menu-trigger {
-  background: white;
-  border: 2px solid #e2e8f0;
-  color: #2d3748;
-  padding: 0.5rem 0.9rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-}
-
-.user-menu-trigger:hover {
-  border-color: #cbd5e0;
-  background: #f8fafc;
-}
-
-.user-menu-arrow {
-  font-size: 0.85rem;
-  color: #4a5568;
-}
-
-.user-menu-dropdown {
-  position: absolute;
-  margin-top: 0.5rem;
-  top: 100%;
-  right: 0;
-  width: 12rem;
-  background: white;
-  border-radius: 0.375rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  padding: 0.25rem 0;
-  z-index: 1050;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.user-menu-item {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: #2d3748;
-  text-align: left;
-  padding: 0.65rem 0.75rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-}
-
-.user-menu-item:hover {
-  background: #f1f5f9;
-}
-
-.user-menu-item-danger {
-  color: #c53030;
-}
-
-.user-menu-item-danger:hover {
-  background: #fff5f5;
-}
-
-.dueno-content {
-  max-width: 1400px;
-  margin: 2rem auto;
-  padding: 0 2rem;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.section-header h2 {
-  color: white;
-  font-size: 1.8rem;
-  margin: 0;
-}
-
-.btn-add {
-  background: white;
-  color: #667eea;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.btn-add:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-}
-
-.loading {
-  text-align: center;
-  color: white;
-  font-size: 1.2rem;
-  padding: 3rem;
-}
-
-.profesionales-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
-}
-
-.profesional-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-}
-
-.profesional-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f7fafc;
-}
-
-.card-header h3 {
-  color: #2d3748;
-  font-size: 1.2rem;
-  margin: 0;
-}
-
-.card-body {
-  margin-bottom: 1rem;
-}
-
-.info-item {
-  margin-bottom: 0.5rem;
-  color: #4a5568;
-  font-size: 0.95rem;
-}
-
-.info-item strong {
-  color: #2d3748;
-}
-
-.text-muted {
-  color: #a0aec0;
-  font-style: italic;
-}
-
-.card-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.btn-edit,
-.btn-delete {
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.3s ease;
-}
-
-.btn-edit {
-  background: #4299e1;
-  color: white;
-}
-
-.btn-edit:hover {
-  background: #3182ce;
-}
-
-.btn-delete {
-  background: #f56565;
-  color: white;
-}
-
-.btn-delete:hover {
-  background: #e53e3e;
-}
-
-.btn-activate {
-  background: #48bb78;
-  color: white;
-}
-
-.btn-activate:hover {
-  background: #38a169;
-}
-
-.empty-state {
-  background: white;
-  border-radius: 12px;
-  padding: 3rem;
-  text-align: center;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.empty-state p {
-  color: #4a5568;
-  font-size: 1.2rem;
-  margin: 0.5rem 0;
-}
-
-.empty-hint {
-  color: #718096;
-  font-size: 1rem;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 2px solid #f7fafc;
-}
-
-.modal-header h2 {
-  color: #2d3748;
-  font-size: 1.5rem;
-  margin: 0;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  color: #a0aec0;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-close:hover {
-  color: #2d3748;
-}
-
-.modal-form {
-  padding: 1.5rem;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  color: #2d3748;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.form-group textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: inherit;
-  transition: border-color 0.3s ease;
-  resize: vertical;
-}
-
-.form-group textarea:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.form-group small {
-  display: block;
-  color: #718096;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-/* Checkbox Group Styles */
-.checkbox-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: #fff;
-}
-
-.checkbox-item:hover {
-  border-color: #4299e1;
-  background-color: #ebf8ff;
-}
-
-.checkbox-item input[type="checkbox"] {
-  cursor: pointer;
-  width: 18px;
-  height: 18px;
-  margin: 0;
-}
-
-.checkbox-item span {
-  font-size: 0.9rem;
-  color: #2d3748;
-  user-select: none;
-}
-
-.loading-text {
-  color: #718096;
-  font-style: italic;
-  padding: 0.5rem;
-}
-
-/* Field Error Styles */
-.form-group.has-error input,
-.form-group.has-error textarea {
-  border-color: #fc8181;
-  background-color: #fff5f5;
-}
-
-.form-group.has-error input:focus,
-.form-group.has-error textarea:focus {
-  border-color: #f56565;
-  box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.1);
-}
-
-.field-error {
-  display: block;
-  color: #e53e3e;
-  font-size: 0.8rem;
-  margin-top: 0.35rem;
-  font-weight: 500;
-}
-
-.error-message {
-  background: #fed7d7;
-  color: #c53030;
-  padding: 0.75rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.btn-cancel,
-.btn-submit {
-  flex: 1;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.btn-cancel {
-  background: #e2e8f0;
-  color: #2d3748;
-}
-
-.btn-cancel:hover {
-  background: #cbd5e0;
-}
-
-.btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.btn-submit:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Servicios del Profesional */
-.btn-secondary {
-  padding: 0.6rem 1rem;
-  background: #4299e1;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #3182ce;
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.servicios-profesional-list {
-  margin-top: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.servicio-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
-  transition: background 0.2s;
-}
-
-.servicio-item:last-child {
-  border-bottom: none;
-}
-
-.servicio-item:hover {
-  background: #f7fafc;
-}
-
-.servicio-item.desactivado {
-  opacity: 0.6;
-  background: #fff5f5;
-}
-
-.servicio-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.servicio-info strong {
-  color: #2d3748;
-  font-size: 0.95rem;
-}
-
-.servicio-meta {
-  color: #718096;
-  font-size: 0.85rem;
-}
-
-.btn-toggle {
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.btn-toggle.activo {
-  background: #fc8181;
-  color: white;
-}
-
-.btn-toggle.activo:hover:not(:disabled) {
-  background: #f56565;
-}
-
-.btn-toggle.inactivo {
-  background: #48bb78;
-  color: white;
-}
-
-.btn-toggle.inactivo:hover:not(:disabled) {
-  background: #38a169;
-}
-
-.btn-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Estilos adicionales para servicios */
-.badge-status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.badge-status.activo {
-  background: #c6f6d5;
-  color: #22543d;
-}
-
-.badge-status.inactivo {
-  background: #fed7d7;
-  color: #c53030;
-}
-
-.btn-activate {
-  background: #48bb78;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.btn-activate:hover {
-  background: #38a169;
-  transform: translateY(-2px);
-}
-
-.btn-remove-esp {
-  background: transparent;
-  border: none;
-  color: #c53030;
-  cursor: pointer;
-  font-size: 1.25rem;
-  line-height: 1;
-  padding: 0;
-  margin-left: 0.25rem;
-}
-
-.btn-remove-esp:hover {
-  color: #9b2c2c;
-}
-
-@media (max-width: 768px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .profesionales-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .tabs {
-    flex-direction: column;
-  }
-  
-  .tab {
-    border-bottom: 1px solid #e2e8f0;
-    border-left: 3px solid transparent;
-  }
-  
-  .tab.active {
-    border-left-color: #667eea;
-    border-bottom-color: transparent;
-  }
-}
-
-/* ==================== ESTILOS PARA HORARIOS ==================== */
-
-.horarios-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
-}
-
-.horario-dia-card {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.dia-header {
-  background-color: #667eea;
-  color: white;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dia-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.dia-header h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.btn-copiar-horarios {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.375rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-copiar-horarios:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.count-badge {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.dia-body {
-  padding: 1rem;
-}
-
-.horarios-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.horario-item {
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 0.75rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
-}
-
-.horario-item:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
-}
-
-.horario-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.horario-time {
-  font-weight: 600;
-  color: #1f2937;
-  font-size: 1rem;
-}
-
-.horario-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-edit-small,
-.btn-delete-small {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-edit-small {
-  background-color: #f3f4f6;
-  color: #4b5563;
-}
-
-.btn-edit-small:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
-}
-
-.btn-delete-small {
-  background-color: #fee2e2;
-  color: #dc2626;
-}
-
-.btn-delete-small:hover {
-  background-color: #fecaca;
-  color: #991b1b;
-}
-
-.no-horarios {
-  color: #6b7280;
-  font-size: 0.875rem;
-  text-align: center;
-  padding: 1rem;
-  background-color: white;
-  border: 1px dashed #d1d5db;
-  border-radius: 6px;
-}
-
-.modal-small {
-  max-width: 500px;
-}
-
-.modal-small .modal-content {
-  max-width: 500px;
-}
-
-/* Estilos para Modal de Copiar */
-.checkbox-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.checkbox-label:hover {
-  background-color: #f3f4f6;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"]:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.disabled-day {
-  color: #9ca3af;
-}
-
-.badge-fuente {
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-style: italic;
-}
-
-.warning-message {
-  background-color: #fef3c7;
-  border: 1px solid #fbbf24;
-  color: #92400e;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  margin-top: 1rem;
-}
-
-.warning-message strong {
-  font-weight: 600;
-}
-
-/* ==================== ESTILOS PARA CONFIGURACIÓN ==================== */
-
-.configuracion-container {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.configuracion-form {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  overflow: hidden;
-}
-
-.config-section {
-  padding: 2rem;
-  border-bottom: 2px solid #f7fafc;
-}
-
-.config-section:last-of-type {
-  border-bottom: none;
-}
-
-.section-title {
-  color: #2d3748;
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin: 0 0 1.5rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.form-group-switch {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.switch-label {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  cursor: pointer;
-  user-select: none;
-}
-
-.switch-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switch-slider {
-  position: relative;
-  display: inline-block;
-  width: 52px;
-  height: 28px;
-  background-color: #cbd5e0;
-  border-radius: 28px;
-  transition: background-color 0.3s ease;
-}
-
-.switch-slider::before {
-  content: '';
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  left: 3px;
-  top: 3px;
-  background-color: white;
-  border-radius: 50%;
-  transition: transform 0.3s ease;
-}
-
-.switch-input:checked + .switch-slider {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.switch-input:checked + .switch-slider::before {
-  transform: translateX(24px);
-}
-
-.switch-text {
-  font-weight: 600;
-  color: #2d3748;
-  font-size: 1rem;
-}
-
-.info-box {
-  background: #e6fffa;
-  border-left: 4px solid #38b2ac;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  margin-top: 1.5rem;
-}
-
-.info-box strong {
-  color: #234e52;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.info-box ul {
-  margin: 0.5rem 0 0 1.5rem;
-  color: #2c7a7b;
-}
-
-.info-box li {
-  margin-bottom: 0.25rem;
-  line-height: 1.5;
-}
-
-.config-info-section {
-  background: #f7fafc;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.info-card {
-  background: white;
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.info-label {
-  color: #718096;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.info-value {
-  color: #2d3748;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.form-actions {
-  padding: 2rem;
-  background: #f7fafc;
-  display: flex;
-  justify-content: center;
-}
-
-.btn-submit-config {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 1rem 3rem;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 1.1rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-submit-config:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-submit-config:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Ajustes para campo hint */
-.field-hint {
-  color: #718096;
-  font-size: 0.8rem;
-  font-style: italic;
-}
-
-.info-box {
-  background: #f0f9ff;
-  border-left: 4px solid #3b82f6;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.error-box {
-  background: #fef2f2;
-  border-left: 4px solid #ef4444;
-  padding: 1rem;
-  border-radius: 0.5rem;
-}
-
-.stat-badge {
-  background: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  color: #1e293b;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  font-size: 0.95rem;
-}
-
-.btn-danger {
-  flex: 1;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: #dc2626;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #b91c1c;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
-}
-
-.btn-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.lista-bloqueantes {
-  margin: 0.75rem 0 0;
-  padding-left: 1.25rem;
-  list-style: disc;
-  font-size: 0.875rem;
-  color: #374151;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-</style>
 
 

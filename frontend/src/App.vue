@@ -5,38 +5,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, onMounted, onUnmounted } from 'vue'
+import { computed, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificacionesStore } from '@/stores/notificaciones'
-import { useToastStore } from '@/composables/useToast'
 import { solicitarPermisoYObtenerToken, escucharNotificacionesForeground } from '@/firebase'
+import api from '@/services/api'
 import UnifiedNavbar from '@/components/UnifiedNavbar.vue'
 import ClienteNavbar from '@/components/ClienteNavbar.vue'
 
 const authStore = useAuthStore()
 const notificacionesStore = useNotificacionesStore()
-const toastStore = useToastStore()
 const route = useRoute()
 let foregroundListenerActivo = false
 let detenerForegroundListener: (() => void) | null = null
 
 async function registrarTokenPushEnBackendConFetch(token: string): Promise<void> {
-  const response = await fetch('http://localhost:8080/api/notificaciones/token', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
+  await api.post('/notificaciones/token', {
       token,
       userAgent: navigator.userAgent
-    })
   })
-
-  if (!response.ok) {
-    throw new Error(`Error al registrar token push: HTTP ${response.status}`)
-  }
 }
 
 async function inicializarFcmParaProfesional(): Promise<void> {
@@ -84,28 +72,7 @@ watch(
   { immediate: true }
 )
 
-/**
- * Handler global de toasts para notificaciones WebSocket.
- * Al estar en App.vue, cubre todos los roles/vistas (incluyendo DUENO+PROFESIONAL
- * cuando está en /dueno y ProfesionalView está desmontado).
- *
- * Prevención de WS cruzados: omite el toast para CANCELACION_EMPRESA cuando
- * el usuario tiene rol DUENO, ya que DuenoView ya muestra su propio feedback
- * de éxito para cancelaciones que él mismo inició.
- */
-const TIPOS_PROPIOS_DUENO = new Set(['CANCELACION_EMPRESA'])
-
-function onNuevaNotificacionGlobal(event: Event) {
-  const notificacion = (event as CustomEvent).detail
-  if (authStore.hasRole('DUENO') && TIPOS_PROPIOS_DUENO.has(notificacion.tipo)) return
-  toastStore.show(`${notificacion.titulo}: ${notificacion.mensaje}`, 4000, 'info')
-}
-
-onMounted(() => {
-  window.addEventListener('nueva-notificacion', onNuevaNotificacionGlobal as EventListener)
-})
 onUnmounted(() => {
-  window.removeEventListener('nueva-notificacion', onNuevaNotificacionGlobal as EventListener)
   if (detenerForegroundListener) {
     detenerForegroundListener()
     detenerForegroundListener = null

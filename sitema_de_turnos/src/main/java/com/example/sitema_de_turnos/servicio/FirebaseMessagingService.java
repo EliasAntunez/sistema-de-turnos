@@ -52,6 +52,8 @@ public class FirebaseMessagingService {
                 return;
             }
 
+            String tituloPush = aplicarEmojiPush(titulo);
+
             final int batchSize = 500;
             int totalSuccess = 0;
             int totalFailure = 0;
@@ -65,7 +67,7 @@ public class FirebaseMessagingService {
                 MulticastMessage message = MulticastMessage.builder()
                     .addAllTokens(batchTokens)
                     .setNotification(Notification.builder()
-                        .setTitle(titulo)
+                        .setTitle(tituloPush)
                         .setBody(cuerpo)
                         .build())
                     .build();
@@ -86,6 +88,31 @@ public class FirebaseMessagingService {
             log.error("Error en envío asíncrono de push FCM para usuario {}",
                 usuario != null ? usuario.getEmail() : "desconocido", e);
         }
+    }
+
+    private String aplicarEmojiPush(String titulo) {
+        String tituloSeguro = titulo != null ? titulo : "Nueva notificación";
+        String tituloTrim = tituloSeguro.trim();
+
+        if (tituloTrim.matches("^[✅❌🔄🔔💰].*")) {
+            return tituloSeguro;
+        }
+
+        String lower = tituloSeguro.toLowerCase();
+
+        if (lower.contains("nuevo") || lower.contains("reserva") || lower.contains("pago") || lower.contains("seña") || lower.contains("sena")) {
+            return "✅ " + tituloSeguro;
+        }
+
+        if (lower.contains("cancelado") || lower.contains("rechazado") || lower.contains("inasistencia")) {
+            return "❌ " + tituloSeguro;
+        }
+
+        if (lower.contains("reprogramado") || lower.contains("cambio")) {
+            return "🔄 " + tituloSeguro;
+        }
+
+        return "🔔 " + tituloSeguro;
     }
 
     private void limpiarTokensInvalidos(List<String> tokens, List<SendResponse> responses) {

@@ -927,7 +927,7 @@ public class ServicioTurno {
 
         Page<Turno> paginaTurnos = repositorioTurno.findAll(
             specification,
-            aplicarOrdenPorDefecto(pageable)
+            aplicarOrdenAgendaProfesional(pageable)
         );
 
         return paginaTurnos.map(this::mapearATurnoResponseProfesional);
@@ -1160,6 +1160,20 @@ public class ServicioTurno {
         );
     }
 
+    private Pageable aplicarOrdenAgendaProfesional(Pageable pageable) {
+        int pageNumber = pageable != null ? pageable.getPageNumber() : 0;
+        int pageSize = pageable != null ? pageable.getPageSize() : 10;
+
+        return PageRequest.of(
+            pageNumber,
+            pageSize,
+            Sort.by(
+                Sort.Order.asc("fecha"),
+                Sort.Order.asc("horaInicio")
+            )
+        );
+    }
+
     private EstadoTurno parsearEstado(String estado) {
         if (estado == null || estado.isBlank()) {
             return null;
@@ -1203,7 +1217,7 @@ public class ServicioTurno {
      */
     private void enviarNotificacionNuevoTurno(Turno turno) {
         try {
-            String titulo = "Nuevo Turno ✅";
+            String titulo = "Nuevo Turno";
             String mensaje = String.format(
                 "%s reservó %s para el %s a las %s.",
                 turno.getCliente().getNombre(),
@@ -1244,8 +1258,8 @@ public class ServicioTurno {
                 : TipoNotificacion.CANCELACION_EMPRESA;
 
             String titulo = "CLIENTE".equals(canceladoPor) 
-                ? "Turno Cancelado ❌" 
-                : "Turno Cancelado 🏢";
+                ? "Turno Cancelado" 
+                : "Turno Cancelado por Empresa";
 
             String mensaje = String.format(
                 "%s canceló el turno de %s del %s a las %s. Motivo: %s",
@@ -1280,7 +1294,7 @@ public class ServicioTurno {
      */
     private void enviarNotificacionReprogramacion(Turno turno, LocalDateTime fechaHoraAnterior, LocalDateTime fechaHoraNueva) {
         try {
-            String titulo = "Turno Reprogramado 📅";
+            String titulo = "Turno Reprogramado";
             String mensaje = String.format(
                 "%s modificó su turno de %s de %s %s a %s %s.",
                 turno.getCliente().getNombre(),
