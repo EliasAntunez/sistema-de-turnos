@@ -3,6 +3,8 @@ package com.example.sitema_de_turnos.servicio;
 import com.example.sitema_de_turnos.dto.RegistroServicioRequest;
 import com.example.sitema_de_turnos.dto.ServicioResponse;
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
+import com.example.sitema_de_turnos.excepcion.ConflictoException;
+import com.example.sitema_de_turnos.excepcion.EntidadInactivaExistenteException;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.mapper.ServicioMapper;
 import com.example.sitema_de_turnos.modelo.*;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,10 +41,12 @@ public class ServicioServicio {
 
         // RIESGO-003: Validar dueño y empresa activa
         PerfilDueno dueno = servicioValidacionDueno.validarYObtenerDueno(emailDueno);
+        String nombreNormalizado = com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre());
+        validarNombreServicioDisponible(dueno.getEmpresa(), nombreNormalizado, null);
 
         // Crear servicio
         com.example.sitema_de_turnos.modelo.Servicio servicio = new com.example.sitema_de_turnos.modelo.Servicio();
-        servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
+        servicio.setNombre(nombreNormalizado);
         servicio.setDescripcion(request.getDescripcion());
         servicio.setDuracionMinutos(request.getDuracionMinutos());
         // Si el DTO no trae buffer, usar el buffer por defecto de la empresa (fallback: 10 min).
@@ -96,10 +101,13 @@ public class ServicioServicio {
             throw new AccesoDenegadoException("No puede modificar servicios de otra empresa");
         }
 
+        String nombreNormalizado = com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre());
+        validarNombreServicioDisponible(dueno.getEmpresa(), nombreNormalizado, servicio.getId());
+
         // Actualizar servicio
         // Nota: cambios de duración/precio sólo afectan a nuevas reservas.
         // Los turnos ya agendados conservan su duracionMinutos original (snapshot en la entidad Turno).
-        servicio.setNombre(com.example.sitema_de_turnos.util.NormalizadorDatos.normalizarNombre(request.getNombre()));
+        servicio.setNombre(nombreNormalizado);
         servicio.setDescripcion(request.getDescripcion());
         servicio.setDuracionMinutos(request.getDuracionMinutos());
         // Si el DTO no trae buffer, conservar el valor ya persistido (no pisar con null).
@@ -169,5 +177,25 @@ public class ServicioServicio {
         if (request.getMontoSena().compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("El monto de la seña debe ser mayor a 0");
         }
+    }
+
+    private void validarNombreServicioDisponible(Empresa empresa, String nombreNormalizado, Long servicioIdActual) {
+        Optional<com.example.sitema_de_turnos.modelo.Servicio> existente = servicioIdActual == null
+            ? repositorioServicio.findFirstByEmpresaAndNombre(empresa, nombreNormalizado)
+            : repositorioServicio.findFirstByEmpresaAndNombreAndIdNot(empresa, nombreNormalizado, servicioIdActual);
+
+        if (existente.isEmpty()) {
+            return;
+        }
+
+        com.example.sitema_de_turnos.modelo.Servicio servicioExistente = existente.get();
+        if (Boolean.FALSE.equals(servicioExistente.getActivo())) {
+            throw new EntidadInactivaExistenteException(
+                "Ya existe un servicio inactivo con el mismo nombre para esta empresa. ID: " + servicioExistente.getId(),
+                servicioExistente.getId()
+            );
+        }
+
+        throw new ConflictoException("Ya existe un servicio activo con el mismo nombre para esta empresa");
     }
 }

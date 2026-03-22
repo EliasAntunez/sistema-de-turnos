@@ -15,6 +15,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "servicios",
+    uniqueConstraints = {
+        @UniqueConstraint(name = "uk_servicio_empresa_nombre",
+                          columnNames = {"empresa_id", "nombre"})
+    },
     indexes = {
         @Index(name = "idx_servicio_empresa_activo",
                columnList = "empresa_id, activo")

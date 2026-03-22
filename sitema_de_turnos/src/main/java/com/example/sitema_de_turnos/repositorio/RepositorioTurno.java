@@ -2,6 +2,10 @@ package com.example.sitema_de_turnos.repositorio;
 
 import com.example.sitema_de_turnos.modelo.*;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -17,6 +21,10 @@ import java.util.List;
 
 @Repository
 public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecificationExecutor<Turno> {
+
+    @Override
+    @EntityGraph(attributePaths = {"cliente", "profesional", "servicio", "empresa"})
+    Page<Turno> findAll(Specification<Turno> spec, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Turno t WHERE t.id = :turnoId")
@@ -91,6 +99,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
      *
      * CORREGIDO: usa parámetro enum tipado para compatibilidad con Hibernate 6.
      */
+    @EntityGraph(attributePaths = {"cliente", "servicio", "empresa"})
     @Query("SELECT t FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha = :fecha " +
            "AND t.estado IN :estadosOcupantes " +
@@ -386,6 +395,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
      * @param horaInicio  Inicio del rango a evaluar
      * @param horaFin     Fin del rango a evaluar
      */
+    @EntityGraph(attributePaths = {"cliente", "profesional", "servicio"})
     @Query("SELECT t FROM Turno t WHERE t.empresa = :empresa " +
            "AND t.fecha >= :hoy " +
            "AND t.estado IN :estados " +
@@ -417,6 +427,7 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
      * @param horaInicio  Inicio del rango a evaluar
      * @param horaFin     Fin del rango a evaluar
      */
+    @EntityGraph(attributePaths = {"cliente", "servicio", "empresa"})
     @Query("SELECT t FROM Turno t WHERE t.profesional = :profesional " +
            "AND t.fecha >= :hoy " +
            "AND t.estado IN :estados " +

@@ -4,6 +4,7 @@ import com.example.sitema_de_turnos.modelo.DiaSemana;
 import com.example.sitema_de_turnos.modelo.DisponibilidadProfesional;
 import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,13 +16,17 @@ import java.util.List;
 @Repository
 public interface RepositorioDisponibilidadProfesional extends JpaRepository<DisponibilidadProfesional, Long> {
     
-    List<DisponibilidadProfesional> findByProfesional(PerfilProfesional profesional);
+       @EntityGraph(attributePaths = {"profesional"})
+       List<DisponibilidadProfesional> findByProfesional(PerfilProfesional profesional);
     
-    List<DisponibilidadProfesional> findByProfesionalAndActivoTrue(PerfilProfesional profesional);
+       @EntityGraph(attributePaths = {"profesional"})
+       List<DisponibilidadProfesional> findByProfesionalAndActivoTrue(PerfilProfesional profesional);
     
-    List<DisponibilidadProfesional> findByProfesionalAndDiaSemana(PerfilProfesional profesional, DiaSemana diaSemana);
+       @EntityGraph(attributePaths = {"profesional"})
+       List<DisponibilidadProfesional> findByProfesionalAndDiaSemana(PerfilProfesional profesional, DiaSemana diaSemana);
     
-    List<DisponibilidadProfesional> findByProfesionalAndDiaSemanaAndActivoTrue(PerfilProfesional profesional, DiaSemana diaSemana);
+       @EntityGraph(attributePaths = {"profesional"})
+       List<DisponibilidadProfesional> findByProfesionalAndDiaSemanaAndActivoTrue(PerfilProfesional profesional, DiaSemana diaSemana);
 
     @Query("SELECT d FROM DisponibilidadProfesional d " +
            "WHERE d.profesional.empresa = :empresa " +
