@@ -25,7 +25,7 @@ public class PerfilDueno {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false, unique = true)
     private Usuario usuario;
 
@@ -44,6 +44,6 @@ public class PerfilDueno {
      */
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToOne(mappedBy = "perfilDueno")
+    @OneToOne(mappedBy = "perfilDueno", fetch = FetchType.LAZY)
     private Empresa empresa;
 }

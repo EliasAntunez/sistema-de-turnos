@@ -2,6 +2,7 @@ package com.example.sitema_de_turnos.repositorio;
 
 import com.example.sitema_de_turnos.modelo.BloqueoFecha;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,10 +14,13 @@ import java.util.List;
 @Repository
 public interface RepositorioBloqueoFecha extends JpaRepository<BloqueoFecha, Long> {
 
+    @EntityGraph(attributePaths = {"profesional"})
     List<BloqueoFecha> findByProfesionalAndActivoTrueOrderByFechaInicioAsc(PerfilProfesional profesional);
 
+    @EntityGraph(attributePaths = {"profesional"})
     List<BloqueoFecha> findByProfesionalAndActivoTrue(PerfilProfesional profesional);
 
+    @EntityGraph(attributePaths = {"profesional"})
     List<BloqueoFecha> findByProfesionalOrderByFechaInicioAsc(PerfilProfesional profesional);
 
     @Query("""

@@ -3,7 +3,9 @@ package com.example.sitema_de_turnos.modelo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Tabla para habilitar servicios específicos de un profesional.
@@ -28,11 +30,15 @@ public class ProfesionalServicio {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profesional_id", nullable = false)
     private PerfilProfesional profesional;
 
-    @ManyToOne
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "servicio_id", nullable = false)
     private Servicio servicio;
 

@@ -131,7 +131,7 @@ public class Empresa {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToOne(optional = false, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
+    @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
     @JoinColumn(name = "perfil_dueno_id", nullable = false, unique = true)
     private PerfilDueno perfilDueno;
 
