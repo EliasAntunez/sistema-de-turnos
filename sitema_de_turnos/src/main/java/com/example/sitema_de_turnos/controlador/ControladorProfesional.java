@@ -28,8 +28,9 @@ import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import static org.springframework.data.domain.Sort.Direction.DESC;
+import static org.springframework.data.domain.Sort.Direction.ASC;
 
 import java.util.List;
 import java.time.LocalDate;
@@ -109,7 +110,7 @@ public class ControladorProfesional {
         if (request.getEmail() != null && !request.getEmail().equals(usuario.getEmail())) {
             // Validar que el nuevo email no exista
             if (repositorioUsuario.existsByEmail(request.getEmail())) {
-                throw new RuntimeException("El email ya está en uso");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "El email ya está en uso");
             }
             usuario.setEmail(request.getEmail());
         }
@@ -333,7 +334,7 @@ public class ControladorProfesional {
             @RequestParam(required = false) String fechaDesde,
             @RequestParam(required = false) String fechaHasta,
             @RequestParam(required = false) String clienteNombre,
-            @PageableDefault(size = 10, sort = "fechaCreacion", direction = DESC) Pageable pageable,
+            @PageableDefault(size = 10, sort = {"fecha", "horaInicio"}, direction = ASC) Pageable pageable,
             Authentication authentication) {
         String emailProfesional = authentication.getName();
         Page<TurnoResponseProfesional> turnos = servicioTurno.listarMisTurnosProfesional(

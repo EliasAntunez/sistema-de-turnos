@@ -181,7 +181,10 @@
     <!-- Tab: Profesionales -->
     <main v-if="activeTab === 'profesionales'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-6 flex items-center justify-between gap-3">
-        <h2 class="text-xl font-semibold text-slate-900 sm:text-2xl">Profesionales de la Empresa</h2>
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.742-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.203-.576-5.964-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a5.971 5.971 0 0 0-.94 3.197m0 0A9.094 9.094 0 0 1 2.25 18.24a3 3 0 0 1 4.682-2.72m.94 3.198a5.971 5.971 0 0 1 .94-3.197M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
+          Profesionales de la Empresa
+        </h2>
         <button @click="openModal()" class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">+ Agregar Profesional</button>
       </div>
 
@@ -235,7 +238,10 @@
     <!-- Tab: Servicios -->
     <main v-if="activeTab === 'servicios'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-6 flex items-center justify-between gap-3">
-        <h2 class="text-xl font-semibold text-slate-900 sm:text-2xl">Servicios de la Empresa</h2>
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5v9m0 0-9 4.5m9-4.5-9-4.5m9 4.5V7.5m-9 13.5V12m0 9-9-4.5m9 4.5V12m0 0L3 7.5m0 0l9-4.5 9 4.5M3 7.5v9m0 0 9 4.5" /></svg>
+          Servicios de la Empresa
+        </h2>
         <button @click="openModalServicio()" class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">+ Agregar Servicio</button>
       </div>
 
@@ -295,7 +301,10 @@
     <!-- Tab: Horarios de la Empresa -->
     <main v-if="activeTab === 'horarios'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-6 flex items-center justify-between gap-3">
-        <h2 class="text-xl font-semibold text-slate-900 sm:text-2xl">Horarios de Atención</h2>
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25" /></svg>
+          Horarios de Atención
+        </h2>
         <button @click="openModalHorario()" class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">+ Agregar Horario</button>
       </div>
 
@@ -315,9 +324,12 @@
             <button 
               v-if="horariosAgrupados[dia] && horariosAgrupados[dia].length > 0"
               @click="abrirModalCopiar(dia)" 
-              class="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200"
+              class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-teal-700"
               title="Copiar a otros días">
-              📋 Copiar
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.125c0-.621.504-1.125 1.125-1.125h3.972m0 0l4.992 4.992m-4.992-4.992v4.992h4.992M18.75 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+              Copiar
             </button>
           </div>
           <div>
@@ -327,8 +339,12 @@
                   <span class="text-sm font-semibold text-slate-800">{{ horario.horaInicio }} - {{ horario.horaFin }}</span>
                 </div>
                 <div class="flex items-center gap-1">
-                  <button @click="openModalHorario(horario)" class="rounded-md p-1.5 text-slate-600 transition hover:bg-slate-100" title="Editar horario">✏️</button>
-                  <button @click="confirmarEliminarHorario(horario)" class="rounded-md p-1.5 text-rose-600 transition hover:bg-rose-50" title="Eliminar horario">🗑️</button>
+                  <button @click="openModalHorario(horario)" class="rounded-md p-1.5 text-slate-600 transition hover:bg-slate-100" title="Editar horario">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
+                  </button>
+                  <button @click="confirmarEliminarHorario(horario)" class="rounded-md p-1.5 text-rose-600 transition hover:bg-rose-50" title="Eliminar horario">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -349,7 +365,10 @@
     <!-- Tab: Políticas de Cancelación -->
     <main v-if="activeTab === 'politicas'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-6 flex items-center justify-between gap-3">
-        <h2 class="text-xl font-semibold text-slate-900 sm:text-2xl">Políticas de Cancelación e Inasistencias</h2>
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m6 2.25a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          Políticas de Cancelación e Inasistencias
+        </h2>
         <button class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800" @click="openModalPolitica()">+ Nueva Política</button>
       </div>
       <!-- Loading State -->
@@ -408,7 +427,12 @@
     <!-- Tab: Configuración -->
     <main v-if="activeTab === 'configuracion'" class="mx-auto w-full max-w-4xl px-4 py-6">
       <div class="mb-6 flex items-center justify-between gap-3">
-        <h2 class="text-xl font-semibold text-slate-900 sm:text-2xl">Configuración de la Empresa</h2>
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+          </svg>
+          Configuración de la Empresa
+        </h2>
       </div>
 
       <!-- Loading State -->
@@ -584,7 +608,8 @@
               class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60" 
               :disabled="!canSubmitConfiguracion"
             >
-              {{ submittingConfiguracion ? 'Guardando...' : '💾 Guardar Configuración' }}
+              <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75H6.375a1.125 1.125 0 0 0-1.125 1.125v14.25c0 .621.504 1.125 1.125 1.125h11.25c.621 0 1.125-.504 1.125-1.125V7.5L15 3.75H9Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75V7.5h6V3.75M9.75 12h4.5m-4.5 3h4.5" /></svg>
+              {{ submittingConfiguracion ? 'Guardando...' : 'Guardar Configuración' }}
             </button>
           </div>
         </form>
@@ -1105,8 +1130,12 @@
           </div>
 
           <div v-if="diasConConflicto.length > 0" class="rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
-            ⚠️ Los siguientes días ya tienen horarios configurados y serán reemplazados:
-            <strong>{{ diasConConflicto.map(d => nombresDias[d]).join(', ') }}</strong>
+            <div class="flex items-start gap-2">
+              <svg class="h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>Los siguientes días ya tienen horarios configurados y serán reemplazados: <strong>{{ diasConConflicto.map(d => nombresDias[d]).join(', ') }}</strong></span>
+            </div>
           </div>
 
           <div v-if="errorCopiar" class="rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{{ errorCopiar }}</div>
@@ -1427,7 +1456,7 @@ const horarioOriginal = ref({
 })
 
 const diasSemana = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']
-const nombresDias: Record<any, string> = {
+const nombresDias: Record<string, string> = {
   LUNES: 'Lunes',
   MARTES: 'Martes',
   MIERCOLES: 'Miércoles',
@@ -1497,6 +1526,10 @@ function extractApiErrorInfo(err: unknown, fallbackMessage: string): { fieldErro
   return {
     message: data?.mensaje || data?.message || data?.error || apiError?.message || fallbackMessage
   }
+}
+
+function extractApiErrorMessage(err: unknown, fallbackMessage: string): string {
+  return extractApiErrorInfo(err, fallbackMessage).message
 }
 
 onMounted(async () => {
@@ -1604,15 +1637,16 @@ function handleClickOutsideUserMenu(event: MouseEvent) {
   }
 }
 
-function mapearEmpresaAFormulario(data: any) {
+function mapearEmpresaAFormulario(data: unknown) {
+  const empresa = (data && typeof data === 'object') ? (data as Record<string, unknown>) : {}
   const mapped = {
-    nombre: data?.nombre ?? '',
-    descripcion: data?.descripcion ?? '',
-    direccion: data?.direccion ?? '',
-    ciudad: data?.ciudad ?? '',
-    provincia: data?.provincia ?? '',
-    telefono: data?.telefono ?? '',
-    email: data?.email ?? ''
+    nombre: (empresa.nombre as string | undefined) ?? '',
+    descripcion: (empresa.descripcion as string | undefined) ?? '',
+    direccion: (empresa.direccion as string | undefined) ?? '',
+    ciudad: (empresa.ciudad as string | undefined) ?? '',
+    provincia: (empresa.provincia as string | undefined) ?? '',
+    telefono: (empresa.telefono as string | undefined) ?? '',
+    email: (empresa.email as string | undefined) ?? ''
   }
 
   empresaOriginal.value = { ...mapped }
@@ -1730,23 +1764,20 @@ async function submitFormEmpresa() {
 async function cargarNombreEmpresa() {
   try {
     const response = await api.get('/dueno/empresa')
-    let data = response.data
+    let data: unknown = response.data
     if (typeof data === 'string') {
       try {
         data = JSON.parse(data)
-        if (import.meta.env.DEV) console.warn('[FRONTEND] Se forzó parseo de string a objeto:', data)
-      } catch (e) {
-        console.error('[FRONTEND] Error al parsear data:', e, data)
+      } catch (parseError: unknown) {
+        console.error('[FRONTEND] Error al parsear data:', parseError)
         data = {}
       }
     }
-    nombreEmpresa.value = data?.nombre || 'Mi Empresa'
-    empresaId.value = data?.id || null
+    const empresa = (data && typeof data === 'object') ? (data as Record<string, unknown>) : {}
+    nombreEmpresa.value = (empresa.nombre as string | undefined) || 'Mi Empresa'
+    empresaId.value = (empresa.id as number | undefined) || null
     mapearEmpresaAFormulario(data)
-    if (!empresaId.value) {
-      if (import.meta.env.DEV) console.warn('[FRONTEND] No se obtuvo el id de la empresa en la respuesta:', data)
-    }
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('[FRONTEND] Error al obtener empresa:', err)
     nombreEmpresa.value = 'Mi Empresa'
     empresaId.value = null
@@ -1760,9 +1791,7 @@ async function cargarPoliticasCancelacion() {
   loadingPoliticas.value = true
   errorPolitica.value = ''
   try {
-    if (import.meta.env.DEV) console.log('[FRONTEND] empresaId antes de cargar políticas:', empresaId.value)
     if (!empresaId.value) {
-      if (import.meta.env.DEV) console.warn('[FRONTEND] No se pudo obtener el id de la empresa para cargar políticas')
       politicas.value = []
       toast.showError('No se pudo obtener el id de la empresa.')
       return
@@ -1773,15 +1802,13 @@ async function cargarPoliticasCancelacion() {
     if (typeof politicasData === 'string') {
       try {
         politicasData = JSON.parse(politicasData)
-        if (import.meta.env.DEV) console.warn('[FRONTEND] Se forzó parseo de string a array de políticas:', politicasData)
-      } catch (e) {
-        console.error('[FRONTEND] Error al parsear políticas:', e, politicasData)
+      } catch (parseError: unknown) {
+        console.error('[FRONTEND] Error al parsear políticas:', parseError)
         politicasData = []
       }
     }
-    if (import.meta.env.DEV) console.log('[FRONTEND] Respuesta de getTodasPorEmpresa:', politicasData)
     politicas.value = Array.isArray(politicasData) ? politicasData : []
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[FRONTEND] Error al cargar políticas:', err)
     politicas.value = []
     toast.showError('Error al cargar las políticas de cancelación.')
@@ -1908,9 +1935,9 @@ async function ejecutarTogglePoliticaActiva() {
     }
     cerrarConfirmTogglePolitica()
     await cargarPoliticasCancelacion()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cambiar estado de política:', err)
-    toast.showError(err?.response?.data?.mensaje || err?.message || 'Error al cambiar el estado de la política.')
+    toast.showError(extractApiErrorMessage(err, 'Error al cambiar el estado de la política.'))
   } finally {
     submittingTogglePolitica.value = false
   }
@@ -1936,9 +1963,9 @@ async function ejecutarEliminarPolitica() {
     await PoliticasService.eliminar(politicaPendienteEliminar.value)
     await cargarPoliticasCancelacion()
     toast.showSuccess('Política eliminada correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al eliminar política:', err)
-    toast.showError(err?.response?.data?.mensaje || 'Error al eliminar la política.')
+    toast.showError(extractApiErrorMessage(err, 'Error al eliminar la política.'))
   } finally {
     politicaPendienteEliminar.value = null
   }
@@ -1966,7 +1993,7 @@ async function cargarProfesionales() {
     const response = await api.get('/dueno/profesionales')
     // El backend retorna directamente el array, no envuelto en ApiResponse
     profesionales.value = Array.isArray(response.data) ? response.data : []
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar profesionales:', err)
     profesionales.value = [] // Limpiar en caso de error
     error.value = 'Error al cargar la lista de profesionales'
@@ -2020,7 +2047,7 @@ async function cargarServiciosProfesional() {
   try {
     const response = await api.get(`/dueno/profesionales/${editingProfesional.value.id}/servicios`)
     serviciosProfesional.value = response.data.datos
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar servicios:', err)
     toast.showError('Error al cargar servicios del profesional')
   } finally {
@@ -2040,9 +2067,9 @@ async function toggleServicio(servicio: ServicioProfesionalItem) {
     
     // Actualizar localmente
     servicio.disponible = !servicio.disponible
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cambiar servicio:', err)
-    toast.showError(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
+    toast.showError(extractApiErrorMessage(err, 'Error al cambiar el estado del servicio'))
   } finally {
     submittingToggle.value = false
   }
@@ -2131,13 +2158,9 @@ async function ejecutarToggleProfesional() {
       toast.showSuccess(`Profesional ${profesional.nombre} ${profesional.apellido} activado correctamente`, 5000)
     }
     await cargarProfesionales()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(`Error al ${accion} profesional:`, err)
-    const mensajeError = err.response?.data?.mensaje 
-      || err.response?.data?.error 
-      || err.message 
-      || `Error al ${accion} el profesional`
-    toast.showError(mensajeError)
+    toast.showError(extractApiErrorMessage(err, `Error al ${accion} el profesional`))
   } finally {
     profesionalPendienteToggle.value = null
   }
@@ -2164,7 +2187,7 @@ async function cargarServicios() {
   loadingServicios.value = true
   try {
     servicios.value = await servicioService.obtenerServicios()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar servicios:', err)
     servicios.value = [] // Limpiar in caso de error
     errorServicio.value = 'Error al cargar la lista de servicios'
@@ -2267,9 +2290,9 @@ async function toggleServicioActivo(servicio: ServicioResponse) {
     }
     cerrarConfirmToggleServicio()
     await cargarServicios()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cambiar estado del servicio:', err)
-    toast.showError(err.response?.data?.mensaje || 'Error al cambiar el estado del servicio')
+    toast.showError(extractApiErrorMessage(err, 'Error al cambiar el estado del servicio'))
   } finally {
     submittingToggleServicio.value = false
   }
@@ -2299,7 +2322,7 @@ async function cargarHorarios() {
     // El backend retorna directamente el array
     horarios.value = Array.isArray(response.data) ? response.data : []
     agruparHorariosPorDia()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar horarios:', err)
     horarios.value = []
     agruparHorariosPorDia()
@@ -2360,13 +2383,15 @@ async function submitFormHorario() {
     await cargarHorarios()
     closeModalHorario()
     toast.showSuccess(wasEditing ? 'Horario actualizado correctamente' : 'Horario creado correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al guardar horario:', err)
     horarioConflictoDetalles.value = []
+    const apiError = err as ApiErrorLike
+    const status = apiError.response?.status
+    const data = apiError.response?.data
     
-    if (err.response?.status === 409) {
+    if (status === 409) {
       // Conflicto de disponibilidad de profesionales o turnos activos
-      const data = err.response.data
       if (data?.turnosAfectados?.length) {
         errorHorario.value = data.mensaje || 'No se puede guardar el horario: hay turnos afectados.'
         horarioConflictoDetalles.value = data.turnosAfectados as string[]
@@ -2376,8 +2401,8 @@ async function submitFormHorario() {
       } else {
         errorHorario.value = data?.mensaje || 'El horario no puede modificarse porque hay conflictos activos.'
       }
-    } else if (err.response?.status === 400) {
-      const mensaje = err.response.data.mensaje || err.response.data.message
+    } else if (status === 400) {
+      const mensaje = data?.mensaje || data?.message
       errorHorario.value = mensaje || 'Error al validar los datos del horario'
     } else {
       errorHorario.value = 'Error al guardar el horario'
@@ -2409,11 +2434,12 @@ async function ejecutarEliminarHorario() {
     await cargarHorarios()
     cerrarConfirmDeleteHorario()
     toast.showSuccess('Horario eliminado correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al eliminar horario:', err)
     cerrarConfirmDeleteHorario()
-    if (err.response?.status === 409) {
-      const data = err.response.data
+    const apiError = err as ApiErrorLike
+    if (apiError.response?.status === 409) {
+      const data = apiError.response?.data
       if (data?.turnosAfectados?.length) {
         toast.showErrorConDetalles(
           data.mensaje || 'No se puede eliminar el horario por turnos activos.',
@@ -2471,11 +2497,12 @@ async function confirmarCopiarHorarios() {
     await cargarHorarios()
     cerrarModalCopiar()
     toast.showSuccess('Horarios copiados correctamente')
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al copiar horarios:', err)
+    const apiError = err as ApiErrorLike
     
-    if (err.response?.status === 400) {
-      const mensaje = err.response.data.mensaje || err.response.data.message
+    if (apiError.response?.status === 400) {
+      const mensaje = apiError.response.data?.mensaje || apiError.response.data?.message
       errorCopiar.value = mensaje || 'Error al copiar los horarios'
     } else {
       errorCopiar.value = 'Error al copiar los horarios'
@@ -2506,7 +2533,7 @@ async function cargarConfiguracion() {
       datosBancarios: data.datosBancarios ?? ''
     }
     configuracionOriginal.value = { ...formDataConfiguracion.value }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error al cargar configuración:', err)
     errorConfiguracion.value = 'Error al cargar la configuración de la empresa'
   } finally {

@@ -11,7 +11,11 @@
     <main class="form-page">
       <!-- Panel de éxito -->
       <div v-if="exito" class="success-panel">
-        <div class="success-icon">✅</div>
+        <div class="success-icon">
+          <svg class="h-12 w-12 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m6 2.25a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+        </div>
         <h2>¡Empresa creada exitosamente!</h2>
         <p>Se creó la empresa <strong>{{ empresaCreada?.nombre }}</strong>.</p>
         <p>
@@ -19,8 +23,11 @@
           <strong>Email:</strong> {{ formData.dueno.email }}<br/>
           <strong>Contraseña:</strong> {{ formData.dueno.contrasena }}
         </p>
-        <p v-if="formData.crearPerfilProfesional" class="note-profesional">
-          🗓 También se creó su perfil de profesional. Podrá gestionar su propia agenda desde <strong>/profesional</strong>.
+        <p v-if="formData.crearPerfilProfesional" class="note-profesional flex items-start gap-2">
+          <svg class="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+          </svg>
+          <span>También se creó su perfil de profesional. Podrá gestionar su propia agenda desde <strong>/profesional</strong>.</span>
         </p>
         <div class="success-actions">
           <button @click="resetForm" class="btn-secondary">Registrar otra empresa</button>
@@ -32,13 +39,22 @@
       <form v-else @submit.prevent="submitForm" novalidate>
         <!-- Error global -->
         <div v-if="errorGeneral" class="error-banner">
-          ⚠ {{ errorGeneral }}
+          <span class="flex items-center gap-2">
+            <svg class="h-5 w-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008Zm8.25-.75a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z" />
+            </svg>
+            {{ errorGeneral }}
+          </span>
         </div>
 
         <!-- ── Sección Dueño ── -->
         <section class="form-section">
           <div class="section-header">
-            <span class="section-icon">👤</span>
+            <span class="section-icon">
+              <svg class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 15 0A17.933 17.933 0 0 1 12 21.75a17.933 17.933 0 0 1-7.5-1.632Z" />
+              </svg>
+            </span>
             <div>
               <h2>Datos del Dueño</h2>
               <p class="section-desc">El usuario que administrará esta empresa.</p>
@@ -79,7 +95,13 @@
                   placeholder="Mínimo 8 caracteres"
                 />
                 <button type="button" class="toggle-password" @click="mostrarClave = !mostrarClave" tabindex="-1">
-                  {{ mostrarClave ? '🙈' : '👁' }}
+                  <svg v-if="mostrarClave" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c1.51 0 2.958-.318 4.27-.892M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.5a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m0 0a3 3 0 1 0 4.243 4.243m-4.242-4.242 4.242 4.242m0 0L21 21" />
+                  </svg>
+                  <svg v-else class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  </svg>
                 </button>
               </div>
               <span class="field-error">{{ fieldErrors['dueno.contrasena'] }}</span>
@@ -107,7 +129,11 @@
         <!-- ── Sección Empresa ── -->
         <section class="form-section">
           <div class="section-header">
-            <span class="section-icon">🏢</span>
+            <span class="section-icon">
+              <svg class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15a.75.75 0 0 1 .75.75v16.5h-16.5V3.75A.75.75 0 0 1 4.5 3Zm3 3.75h2.25V9H7.5V6.75Zm0 4.5h2.25v2.25H7.5v-2.25Zm0 4.5h2.25V18H7.5v-2.25Zm6-9h2.25V9H13.5V6.75Zm0 4.5h2.25v2.25H13.5v-2.25Zm0 4.5h2.25V18H13.5v-2.25Z" />
+              </svg>
+            </span>
             <div>
               <h2>Datos de la Empresa</h2>
               <p class="section-desc">Información pública del negocio.</p>
@@ -211,7 +237,11 @@
             <input type="checkbox" v-model="formData.crearPerfilProfesional" />
             <div class="checkbox-body">
               <div class="checkbox-title">
-                <span class="checkbox-icon">🗓</span>
+                <span class="checkbox-icon">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+                  </svg>
+                </span>
                 El dueño también gestionará su propia agenda de turnos
               </div>
               <p class="checkbox-desc">
@@ -364,8 +394,9 @@ async function submitForm() {
     } else {
       errorGeneral.value = response.data?.mensaje ?? 'Error desconocido al crear la empresa'
     }
-  } catch (err: any) {
-    const data = err.response?.data
+  } catch (err: unknown) {
+    const apiError = err as { response?: { data?: { errores?: Record<string, string>; mensaje?: string } } }
+    const data = apiError.response?.data
     if (data?.errores && typeof data.errores === 'object') {
       // Errores de validación por campo que devuelve el backend (@Valid)
       fieldErrors.value = data.errores as Record<string, string>
@@ -456,8 +487,10 @@ function resetForm() {
 }
 
 .section-icon {
-  font-size: 1.5rem;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .section-header h2 {
@@ -557,10 +590,12 @@ function resetForm() {
   right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
   padding: 0;
   line-height: 1;
 }
@@ -650,7 +685,11 @@ function resetForm() {
   margin-bottom: 0.4rem;
 }
 
-.checkbox-icon { font-size: 1.1rem; }
+.checkbox-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .checkbox-desc {
   margin: 0;
@@ -730,7 +769,12 @@ function resetForm() {
   text-align: center;
 }
 
-.success-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+.success-icon {
+  margin-bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .success-panel h2 {
   font-size: 1.4rem;

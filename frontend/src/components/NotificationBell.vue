@@ -1,45 +1,54 @@
 <template>
-  <div class="notification-bell-container">
-    <!-- Botón de la campanita -->
-    <button 
-      @click="toggleDropdown" 
-      class="bell-button"
-      :class="{ 'has-notifications': store.tieneNotificacionesNoLeidas }"
-      title="Notificaciones">
-      <span class="bell-icon">🔔</span>
-      <span 
-        v-if="store.contadorNoLeidas > 0" 
-        class="badge"
-        :class="{ 'badge-pulse': hayNotificacionesRecientes }">
-        {{ store.contadorNoLeidas > MAX_BADGE_NUMBER ? '99+' : store.contadorNoLeidas }}
+  <div class="relative">
+    <button
+      @click="toggleDropdown"
+      :class="[
+        'relative inline-flex items-center justify-center rounded-full p-2 transition-colors',
+        mostrarDropdown ? 'bg-white/15' : 'hover:bg-white/10'
+      ]"
+      title="Notificaciones"
+    >
+      <svg class="h-6 w-6 text-slate-200 transition-colors hover:text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg>
+      <span
+        v-if="store.contadorNoLeidas > 0"
+        :class="[
+          'absolute -right-0.5 -top-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-semibold text-white',
+          hayNotificacionesRecientes ? 'animate-pulse' : ''
+        ]"
+      >
+        {{ store.contadorNoLeidas > MAX_BADGE_NUMBER ? '9+' : store.contadorNoLeidas }}
       </span>
     </button>
 
-    <!-- Dropdown de notificaciones -->
-    <Transition name="dropdown">
-      <div v-if="mostrarDropdown" class="notifications-dropdown">
-        <!-- Header -->
-        <div class="dropdown-header">
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-2 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-2 opacity-0"
+    >
+      <div v-if="mostrarDropdown" class="fixed left-4 right-4 top-16 z-[999] flex w-auto flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-[calc(100%+0.5rem)] sm:w-80">
+        <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
           <h3>Notificaciones</h3>
-          <div class="header-actions">
-            <button 
+          <div class="flex items-center gap-2">
+            <button
               v-if="store.tieneNotificacionesNoLeidas"
-              @click="marcarTodasLeidas" 
-              class="btn-mark-all"
-              title="Marcar todas como leídas">
-              ✓ Marcar todas
+              @click="marcarTodasLeidas"
+              class="text-xs font-semibold text-teal-700 hover:text-teal-800 transition-colors"
+              title="Marcar todas como leídas"
+            >
+              Marcar como leídas
             </button>
           </div>
         </div>
 
-        <!-- Loading -->
-        <div v-if="store.cargando" class="loading-container">
-          <div class="spinner"></div>
+        <div v-if="store.cargando" class="flex flex-col items-center justify-center px-4 py-10 text-sm text-slate-500">
+          <div class="mb-3 h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-teal-600"></div>
           <p>Cargando notificaciones...</p>
         </div>
 
-        <!-- Lista de notificaciones -->
-        <div v-else-if="store.notificaciones && store.notificaciones.length > 0" class="notifications-list">
+        <div v-else-if="store.notificaciones && store.notificaciones.length > 0" class="max-h-[28rem] overflow-y-auto">
           <NotificationItem
             v-for="notificacion in notificacionesMostradas"
             :key="notificacion.id"
@@ -48,27 +57,22 @@
           />
         </div>
 
-        <!-- Estado vacío -->
-        <div v-else class="empty-state">
-          <span class="empty-icon">📭</span>
+        <div v-else class="flex flex-col items-center justify-center px-4 py-10 text-sm text-slate-500">
+          <svg class="mb-2 h-8 w-8 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25l7.5 5.25a2.5 2.5 0 003 0L21 8.25M5.25 19.5h13.5A2.25 2.25 0 0021 17.25v-10.5A2.25 2.25 0 0018.75 4.5H5.25A2.25 2.25 0 003 6.75v10.5A2.25 2.25 0 005.25 19.5z" />
+          </svg>
           <p>No hay notificaciones</p>
         </div>
 
-        <!-- Footer -->
-        <div class="dropdown-footer">
-          <button @click="verTodas" class="btn-view-all">
+        <div class="border-t border-slate-200 bg-slate-50 px-4 py-3">
+          <button @click="verTodas" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
             Ver todas las notificaciones
           </button>
         </div>
       </div>
     </Transition>
 
-    <!-- Overlay para cerrar el dropdown al hacer clic fuera -->
-    <div 
-      v-if="mostrarDropdown" 
-      class="dropdown-overlay" 
-      @click="cerrarDropdown">
-    </div>
+    <div v-if="mostrarDropdown" class="fixed inset-0 z-[998]" @click="cerrarDropdown"></div>
   </div>
 </template>
 
@@ -85,6 +89,7 @@ const MAX_BADGE_NUMBER = 99         // Máximo mostrado en badge
 const store = useNotificacionesStore()
 const mostrarDropdown = ref(false)
 const hayNotificacionesRecientes = ref(false)
+let timerId: ReturnType<typeof setTimeout> | null = null
 
 // Mostrar solo las últimas N notificaciones en el dropdown
 const notificacionesMostradas = computed(() => 
@@ -128,7 +133,6 @@ async function handleNotificationClick(notificacion: Notificacion) {
   // Aquí podrías navegar a una vista específica o mostrar detalles
   // Por ejemplo, si tiene turnoId, navegar a ese turno
   if (notificacion.turnoId) {
-    console.log('Navegar a turno:', notificacion.turnoId)
     // router.push(`/profesional/turnos/${notificacion.turnoId}`)
   }
 }
@@ -150,7 +154,6 @@ async function marcarTodasLeidas() {
 function verTodas() {
   cerrarDropdown()
   // Aquí podrías navegar a una vista de historial completo
-  console.log('Ver todas las notificaciones')
 }
 
 /**
@@ -158,10 +161,15 @@ function verTodas() {
  */
 function onNuevaNotificacion() {
   hayNotificacionesRecientes.value = true
+
+  if (timerId) {
+    clearTimeout(timerId)
+  }
   
   // Remover el efecto después de 5 segundos
-  setTimeout(() => {
+  timerId = setTimeout(() => {
     hayNotificacionesRecientes.value = false
+    timerId = null
   }, 5000)
 }
 
@@ -172,240 +180,13 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (timerId) {
+    clearTimeout(timerId)
+    timerId = null
+  }
+
   window.removeEventListener('nueva-notificacion', onNuevaNotificacion as EventListener)
 })
 </script>
 
-<style scoped>
-.notification-bell-container {
-  position: relative;
-}
-
-.bell-button {
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bell-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.bell-button.has-notifications {
-  animation: ring 2s ease-in-out infinite;
-}
-
-.bell-icon {
-  font-size: 1.5rem;
-  display: block;
-}
-
-.badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: #ef4444;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.125rem 0.375rem;
-  border-radius: 10px;
-  min-width: 1.25rem;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.badge-pulse {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes ring {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  10%, 30% {
-    transform: rotate(-15deg);
-  }
-  20%, 40% {
-    transform: rotate(15deg);
-  }
-  50% {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-.dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 998;
-}
-
-.notifications-dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  width: 400px;
-  max-height: 600px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  z-index: 999;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.dropdown-header {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f9fafb;
-}
-
-.dropdown-header h3 {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-mark-all {
-  background: none;
-  border: none;
-  color: #667eea;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.btn-mark-all:hover {
-  background: #eef2ff;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1rem;
-  color: #6b7280;
-}
-
-.spinner {
-  width: 2rem;
-  height: 2rem;
-  border: 3px solid #e5e7eb;
-  border-top-color: #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.notifications-list {
-  flex: 1;
-  overflow-y: auto;
-  max-height: 450px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1rem;
-  color: #9ca3af;
-}
-
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.dropdown-footer {
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-
-.btn-view-all {
-  width: 100%;
-  padding: 0.625rem;
-  background: none;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  color: #4b5563;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-view-all:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-}
-
-/* Transiciones */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.2s ease;
-}
-
-.dropdown-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-  .notifications-dropdown {
-    width: 90vw;
-    right: -1rem;
-  }
-}
-</style>
+<style scoped></style>

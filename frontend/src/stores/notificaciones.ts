@@ -3,8 +3,11 @@ import { ref, computed } from 'vue'
 import { webSocketService, type NotificacionWebSocket } from '../services/websocket'
 import { notificacionesService, type Notificacion } from '../services/notificaciones'
 import { useAuthStore } from './auth'
+import { useToastStore } from '../composables/useToast'
 
 export const useNotificacionesStore = defineStore('notificaciones', () => {
+  const toastStore = useToastStore()
+
   // Estado
   const notificaciones = ref<Notificacion[]>([])
   const contadorNoLeidas = ref(0)
@@ -47,6 +50,8 @@ export const useNotificacionesStore = defineStore('notificaciones', () => {
    * Conectar WebSocket
    */
   function conectarWebSocket(profesionalId: number) {
+    if (conectado.value) return
+
     webSocketService.connect(profesionalId, (notificacion: NotificacionWebSocket) => {
       // Agregar notificación recibida al principio del array
       const nuevaNotificacion: Notificacion = {
@@ -62,6 +67,17 @@ export const useNotificacionesStore = defineStore('notificaciones', () => {
 
       notificaciones.value.unshift(nuevaNotificacion)
       contadorNoLeidas.value++
+
+      const tituloLower = (nuevaNotificacion.titulo || '').toLowerCase()
+      const mensajeToast = `${nuevaNotificacion.titulo}: ${nuevaNotificacion.mensaje}`
+
+      if (tituloLower.includes('nuevo') || tituloLower.includes('reserva') || tituloLower.includes('pago') || tituloLower.includes('seña') || tituloLower.includes('sena')) {
+        toastStore.showSuccess(mensajeToast)
+      } else if (tituloLower.includes('cancelado') || tituloLower.includes('rechazado') || tituloLower.includes('inasistencia')) {
+        toastStore.showError(mensajeToast)
+      } else {
+        toastStore.showInfo(mensajeToast)
+      }
 
       // Emitir evento personalizado para que otros componentes puedan reaccionar
       const event = new CustomEvent('nueva-notificacion', { 

@@ -14,6 +14,28 @@ const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
 
 export const firebaseApp = initializeApp(firebaseConfig)
 
+function getPushEmoji(titulo: string): string {
+  const tituloLower = (titulo || '').toLowerCase()
+
+  if (tituloLower.includes('nuevo') || tituloLower.includes('reserva') || tituloLower.includes('pago') || tituloLower.includes('seña') || tituloLower.includes('sena')) {
+    return '✅'
+  }
+
+  if (tituloLower.includes('cancelado') || tituloLower.includes('rechazado') || tituloLower.includes('inasistencia')) {
+    return '❌'
+  }
+
+  if (tituloLower.includes('reprogramado') || tituloLower.includes('cambio')) {
+    return '🔄'
+  }
+
+  return '🔔'
+}
+
+function tieneEmojiInicial(titulo: string): boolean {
+  return /^(✅|❌|🔄|🔔)\s/.test((titulo || '').trim())
+}
+
 async function obtenerMessaging(): Promise<Messaging | null> {
   const supported = await isSupported()
   if (!supported) {
@@ -71,9 +93,10 @@ export async function escucharNotificacionesForeground(): Promise<(() => void) |
   const unsubscribe = onMessage(messaging, (payload) => {
     const titulo = payload.notification?.title || 'Nueva notificación'
     const cuerpo = payload.notification?.body || ''
+    const tituloConEmoji = tieneEmojiInicial(titulo) ? titulo : `${getPushEmoji(titulo)} ${titulo}`
 
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification(titulo, { body: cuerpo })
+      new Notification(tituloConEmoji, { body: cuerpo })
     }
   })
 

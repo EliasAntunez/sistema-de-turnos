@@ -24,7 +24,12 @@
       <!-- Botón para crear empresa -->
       <div class="actions-bar">
         <button @click="router.push('/admin/registrar-empresa')" class="btn-primary">
-          ➕ Nueva Empresa
+          <span class="flex items-center gap-2">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Nueva Empresa
+          </span>
         </button>
       </div>
 
@@ -243,19 +248,47 @@ const router = useRouter()
 const authStore = useAuthStore()
 const toastStore = useToastStore()
 
+interface DuenoAdmin {
+  nombre: string
+  apellido: string
+  email: string
+  telefono: string
+}
+
+interface EmpresaAdmin {
+  id: number
+  nombre: string
+  cuit: string
+  activa: boolean
+  dueno: DuenoAdmin
+  ciudad?: string | null
+  provincia?: string | null
+}
+
+interface ApiErrorAdmin {
+  response?: {
+    data?: {
+      errores?: Record<string, string>
+      mensaje?: string
+      error?: string
+    }
+  }
+  message?: string
+}
+
 // Tab activo
 const activeTab = ref<'empresas'>('empresas')
 
 // Estado para Empresas
 const mostrarFormulario = ref(false)
-const empresas = ref<any[]>([])
+const empresas = ref<EmpresaAdmin[]>([])
 const cargando = ref(false)
 const cargandoEmpresas = ref(false)
 const error = ref('')
 const exito = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const showConfirmToggleEmpresa = ref(false)
-const empresaPendienteToggle = ref<any>(null)
+const empresaPendienteToggle = ref<EmpresaAdmin | null>(null)
 const nuevoEstadoEmpresa = ref(false)
 const cambiandoEstadoEmpresa = ref(false)
 
@@ -317,23 +350,20 @@ async function crearEmpresa() {
         cargarEmpresas()
       }, 1500)
     }
-  } catch (err: any) {
-    console.error('Error completo:', err)
-    console.error('Response data:', err.response?.data)
-    console.error('Response status:', err.response?.status)
+  } catch (err: unknown) {
+    const apiError = err as ApiErrorAdmin
+    const data = apiError.response?.data
     
     // Extraer y asignar errores por campo
-    if (err.response?.data?.errores) {
+    if (data?.errores) {
       // Formato ErrorValidacion con errores por campo
-      fieldErrors.value = err.response.data.errores
+      fieldErrors.value = data.errores
       error.value = 'Por favor corrija los errores en el formulario'
-    } else if (err.response?.data?.mensaje) {
+    } else if (data?.mensaje) {
       // Formato RespuestaApi con mensaje general
-      error.value = err.response.data.mensaje
-    } else if (err.response?.data?.error) {
-      error.value = err.response.data.error
-    } else if (typeof err.response?.data === 'string') {
-      error.value = err.response.data
+      error.value = data.mensaje
+    } else if (data?.error) {
+      error.value = data.error
     } else {
       error.value = 'Error al crear la empresa. Por favor intente nuevamente.'
     }
@@ -350,13 +380,12 @@ async function cambiarEstado(id: number, activa: boolean) {
       await api.desactivarEmpresa(id)
     }
     cargarEmpresas()
-  } catch (err: any) {
-    console.error('Error al cambiar estado:', err)
+  } catch {
     toastStore.showError('Error al cambiar el estado de la empresa')
   }
 }
 
-function confirmarCambioEstado(empresa: any, activa: boolean) {
+function confirmarCambioEstado(empresa: EmpresaAdmin, activa: boolean) {
   empresaPendienteToggle.value = empresa
   nuevoEstadoEmpresa.value = activa
   showConfirmToggleEmpresa.value = true
@@ -422,14 +451,6 @@ function handleLogout() {
       authStore.logout()
       router.push('/login')
     })
-}
-
-function formatearFecha(fecha: string) {
-  return new Date(fecha).toLocaleDateString('es-AR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
 }
 
 </script>

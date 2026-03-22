@@ -107,7 +107,11 @@
                   </svg>
                   Turnos
                 </span>
-                <span class="sm:hidden">📅</span>
+                <span class="sm:hidden">
+                  <svg class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+                  </svg>
+                </span>
               </button>
               
               <button 
@@ -120,7 +124,11 @@
                   </svg>
                   Salir
                 </span>
-                <span class="sm:hidden">🚪</span>
+                <span class="sm:hidden">
+                  <svg class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.625A2.625 2.625 0 0 0 13.125 3h-6.75A2.625 2.625 0 0 0 3.75 5.625v12.75A2.625 2.625 0 0 0 6.375 21h6.75a2.625 2.625 0 0 0 2.625-2.625V15m3 0 3-3m0 0-3-3m3 3H9" />
+                  </svg>
+                </span>
               </button>
             </div>
           </template>
@@ -137,14 +145,22 @@
                 </span>
               </div>
               <div class="sm:hidden px-2 py-1 bg-amber-50 border border-amber-200 rounded-lg">
-                <span class="text-xs font-medium text-amber-700">⚠️</span>
+                <span class="text-xs font-medium text-amber-700 inline-flex">
+                  <svg class="h-4 w-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008Zm8.25-.75a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z" />
+                  </svg>
+                </span>
               </div>
               <button 
                 @click="cerrarSesion"
                 class="px-3 sm:px-4 py-2 sm:py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg text-sm hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 whitespace-nowrap"
               >
                 <span class="hidden sm:inline">Salir</span>
-                <span class="sm:hidden">🚪</span>
+                <span class="sm:hidden inline-flex">
+                  <svg class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.625A2.625 2.625 0 0 0 13.125 3h-6.75A2.625 2.625 0 0 0 3.75 5.625v12.75A2.625 2.625 0 0 0 6.375 21h6.75a2.625 2.625 0 0 0 2.625-2.625V15m3 0 3-3m0 0-3-3m3 3H9" />
+                  </svg>
+                </span>
               </button>
             </div>
           </template>
