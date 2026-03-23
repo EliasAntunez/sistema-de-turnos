@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-slate-50 bg-[radial-gradient(1200px_500px_at_50%_-20%,rgba(99,102,241,0.08),transparent)]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div v-if="loading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         <p class="mt-2 text-gray-600">Cargando turnos...</p>
       </div>
 
@@ -15,13 +15,30 @@
       </div>
 
       <div v-else>
-        <div class="bg-white rounded-xl border border-gray-200 p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <button
+          type="button"
+          @click="mostrarFiltrosMobile = !mostrarFiltrosMobile"
+          class="md:hidden mb-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold bg-white border border-slate-300 text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:bg-slate-50 active:scale-95"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5 2.245 5 5 0 1.305-.503 2.496-1.325 3.385-.52.562-.848 1.284-.848 2.05V15h-5.654v-1.565c0-.766-.328-1.488-.848-2.05A4.973 4.973 0 0 1 7 8c0-2.755 2.245-5 5-5Zm-2 14h4m-3 4h2" />
+          </svg>
+          {{ mostrarFiltrosMobile ? 'Ocultar Filtros' : 'Filtrar Turnos' }}
+        </button>
+
+        <div
+          :class="[
+            'bg-white/90 backdrop-blur-sm border border-slate-200/70 shadow-sm rounded-2xl p-4 gap-4 mb-6',
+            mostrarFiltrosMobile ? 'grid grid-cols-1' : 'hidden',
+            'md:grid md:grid-cols-3 lg:grid-cols-5'
+          ]"
+        >
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-gray-600">Periodo</label>
             <select
               v-model="filtros.periodo"
               @change="onCambioPeriodo"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+              class="w-full rounded-xl border border-slate-300 bg-white/90 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
             >
               <option value="todos">Todos</option>
               <option value="hoy">Hoy</option>
@@ -36,7 +53,7 @@
               type="date"
               v-model="filtros.fechaDesde"
               @change="aplicarFiltros"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+              class="w-full rounded-xl border border-slate-300 bg-white/90 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
 
@@ -46,7 +63,7 @@
               type="date"
               v-model="filtros.fechaHasta"
               @change="aplicarFiltros"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+              class="w-full rounded-xl border border-slate-300 bg-white/90 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
             />
           </div>
 
@@ -55,7 +72,7 @@
             <select
               v-model="filtros.estado"
               @change="aplicarFiltros"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+              class="w-full rounded-xl border border-slate-300 bg-white/90 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
             >
               <option value="">Todos los estados</option>
               <option value="PENDIENTE_PAGO">Seña pendiente</option>
@@ -73,7 +90,7 @@
             <select
               v-model="filtros.servicioId"
               @change="aplicarFiltros"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm transition-all"
+              class="w-full rounded-xl border border-slate-300 bg-white/90 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300"
             >
               <option value="">Todos los servicios</option>
               <option v-for="servicio in serviciosFiltro" :key="servicio.id" :value="servicio.id">
@@ -85,61 +102,96 @@
 
         <div v-if="turnos.length === 0" class="text-center py-12">
           <p class="text-gray-500 text-lg">No tienes turnos registrados</p>
-          <router-link :to="`/empresa/${empresaSlug}`" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Reservar un turno</router-link>
+          <router-link :to="`/empresa/${empresaSlug}`" class="mt-4 inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold bg-slate-900 text-white transition-all duration-200 hover:scale-[1.02] hover:bg-slate-800 active:scale-95">Reservar un turno</router-link>
         </div>
 
         <div v-else class="space-y-4">
-          <div v-for="turno in turnos" :key="turno.id" class="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow">
-            <div class="flex justify-between items-start">
-              <div class="flex-1">
-                <div class="flex items-center text-gray-900 mb-2">
-                  <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span class="font-semibold">{{ formatearFecha(turno.fecha) }}</span>
-                  <span class="ml-2">{{ turno.horaInicio }} - {{ turno.horaFinServicio }}</span>
+          <div
+            v-for="turno in turnos"
+            :key="turno.id"
+            class="bg-white/90 backdrop-blur-sm border border-slate-200/70 shadow-sm rounded-2xl p-4 sm:p-5 transition-all duration-300 hover:shadow-md"
+          >
+            <div class="flex flex-col gap-3">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-slate-900 truncate">{{ formatearFecha(turno.fecha) }}</p>
+                  <p class="text-sm text-slate-600">{{ turno.horaInicio }} - {{ turno.horaFinServicio }}</p>
                 </div>
+                <span :class="getEstadoClass(turno.estado)" class="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-medium shrink-0">{{ getEstadoTexto(turno.estado) }}</span>
+              </div>
 
-                <div class="flex items-center text-gray-700 mb-1">
-                  <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <span>{{ turno.servicioNombre }}</span>
-                </div>
+              <div class="space-y-1.5">
+                <p class="text-sm text-slate-700 truncate"><span class="font-medium text-slate-900">Servicio:</span> {{ turno.servicioNombre }}</p>
+                <p class="text-sm text-slate-700 truncate"><span class="font-medium text-slate-900">Profesional:</span> {{ turno.profesionalNombre }}</p>
+              </div>
 
-                <div class="flex items-center text-gray-700 mb-1">
-                  <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span>{{ turno.profesionalNombre }}</span>
-                </div>
+              <div v-if="turno.observaciones" class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p class="text-sm text-slate-700"><span class="font-medium">Observaciones:</span> {{ turno.observaciones }}</p>
+              </div>
 
-                <div v-if="turno.observaciones" class="mt-3 p-3 bg-yellow-50 rounded-md">
-                  <p class="text-sm text-gray-700"><span class="font-medium">Observaciones:</span> {{ turno.observaciones }}</p>
-                </div>
-
-                <div
-                  v-if="turno.estado === 'PENDIENTE_PAGO'"
-                  class="mt-3 p-3 rounded-md border border-amber-200 bg-amber-50"
-                >
-                  <p class="text-sm font-semibold text-amber-800">Tu turno tiene la seña pendiente.</p>
-                  <p class="text-sm text-amber-900 mt-1 whitespace-pre-line">{{ obtenerDatosBancariosTurno(turno) }}</p>
+              <div
+                v-if="turno.estado === 'PENDIENTE_PAGO' || (!esEstadoFinalTurno(turno.estado) && !esTurnoPasado(turno))"
+                class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between"
+              >
+                <div>
                   <button
-                    v-if="obtenerTelefonoEmpresaTurno(turno)"
-                    @click="abrirWhatsApp(turno)"
-                    class="mt-3 inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-green-600 text-white hover:bg-green-700"
+                    v-if="turno.estado === 'PENDIENTE_PAGO'"
+                    type="button"
+                    @click="toggleTurnoExpandido(turno.id)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-sm font-semibold transition-colors"
                   >
-                    Enviar Comprobante
+                    Pagar seña
+                    <svg
+                      class="h-4 w-4 transition-transform duration-200"
+                      :class="isTurnoExpandido(turno.id) ? 'rotate-180' : ''"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div v-if="!esEstadoFinalTurno(turno.estado) && !esTurnoPasado(turno)" class="flex items-center gap-3">
+                  <button
+                    @click.prevent="openReprogramarModal(turno)"
+                    :disabled="actionLoading"
+                    class="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+                  >
+                    Reprogramar
+                  </button>
+                  <button
+                    @click.prevent="openCancelarModal(turno)"
+                    :disabled="actionLoading"
+                    class="text-sm font-medium text-rose-500 hover:text-rose-700 transition-colors"
+                  >
+                    Cancelar
                   </button>
                 </div>
               </div>
 
-              <div class="ml-4 flex flex-col items-end gap-3">
-                <span :class="getEstadoClass(turno.estado)" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">{{ getEstadoTexto(turno.estado) }}</span>
-                <div class="flex gap-2 mt-2">
-                    <button v-if="!esEstadoFinalTurno(turno.estado) && !esTurnoPasado(turno)" @click.prevent="openReprogramarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-md text-sm">Reprogramar</button>
-                    <button v-if="!esEstadoFinalTurno(turno.estado) && !esTurnoPasado(turno)" @click.prevent="openCancelarModal(turno)" :disabled="actionLoading" class="px-3 py-1 bg-red-100 text-red-800 rounded-md text-sm">Cancelar</button>
+              <div v-if="turno.estado === 'PENDIENTE_PAGO' && isTurnoExpandido(turno.id)" class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5m-18 0A1.5 1.5 0 0 0 2.25 9.75v7.5a1.5 1.5 0 0 0 1.5 1.5h16.5a1.5 1.5 0 0 0 1.5-1.5v-7.5a1.5 1.5 0 0 0-1.5-1.5m-18 0V6.75A1.5 1.5 0 0 1 3.75 5.25h16.5a1.5 1.5 0 0 1 1.5 1.5v1.5" />
+                  </svg>
+                  Datos para tu seña
+                </p>
+                <div class="mt-3 bg-white border border-slate-200 rounded-lg p-3">
+                  <p class="text-sm text-slate-700 font-mono whitespace-pre-line">{{ obtenerDatosBancariosTurno(turno) }}</p>
                 </div>
+                <button
+                  v-if="obtenerTelefonoEmpresaTurno(turno)"
+                  @click="abrirWhatsApp(turno)"
+                  class="mt-4 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold bg-[#25D366] text-white transition-all duration-200 hover:scale-[1.02] hover:bg-[#128C7E] active:scale-95"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M20.52 3.48A11.79 11.79 0 0 0 12.06 0C5.53 0 .22 5.31.22 11.84c0 2.08.54 4.1 1.57 5.88L0 24l6.45-1.69a11.77 11.77 0 0 0 5.61 1.43h.01c6.53 0 11.84-5.31 11.84-11.84 0-3.16-1.23-6.12-3.39-8.42Zm-8.46 18.2h-.01a9.9 9.9 0 0 1-5.05-1.38l-.36-.22-3.83 1 1.02-3.73-.24-.38a9.89 9.89 0 0 1-1.51-5.23c0-5.45 4.43-9.88 9.88-9.88 2.64 0 5.12 1.03 6.99 2.9a9.81 9.81 0 0 1 2.89 6.98c0 5.45-4.43 9.88-9.88 9.88Zm5.42-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.39-1.46-.88-.79-1.47-1.76-1.64-2.06-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49 0 1.47 1.07 2.89 1.22 3.09.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.62.71.23 1.35.2 1.86.12.57-.09 1.76-.72 2.01-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z"/>
+                  </svg>
+                  Enviar Comprobante
+                </button>
               </div>
             </div>
           </div>
@@ -149,7 +201,7 @@
           <button
             @click="irPaginaAnterior"
             :disabled="currentPage === 0 || loading"
-            class="px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+            class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold bg-white border border-slate-300 text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:bg-slate-50 active:scale-95 disabled:bg-slate-100 disabled:text-slate-400 disabled:hover:scale-100 disabled:cursor-not-allowed"
           >
             Anterior
           </button>
@@ -157,7 +209,7 @@
           <button
             @click="irPaginaSiguiente"
             :disabled="currentPage >= totalPages - 1 || loading"
-            class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 border border-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed transition-all"
+            class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold bg-slate-900 text-white transition-all duration-200 hover:scale-[1.02] hover:bg-slate-800 active:scale-95 disabled:bg-slate-300 disabled:text-slate-100 disabled:hover:scale-100 disabled:cursor-not-allowed"
           >
             Siguiente
           </button>
@@ -188,26 +240,31 @@
       </template>
     </ConfirmModal>
 
-    <div v-if="showReprogramModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold mb-4">Reprogramar reserva</h3>
+    <div v-if="showReprogramModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white/90 backdrop-blur-md border border-white/60 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-sm">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Reprogramar reserva</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Selecciona una nueva fecha</label>
-            <input type="date" v-model="reprogramDate" :min="fechaMinima" class="mt-1 block w-full border rounded p-2" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Selecciona una nueva fecha</label>
+            <input
+              type="date"
+              v-model="reprogramDate"
+              :min="fechaMinima"
+              class="mt-1 block w-full rounded-xl border border-slate-300 bg-white/90 px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+            />
           </div>
           
           <div v-if="reprogramDate">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Horarios disponibles</label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Horarios disponibles</label>
             
             <div v-if="cargandoSlots" class="text-center py-4">
               <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
               <p class="mt-2 text-sm text-gray-600">Cargando horarios...</p>
             </div>
             
-            <div v-else-if="slotsDisponibles.length === 0" class="text-center py-4 bg-gray-50 rounded-md">
-              <p class="text-sm text-gray-600">No hay horarios disponibles para esta fecha.</p>
-              <p class="text-xs text-gray-500 mt-1">Intenta con otra fecha.</p>
+            <div v-else-if="slotsDisponibles.length === 0" class="text-center py-4 bg-slate-50 rounded-xl border border-slate-200">
+              <p class="text-sm text-slate-600">No hay horarios disponibles para esta fecha.</p>
+              <p class="text-xs text-slate-500 mt-1">Intenta con otra fecha.</p>
             </div>
             
             <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
@@ -216,10 +273,10 @@
                 :key="index"
                 @click="seleccionarSlotReprogram(slot)"
                 :class="[
-                  'px-3 py-2 rounded-md text-sm border transition-colors',
+                  'px-3 py-2 rounded-xl text-sm font-medium border transition-all duration-200 hover:scale-[1.02] active:scale-95 focus:outline-none focus:ring-2 focus:ring-slate-300',
                   slotSeleccionado === slot
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white/90 text-slate-700 border-slate-300 hover:border-slate-500 hover:bg-slate-50'
                 ]"
               >
                 {{ formatearHoraSlot(slot.horaInicio) }}
@@ -227,7 +284,7 @@
             </div>
           </div>
           
-          <div v-if="slotSeleccionado" class="p-3 bg-indigo-50 rounded-md">
+          <div v-if="slotSeleccionado" class="p-3 bg-indigo-50 rounded-xl border border-indigo-200">
             <p class="text-sm text-indigo-800">
               <strong>Nuevo horario seleccionado:</strong> {{ formatearHoraSlot(slotSeleccionado.horaInicio) }} - {{ calcularFinServicioSlot(slotSeleccionado.horaInicio) }}
             </p>
@@ -235,17 +292,17 @@
         </div>
         
         <div class="mt-6 flex justify-end gap-2">
-          <button @click="closeReprogramModal" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+          <button @click="closeReprogramModal" class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold bg-white border border-slate-300 text-slate-700 transition-all duration-200 hover:scale-[1.02] hover:bg-slate-50 active:scale-95">
             Cancelar
           </button>
           <button 
             :disabled="!slotSeleccionado || actionLoading" 
             @click="submitReprogram" 
             :class="[
-              'px-4 py-2 rounded',
+              'inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200',
               !slotSeleccionado || actionLoading
-                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                ? 'bg-slate-300 text-slate-100 cursor-not-allowed'
+                : 'bg-slate-900 text-white hover:scale-[1.02] hover:bg-slate-800 active:scale-95'
             ]"
           >
             {{ actionLoading ? 'Reprogramando...' : 'Reprogramar' }}
@@ -304,6 +361,7 @@ const serviciosFiltro = ref<Array<{ id: number; nombre: string }>>([])
 const loading = ref(false)
 const errorMessage = ref('')
 const actionLoading = ref(false)
+const mostrarFiltrosMobile = ref(false)
 const showCancelarModal = ref(false)
 const showReprogramModal = ref(false)
 const reprogramDate = ref('')
@@ -331,6 +389,19 @@ const currentPage = ref(0)
 const totalPages = ref(0)
 const pageSize = ref(10)
 const OFFSET_ARGENTINA = '-03:00'
+const turnosExpandidos = ref<number[]>([])
+
+function isTurnoExpandido(turnoId: number): boolean {
+  return turnosExpandidos.value.includes(turnoId)
+}
+
+function toggleTurnoExpandido(turnoId: number) {
+  if (isTurnoExpandido(turnoId)) {
+    turnosExpandidos.value = turnosExpandidos.value.filter(id => id !== turnoId)
+    return
+  }
+  turnosExpandidos.value = [...turnosExpandidos.value, turnoId]
+}
 
 function obtenerTimestampInicioTurnoArgentina(turno: Turno): number {
   return new Date(`${turno.fecha}T${turno.horaInicio}:00${OFFSET_ARGENTINA}`).getTime()
@@ -629,12 +700,7 @@ function seleccionarSlotReprogram(slot: SlotDisponible) {
 }
 
 function formatearHoraSlot(isoDateTime: string): string {
-  // Extraer la hora del formato ISO DateTime (YYYY-MM-DDTHH:mm:ss o similar)
-  // El backend devuelve: "2024-02-27T21:30:00"
-  const fecha = new Date(isoDateTime)
-  const horas = fecha.getHours().toString().padStart(2, '0')
-  const minutos = fecha.getMinutes().toString().padStart(2, '0')
-  return `${horas}:${minutos}`
+  return isoDateTime.length >= 16 ? isoDateTime.substring(11, 16) : isoDateTime
 }
 
 /**
@@ -653,9 +719,20 @@ function calcularBloqueTotalMinutos(turno: Turno): number {
  */
 function calcularFinServicioSlot(horaInicioISO: string): string {
   if (!selectedTurno.value) return ''
-  const base = new Date(horaInicioISO)
-  base.setMinutes(base.getMinutes() + selectedTurno.value.duracionMinutos)
-  return base.getHours().toString().padStart(2, '0') + ':' + base.getMinutes().toString().padStart(2, '0')
+  if (horaInicioISO.length < 16) return ''
+
+  const horaMinuto = horaInicioISO.substring(11, 16)
+  const [horasStr, minutosStr] = horaMinuto.split(':')
+  const horas = Number(horasStr)
+  const minutos = Number(minutosStr)
+
+  if (Number.isNaN(horas) || Number.isNaN(minutos)) return ''
+
+  const minutosTotales = horas * 60 + minutos + selectedTurno.value.duracionMinutos
+  const horasResultado = Math.floor(minutosTotales / 60) % 24
+  const minutosResultado = minutosTotales % 60
+
+  return `${String(horasResultado).padStart(2, '0')}:${String(minutosResultado).padStart(2, '0')}`
 }
 
 // Watch para recargar slots cuando cambia la fecha
