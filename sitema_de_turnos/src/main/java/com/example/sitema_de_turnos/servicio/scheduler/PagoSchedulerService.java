@@ -37,7 +37,7 @@ public class PagoSchedulerService {
     @Value("${app.turnos.expiration.grace-minutes}")
     private int graceMinutes;
 
-    @Scheduled(cron = "${app.turnos.expiration.cron}")
+    @Scheduled(cron = "${app.turnos.expiration.cron}", zone = "${app.scheduler.zone:UTC}")
     public void expirarPagosPendientes() {
         LocalDateTime ahoraUtc = LocalDateTime.now(ZoneOffset.UTC);
         LocalDateTime limiteCreacion = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(graceMinutes);

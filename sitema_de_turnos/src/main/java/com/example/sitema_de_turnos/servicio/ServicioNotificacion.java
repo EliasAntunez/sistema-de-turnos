@@ -217,7 +217,7 @@ public class ServicioNotificacion {
      * Elimina notificaciones leídas con más de X días configurables (app.notifications.retention-days)
      * para mantener la base de datos limpia sin afectar notificaciones recientes.
      */
-    @Scheduled(cron = "0 0 3 1 * *")  // Día 1 de cada mes a las 3:00 AM
+    @Scheduled(cron = "${app.notifications.cleanup.cron:0 0 3 1 * *}", zone = "${app.scheduler.zone:UTC}")
     @Transactional
     public void limpiarNotificacionesAntiguas() {
         LocalDateTime fechaLimite = LocalDateTime.now().minusDays(retentionDays);

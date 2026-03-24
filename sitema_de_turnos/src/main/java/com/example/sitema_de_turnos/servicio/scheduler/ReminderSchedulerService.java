@@ -61,7 +61,7 @@ public class ReminderSchedulerService {
      * Ejecuta el proceso de recordatorios según el cron configurado.
      * Por defecto: cada minuto (0 * * * * *) para no perder ninguna ventana horaria.
      */
-    @Scheduled(cron = "${app.reminder.cron:0 * * * * *}")
+    @Scheduled(cron = "${app.reminder.cron:0 * * * * *}", zone = "${app.scheduler.zone:UTC}")
     public void procesarRecordatorios() {
         // 🔍 LOG DE LATIDO: primer log, siempre visible, confirma que el cron dispara
         log.info("⏰ Ejecutando Scheduler de Recordatorios...");
