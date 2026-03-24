@@ -33,11 +33,14 @@ const apiClient: AxiosInstance = axios.create({
   withCredentials: true
 })
 
-// Función para obtener el CSRF token de las cookies
-function getCsrfToken(): string | null {
-  const cookies = document.cookie.split('; ')
-  const csrfCookie = cookies.find(row => row.startsWith('XSRF-TOKEN='))
-  return csrfCookie ? (csrfCookie.split('=')[1] || null) : null
+const CSRF_TOKEN_STORAGE_KEY = 'app_csrf_token'
+
+function getStoredCsrfToken(): string | null {
+  try {
+    return localStorage.getItem(CSRF_TOKEN_STORAGE_KEY)
+  } catch {
+    return null
+  }
 }
 
 // Interceptor para agregar CSRF token a requests que modifican datos
@@ -48,8 +51,8 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.url?.startsWith('/auth/logout') ||
     config.url?.startsWith('/publico/') // Endpoints públicos no requieren CSRF
   
-  if (!isExemptFromCsrf && ['post', 'put', 'patch', 'delete', 'get'].includes(config.method?.toLowerCase() || '')) {
-    const csrfToken = getCsrfToken()
+  if (!isExemptFromCsrf && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+    const csrfToken = getStoredCsrfToken()
     if (csrfToken && config.headers) {
       config.headers['X-XSRF-TOKEN'] = csrfToken
     }
@@ -107,27 +110,43 @@ apiClient.interceptors.response.use(
 
 export default {
   // Autenticación
-  login(credentials: AuthCredentials) {
+  async login(credentials: AuthCredentials) {
     // Spring Security formLogin requiere x-www-form-urlencoded
     const formData = new URLSearchParams()
     formData.append('username', credentials.email)
     formData.append('password', credentials.contrasena)
-    
-    return apiClient.post('/auth/login', formData, {
+
+    const response = await apiClient.post('/auth/login', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     })
+
+    await this.getCsrfToken()
+    return response
   },
 
   // Cerrar sesión
   logout() {
-    return apiClient.post('/auth/logout')
+    return apiClient.post('/auth/logout').finally(() => {
+      try {
+        localStorage.removeItem(CSRF_TOKEN_STORAGE_KEY)
+      } catch (e) {}
+    })
   },
 
-  // Obtener CSRF token (genera la cookie XSRF-TOKEN si no existe)
-  getCsrfToken() {
-    return apiClient.get('/auth/csrf')
+  // Obtener CSRF token desde backend y persistirlo en localStorage
+  async getCsrfToken() {
+    const response = await apiClient.get('/auth/csrf')
+    const token = response?.data?.token
+
+    if (typeof token === 'string' && token.length > 0) {
+      try {
+        localStorage.setItem(CSRF_TOKEN_STORAGE_KEY, token)
+      } catch (e) {}
+    }
+
+    return response
   },
 
   registrarSuperAdmin(datos: any) {
