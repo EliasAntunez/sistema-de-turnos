@@ -51,13 +51,22 @@ async function inicializarFcmParaProfesional(): Promise<void> {
  * (ej. DUENO+PROFESIONAL navegando entre /dueno y /profesional).
  */
 watch(
-  () => authStore.autenticado,
-  async (estaAutenticado) => {
+  () => ({
+    autenticado: authStore.autenticado,
+    ruta: route.fullPath,
+    roles: authStore.usuario?.roles ?? []
+  }),
+  async ({ autenticado, ruta }) => {
     try {
-      if (estaAutenticado && authStore.hasRole('PROFESIONAL')) {
+      const esVistaReservaCliente = ruta.includes('/reservar/')
+      const esStaff = authStore.hasRole('PROFESIONAL') || authStore.hasRole('DUENO')
+
+      if (!esVistaReservaCliente && autenticado && esStaff) {
         await notificacionesStore.inicializar()
-        await inicializarFcmParaProfesional()
-      } else if (!estaAutenticado) {
+        if (authStore.hasRole('PROFESIONAL')) {
+          await inicializarFcmParaProfesional()
+        }
+      } else {
         notificacionesStore.desconectar()
         if (detenerForegroundListener) {
           detenerForegroundListener()

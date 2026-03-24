@@ -1,8 +1,11 @@
 import axios, { type AxiosInstance } from 'axios'
 
 // Cliente HTTP sin autenticación para endpoints públicos
+
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 const publicClient: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api/publico',
+  baseURL: `${apiBaseUrl}/publico`,
   headers: {
     'Content-Type': 'application/json'
   },
