@@ -9,6 +9,8 @@ import lombok.ToString;
 
 import java.time.LocalTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,10 +42,12 @@ public class DisponibilidadProfesional {
     @Column(name = "dia_semana", nullable = false, length = 10)
     private DiaSemana diaSemana;
 
-    @Column(name = "hora_inicio", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss", timezone = "UTC")
+    @Column(name = "hora_inicio", nullable = false, columnDefinition = "TIME WITHOUT TIME ZONE")
     private LocalTime horaInicio;
 
-    @Column(name = "hora_fin", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss", timezone = "UTC")
+    @Column(name = "hora_fin", nullable = false, columnDefinition = "TIME WITHOUT TIME ZONE")
     private LocalTime horaFin;
 
     @Column(nullable = false)
