@@ -1,6 +1,7 @@
 package com.example.sitema_de_turnos.configuracion;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -48,6 +49,12 @@ public class ConfiguracionSeguridad {
     private final LoginFailureHandler loginFailureHandler;
     private final CsrfLoggingFilter csrfLoggingFilter;
 
+    @Value("${app.security.cookie.secure:false}")
+    private boolean csrfCookieSecure;
+
+    @Value("${app.security.cookie.same-site:Lax}")
+    private String csrfCookieSameSite;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -82,7 +89,12 @@ public class ConfiguracionSeguridad {
      */
     @Bean
     public CsrfTokenRepository csrfTokenRepository() {
-        return CookieCsrfTokenRepository.withHttpOnlyFalse();
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(cookie -> cookie
+            .sameSite(csrfCookieSameSite)
+            .secure(csrfCookieSecure)
+        );
+        return repository;
     }
 
     @Bean
