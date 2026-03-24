@@ -1,5 +1,6 @@
 package com.example.sitema_de_turnos.modelo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,6 +20,12 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "horario_empresa",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_horario_empresa_rango",
+            columnNames = {"empresa_id", "dia_semana", "hora_inicio", "hora_fin"}
+        )
+    },
     indexes = {
         @Index(name = "idx_horario_empresa_dia",
                columnList = "empresa_id, dia_semana, activo")
@@ -44,10 +51,12 @@ public class HorarioEmpresa {
     @Column(name = "dia_semana", nullable = false, length = 10)
     private DiaSemana diaSemana;
 
-    @Column(name = "hora_inicio", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
+    @Column(name = "hora_inicio", nullable = false, columnDefinition = "TIME WITHOUT TIME ZONE")
     private LocalTime horaInicio;
 
-    @Column(name = "hora_fin", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "HH:mm:ss")
+    @Column(name = "hora_fin", nullable = false, columnDefinition = "TIME WITHOUT TIME ZONE")
     private LocalTime horaFin;
 
     @Column(nullable = false)
