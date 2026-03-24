@@ -41,9 +41,11 @@ public class ServicioHorarioEmpresa {
 
     @Transactional
     public HorarioEmpresaResponse crearHorario(String emailDueno, HorarioEmpresaRequest request) {
+        LocalTime horaInicio = normalizarHora(request.getHoraInicio());
+        LocalTime horaFin = normalizarHora(request.getHoraFin());
+
         // Validar horarios
-        if (request.getHoraFin().isBefore(request.getHoraInicio()) || 
-            request.getHoraFin().equals(request.getHoraInicio())) {
+        if (!horaFin.isAfter(horaInicio)) {
             throw new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio");
         }
 
@@ -55,14 +57,14 @@ public class ServicioHorarioEmpresa {
         List<HorarioEmpresa> horariosExistentes = 
                 repositorioHorarioEmpresa.findByEmpresaAndDiaSemanaAndActivoTrue(empresa, request.getDiaSemana());
 
-        validarNoSolapamiento(horariosExistentes, request.getHoraInicio(), request.getHoraFin(), null);
+        validarNoSolapamiento(horariosExistentes, horaInicio, horaFin, null);
 
         // Crear horario
         HorarioEmpresa horario = new HorarioEmpresa();
         horario.setEmpresa(empresa);
         horario.setDiaSemana(request.getDiaSemana());
-        horario.setHoraInicio(request.getHoraInicio());
-        horario.setHoraFin(request.getHoraFin());
+        horario.setHoraInicio(horaInicio);
+        horario.setHoraFin(horaFin);
         horario.setActivo(true);
 
         horario = repositorioHorarioEmpresa.save(horario);
@@ -72,9 +74,11 @@ public class ServicioHorarioEmpresa {
 
     @Transactional
     public HorarioEmpresaResponse actualizarHorario(String emailDueno, Long horarioId, HorarioEmpresaRequest request) {
+        LocalTime horaInicio = normalizarHora(request.getHoraInicio());
+        LocalTime horaFin = normalizarHora(request.getHoraFin());
+
         // Validar horarios
-        if (request.getHoraFin().isBefore(request.getHoraInicio()) || 
-            request.getHoraFin().equals(request.getHoraInicio())) {
+        if (!horaFin.isAfter(horaInicio)) {
             throw new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio");
         }
 
@@ -94,7 +98,7 @@ public class ServicioHorarioEmpresa {
         List<HorarioEmpresa> horariosExistentes = 
                 repositorioHorarioEmpresa.findByEmpresaAndDiaSemanaAndActivoTrue(empresa, request.getDiaSemana());
 
-        validarNoSolapamiento(horariosExistentes, request.getHoraInicio(), request.getHoraFin(), horarioId);
+        validarNoSolapamiento(horariosExistentes, horaInicio, horaFin, horarioId);
 
         // Verificar que ningún profesional quede con disponibilidad huérfana tras el cambio.
         // Caso A: cambio de día → toda disponibilidad en el día anterior queda sin cobertura.
@@ -108,7 +112,7 @@ public class ServicioHorarioEmpresa {
             conflictos = repositorioDisponibilidadProfesional.findConflictosPorAchicamiento(
                     empresa, horario.getDiaSemana(),
                     horario.getHoraInicio(), horario.getHoraFin(),
-                    request.getHoraInicio(), request.getHoraFin());
+                    horaInicio, horaFin);
         }
 
         if (!conflictos.isEmpty()) {
@@ -143,8 +147,8 @@ public class ServicioHorarioEmpresa {
         } else {
             // Mismo día: solo los que no caben dentro del nuevo rango
             turnosConflicto = candidatos.stream()
-                    .filter(t -> t.getHoraInicio().isBefore(request.getHoraInicio())
-                              || t.getHoraFin().isAfter(request.getHoraFin()))
+                    .filter(t -> t.getHoraInicio().isBefore(horaInicio)
+                              || t.getHoraFin().isAfter(horaFin))
                     .collect(Collectors.toList());
         }
 
@@ -161,8 +165,8 @@ public class ServicioHorarioEmpresa {
 
         // Actualizar horario
         horario.setDiaSemana(request.getDiaSemana());
-        horario.setHoraInicio(request.getHoraInicio());
-        horario.setHoraFin(request.getHoraFin());
+        horario.setHoraInicio(horaInicio);
+        horario.setHoraFin(horaFin);
 
         horario = repositorioHorarioEmpresa.save(horario);
 
@@ -268,15 +272,9 @@ public class ServicioHorarioEmpresa {
                 continue;
             }
 
-            boolean overlap = 
-                // Nuevo inicio está dentro del rango existente
-                (horaInicio.isAfter(existente.getHoraInicio()) && horaInicio.isBefore(existente.getHoraFin())) ||
-                // Nuevo fin está dentro del rango existente
-                (horaFin.isAfter(existente.getHoraInicio()) && horaFin.isBefore(existente.getHoraFin())) ||
-                // Nuevo horario envuelve al existente
-                (horaInicio.isBefore(existente.getHoraInicio()) && horaFin.isAfter(existente.getHoraFin())) ||
-                // Horarios exactamente iguales
-                (horaInicio.equals(existente.getHoraInicio()) || horaFin.equals(existente.getHoraFin()));
+                // Intervalos semiabiertos [inicio, fin): permite rangos contiguos sin solaparse.
+                boolean overlap = horaInicio.isBefore(existente.getHoraFin())
+                    && horaFin.isAfter(existente.getHoraInicio());
 
             if (overlap) {
                 throw new IllegalArgumentException(
@@ -285,6 +283,13 @@ public class ServicioHorarioEmpresa {
                         existente.getHoraFin()));
             }
         }
+    }
+
+    private LocalTime normalizarHora(LocalTime hora) {
+        if (hora == null) {
+            throw new IllegalArgumentException("La hora no puede ser nula");
+        }
+        return hora.withNano(0);
     }
 
     /**
