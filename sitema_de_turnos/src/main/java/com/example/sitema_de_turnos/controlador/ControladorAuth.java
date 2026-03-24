@@ -18,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -43,21 +45,18 @@ public class ControladorAuth {
      * Spring Security 6 genera automáticamente el token al acceder al atributo del request.
      */
     @GetMapping("/csrf")
-    public ResponseEntity<RespuestaApi<String>> getCsrfToken(HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> getCsrfToken(HttpServletRequest request) {
         CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
-        
+
         if (csrfToken == null) {
             log.error("No se pudo obtener el token CSRF del request");
-            return ResponseEntity.internalServerError().body(
-                RespuestaApi.error("No se pudo generar el token CSRF")
-            );
+            return ResponseEntity.internalServerError().body(Map.of("token", ""));
         }
-        
+
+        String token = csrfToken.getToken();
         log.debug("Token CSRF generado para sesión");
-        
-        return ResponseEntity.ok(
-                RespuestaApi.exitosa("Token CSRF obtenido", csrfToken.getToken())
-        );
+
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     /**
