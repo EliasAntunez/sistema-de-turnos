@@ -52,10 +52,11 @@ class WebSocketService {
    * Crear y activar el cliente STOMP
    */
   private createClient() {
-    // Obtener URL del WebSocket desde variables de entorno (C4)
-    const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws'
-    
-    if (import.meta.env.DEV) console.log('🔌 Conectando a WebSocket:', wsUrl)
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    const wsUrl = import.meta.env.VITE_WS_URL || apiUrl.replace('/api', '/ws');
+
+    if (import.meta.env.DEV) console.log('🔌 Conectando a WebSocket:', wsUrl);
 
     // Crear cliente STOMP
     this.client = new Client({
