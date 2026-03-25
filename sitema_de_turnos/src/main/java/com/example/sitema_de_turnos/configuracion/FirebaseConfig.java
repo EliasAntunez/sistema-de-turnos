@@ -9,11 +9,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @Slf4j
 public class FirebaseConfig {
+
+    @Value("${FIREBASE_CONFIG_JSON:}")
+    private String firebaseConfigJson;
 
     @Value("${firebase.service-account.path:firebase-service-account.json}")
     private String serviceAccountPath;
@@ -25,9 +30,23 @@ public class FirebaseConfig {
         }
 
         try {
+            if (firebaseConfigJson != null && !firebaseConfigJson.isBlank()) {
+                String normalizedJson = firebaseConfigJson.replace("\\n", "\n").trim();
+
+                try (InputStream serviceAccount = new ByteArrayInputStream(normalizedJson.getBytes(StandardCharsets.UTF_8))) {
+                    FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                        .build();
+
+                    FirebaseApp.initializeApp(options);
+                    log.info("Firebase Admin SDK inicializado desde FIREBASE_CONFIG_JSON");
+                    return;
+                }
+            }
+
             ClassPathResource serviceAccountResource = new ClassPathResource(serviceAccountPath);
             if (!serviceAccountResource.exists()) {
-                log.warn("No se encontró {} en classpath. Push FCM quedará deshabilitado hasta agregarlo.", serviceAccountPath);
+                log.warn("No se encontró FIREBASE_CONFIG_JSON ni {} en classpath. Push FCM quedará deshabilitado.", serviceAccountPath);
                 return;
             }
 
