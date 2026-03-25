@@ -5,15 +5,16 @@ import com.example.sitema_de_turnos.excepcion.NotificationException;
 import com.example.sitema_de_turnos.modelo.Pago;
 import com.example.sitema_de_turnos.modelo.Turno;
 import com.example.sitema_de_turnos.repositorio.RepositorioPago;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -28,17 +29,24 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Implementación de NotificationService usando Gmail SMTP
+ * Implementación de NotificationService usando API HTTP de Brevo
  * ✅ B6: Template HTML externalizado en resources/templates/
  */
 @Service
 public class EmailNotificationService implements NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailNotificationService.class);
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+    private static final String BREVO_SENDER_EMAIL = "ansa.soft.2026@gmail.com";
+    private static final String BREVO_SENDER_NAME = "Sistema de Turnos";
     private static final String TEMPLATE_RECORDATORIO_PATH = "/templates/recordatorio-email.html";
     private static final String TEMPLATE_CONFIRMACION_PATH = "/templates/confirmacion-turno-email.html";
     private static final String TEMPLATE_REPROGRAMACION_PROFESIONAL = "reprogramacion-por-profesional";
@@ -47,17 +55,14 @@ public class EmailNotificationService implements NotificationService {
     private static final DateTimeFormatter FORMATTER_FECHA_TURNO = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter FORMATTER_HORA_TURNO = DateTimeFormatter.ofPattern("HH:mm");
     
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate;
     private final RepositorioPago repositorioPago;
     private final TemplateEngine templateEngine;
     private final String reminderTemplate;
     private final String confirmacionTurnoTemplate;
     
-    @Value("${app.notification.email.from}")
-    private String emailFrom;
-    
-    @Value("${app.notification.email.from-name}")
-    private String emailFromName;
+    @Value("${BREVO_API_KEY}")
+    private String brevoApiKey;
     
     @Value("${app.notification.email.enabled:true}")
     private boolean enabled;
@@ -65,8 +70,8 @@ public class EmailNotificationService implements NotificationService {
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
     
-    public EmailNotificationService(JavaMailSender mailSender, RepositorioPago repositorioPago, TemplateEngine templateEngine) {
-        this.mailSender = mailSender;
+    public EmailNotificationService(RepositorioPago repositorioPago, TemplateEngine templateEngine) {
+        this.restTemplate = new RestTemplate();
         this.repositorioPago = repositorioPago;
         this.templateEngine = templateEngine;
         this.reminderTemplate = cargarTemplate(TEMPLATE_RECORDATORIO_PATH);
@@ -79,31 +84,19 @@ public class EmailNotificationService implements NotificationService {
             log.warn("⚠️ Sistema de email deshabilitado - No se enviará recordatorio para turno {}", data.getTurnoId());
             return;
         }
-        
-        validateReminderData(data);
-        
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
-            helper.setFrom(emailFrom, emailFromName);
-            helper.setTo(data.getClienteEmail());
-            helper.setSubject("⏰ Recordatorio de turno - " + data.getEmpresaNombre());
-            helper.setText(construirCuerpoHTML(data), true);
-            
-            mailSender.send(message);
+            validateReminderData(data);
+            String subject = "⏰ Recordatorio de turno - " + data.getEmpresaNombre();
+            String html = construirCuerpoHTML(data);
+            enviarEmailBrevo(data.getClienteEmail(), data.getClienteNombre(), subject, html);
             
             log.info("✅ Recordatorio enviado exitosamente - Turno {} - Email: {}", 
                     data.getTurnoId(), data.getClienteEmail());
-            
-        } catch (MessagingException e) {
-            String errorMsg = "Error al construir mensaje de email para turno " + data.getTurnoId();
-            log.error("❌ {}: {}", errorMsg, e.getMessage());
-            throw new NotificationException(errorMsg, e);
         } catch (Exception e) {
-            String errorMsg = "Error inesperado al enviar email para turno " + data.getTurnoId();
-            log.error("❌ {}: {}", errorMsg, e.getMessage(), e);
-            throw new NotificationException(errorMsg, e);
+            log.error("❌ Error inesperado al enviar recordatorio para turno {}: {}",
+                    data != null ? data.getTurnoId() : null,
+                    e.getMessage(),
+                    e);
         }
     }
 
@@ -126,15 +119,9 @@ public class EmailNotificationService implements NotificationService {
                     .orElse(BigDecimal.ZERO);
             BigDecimal saldoRestante = precioTotal.subtract(montoSena).max(BigDecimal.ZERO);
 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(emailFrom, emailFromName);
-            helper.setTo(turno.getCliente().getEmail());
-            helper.setSubject("✅ Confirmación de turno - " + turno.getEmpresa().getNombre());
-            helper.setText(construirCuerpoConfirmacionTurno(turno, precioTotal, montoSena, saldoRestante), true);
-
-            mailSender.send(message);
+                String subject = "✅ Confirmación de turno - " + turno.getEmpresa().getNombre();
+                String html = construirCuerpoConfirmacionTurno(turno, precioTotal, montoSena, saldoRestante);
+                enviarEmailBrevo(turno.getCliente().getEmail(), turno.getCliente().getNombre(), subject, html);
 
             log.info("✅ Confirmación de turno enviada - Turno {} - Email: {}",
                     turno.getId(), turno.getCliente().getEmail());
@@ -167,12 +154,7 @@ public class EmailNotificationService implements NotificationService {
 
             validarDatosTurno(turno);
 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(emailFrom, emailFromName);
-            helper.setTo(turno.getCliente().getEmail());
-            helper.setSubject("⚠️ Tu turno fue cancelado por falta de pago - " + turno.getEmpresa().getNombre());
+            String subject = "⚠️ Tu turno fue cancelado por falta de pago - " + turno.getEmpresa().getNombre();
 
             String fecha = turno.getFecha().format(FORMATTER_FECHA_TURNO);
             String horaInicio = turno.getHoraInicio().format(FORMATTER_HORA_TURNO);
@@ -191,8 +173,7 @@ public class EmailNotificationService implements NotificationService {
             context.setVariable("urlReserva", urlReserva);
 
             String html = templateEngine.process(TEMPLATE_TURNO_EXPIRADO, context);
-            helper.setText(html, true);
-            mailSender.send(message);
+            enviarEmailBrevo(turno.getCliente().getEmail(), turno.getCliente().getNombre(), subject, html);
 
             log.info("✅ Correo de expiración de turno enviado - Turno {} - Email: {}",
                     turno.getId(), turno.getCliente().getEmail());
@@ -212,12 +193,7 @@ public class EmailNotificationService implements NotificationService {
 
             validarDatosTurno(turno);
 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setFrom(emailFrom, emailFromName);
-            helper.setTo(turno.getCliente().getEmail());
-            helper.setSubject(prefijoAsunto + turno.getEmpresa().getNombre());
+            String subject = prefijoAsunto + turno.getEmpresa().getNombre();
 
             String fecha = turno.getFecha().format(FORMATTER_FECHA_TURNO);
             String horaInicio = turno.getHoraInicio().format(FORMATTER_HORA_TURNO);
@@ -240,8 +216,7 @@ public class EmailNotificationService implements NotificationService {
 
             String html = templateEngine.process(templateNombre, context);
 
-            helper.setText(html, true);
-            mailSender.send(message);
+            enviarEmailBrevo(turno.getCliente().getEmail(), turno.getCliente().getNombre(), subject, html);
 
             log.info("✅ Reprogramación de turno enviada - Turno {} - Email: {}",
                     turno.getId(), turno.getCliente().getEmail());
@@ -249,10 +224,54 @@ public class EmailNotificationService implements NotificationService {
             log.error("Error al enviar correo de reprogramación a {}: ", emailDestino, e);
         }
     }
+
+    private void enviarEmailBrevo(String emailDestino, String nombreDestino, String subject, String htmlContent) {
+        try {
+            if (brevoApiKey == null || brevoApiKey.isBlank()) {
+                log.error("BREVO_API_KEY no está configurada. No se enviará email a {}", emailDestino);
+                return;
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("api-key", brevoApiKey);
+
+            Map<String, Object> sender = new HashMap<>();
+            sender.put("name", BREVO_SENDER_NAME);
+            sender.put("email", BREVO_SENDER_EMAIL);
+
+            Map<String, String> destinatario = new HashMap<>();
+            destinatario.put("email", emailDestino);
+            if (nombreDestino != null && !nombreDestino.isBlank()) {
+                destinatario.put("name", nombreDestino);
+            }
+
+            List<Map<String, String>> to = new ArrayList<>();
+            to.add(destinatario);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("sender", sender);
+            body.put("to", to);
+            body.put("subject", subject);
+            body.put("htmlContent", htmlContent);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(BREVO_API_URL, request, String.class);
+
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.error("Brevo devolvió estado no exitoso al enviar email a {}: {} - {}",
+                        emailDestino,
+                        response.getStatusCode(),
+                        response.getBody());
+            }
+        } catch (Exception e) {
+            log.error("Error al enviar email vía Brevo a {}: {}", emailDestino, e.getMessage(), e);
+        }
+    }
     
     @Override
     public boolean isAvailable() {
-        return enabled && mailSender != null;
+        return enabled && brevoApiKey != null && !brevoApiKey.isBlank();
     }
     
     @Override
