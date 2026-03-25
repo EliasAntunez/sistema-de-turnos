@@ -63,6 +63,27 @@ async function registrarTokenPushEnBackendConFetch(token: string): Promise<void>
 
 async function inicializarFcmParaProfesional(): Promise<void> {
   try {
+    if (!('serviceWorker' in navigator)) {
+      console.warn('Service Worker no soportado en este navegador. Se omite inicialización FCM.')
+      return
+    }
+
+    const registration = await navigator.serviceWorker.ready
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    const swScriptUrl =
+      registration.active?.scriptURL ||
+      registration.waiting?.scriptURL ||
+      registration.installing?.scriptURL ||
+      ''
+
+    const esFirebaseSw = swScriptUrl.includes('firebase-messaging-sw.js')
+    console.info('[FCM] Service Worker ready:', swScriptUrl || '(sin scriptURL)')
+
+    if (!esFirebaseSw) {
+      console.warn('[FCM] Service Worker activo no parece ser firebase-messaging-sw.js')
+    }
+
     const token = await solicitarPermisoYObtenerToken()
     if (!token) return
 
