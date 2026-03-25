@@ -19,12 +19,46 @@ const notificacionesStore = useNotificacionesStore()
 const route = useRoute()
 let foregroundListenerActivo = false
 let detenerForegroundListener: (() => void) | null = null
+let isRegistering = false
+
+const LAST_REGISTERED_FCM_TOKEN_KEY = 'last_registered_fcm_token'
+
+function obtenerUltimoTokenRegistrado(): string | null {
+  try {
+    return sessionStorage.getItem(LAST_REGISTERED_FCM_TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+function guardarUltimoTokenRegistrado(token: string): void {
+  try {
+    sessionStorage.setItem(LAST_REGISTERED_FCM_TOKEN_KEY, token)
+  } catch {}
+}
 
 async function registrarTokenPushEnBackendConFetch(token: string): Promise<void> {
-  await api.post('/notificaciones/token', {
+  if (!token) return
+
+  const ultimoTokenRegistrado = obtenerUltimoTokenRegistrado()
+  if (ultimoTokenRegistrado === token) {
+    return
+  }
+
+  if (isRegistering) {
+    return
+  }
+
+  isRegistering = true
+  try {
+    await api.post('/notificaciones/token', {
       token,
       userAgent: navigator.userAgent
-  })
+    })
+    guardarUltimoTokenRegistrado(token)
+  } finally {
+    isRegistering = false
+  }
 }
 
 async function inicializarFcmParaProfesional(): Promise<void> {
