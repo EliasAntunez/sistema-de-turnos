@@ -63,38 +63,24 @@ async function registrarTokenPushEnBackendConFetch(token: string): Promise<void>
 
 async function inicializarFcmParaProfesional(): Promise<void> {
   try {
-    if (!('serviceWorker' in navigator)) {
-      console.warn('Service Worker no soportado en este navegador. Se omite inicialización FCM.')
+    // 1. Pedimos el token directamente (si ya dio permiso, no pregunta; si no, salta el cartel)
+    const token = await solicitarPermisoYObtenerToken()
+    
+    if (!token) {
+      console.warn('[FCM] No se obtuvo token (Permiso denegado o error)')
       return
     }
 
-    const registration = await navigator.serviceWorker.ready
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    const swScriptUrl =
-      registration.active?.scriptURL ||
-      registration.waiting?.scriptURL ||
-      registration.installing?.scriptURL ||
-      ''
-
-    const esFirebaseSw = swScriptUrl.includes('firebase-messaging-sw.js')
-    console.info('[FCM] Service Worker ready:', swScriptUrl || '(sin scriptURL)')
-
-    if (!esFirebaseSw) {
-      console.warn('[FCM] Service Worker activo no parece ser firebase-messaging-sw.js')
-    }
-
-    const token = await solicitarPermisoYObtenerToken()
-    if (!token) return
-
+    // 2. Registramos en el backend (el blindaje ya está en registrarTokenPushEnBackendConFetch)
     await registrarTokenPushEnBackendConFetch(token)
 
+    // 3. Escuchamos notificaciones en primer plano
     if (!foregroundListenerActivo) {
       detenerForegroundListener = await escucharNotificacionesForeground()
       foregroundListenerActivo = true
     }
   } catch (error) {
-    console.error('Error al inicializar FCM para profesional', error)
+    console.error('Error al inicializar FCM:', error)
   }
 }
 
