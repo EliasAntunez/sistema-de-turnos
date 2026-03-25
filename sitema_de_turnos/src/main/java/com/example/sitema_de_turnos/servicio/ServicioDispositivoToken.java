@@ -7,8 +7,11 @@ import com.example.sitema_de_turnos.modelo.Usuario;
 import com.example.sitema_de_turnos.repositorio.RepositorioDispositivoToken;
 import com.example.sitema_de_turnos.repositorio.RepositorioUsuario;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -24,13 +27,30 @@ public class ServicioDispositivoToken {
 
         String tokenNormalizado = request.getToken().trim();
 
-        DispositivoToken dispositivoToken = repositorioDispositivoToken.findByToken(tokenNormalizado)
-            .orElseGet(DispositivoToken::new);
+        DispositivoToken existente = repositorioDispositivoToken.findByToken(tokenNormalizado).orElse(null);
 
-        dispositivoToken.setToken(tokenNormalizado);
-        dispositivoToken.setUserAgent(request.getUserAgent());
-        dispositivoToken.setUsuario(usuario);
+        if (existente != null) {
+            existente.setUserAgent(request.getUserAgent());
+            existente.setUsuario(usuario);
+            existente.setFechaActualizacion(LocalDateTime.now());
+            repositorioDispositivoToken.save(existente);
+            return;
+        }
 
-        repositorioDispositivoToken.save(dispositivoToken);
+        DispositivoToken nuevo = new DispositivoToken();
+        nuevo.setToken(tokenNormalizado);
+        nuevo.setUserAgent(request.getUserAgent());
+        nuevo.setUsuario(usuario);
+
+        try {
+            repositorioDispositivoToken.save(nuevo);
+        } catch (DataIntegrityViolationException ex) {
+            DispositivoToken recuperado = repositorioDispositivoToken.findByToken(tokenNormalizado)
+                .orElseThrow(() -> ex);
+            recuperado.setUserAgent(request.getUserAgent());
+            recuperado.setUsuario(usuario);
+            recuperado.setFechaActualizacion(LocalDateTime.now());
+            repositorioDispositivoToken.save(recuperado);
+        }
     }
 }
