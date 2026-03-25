@@ -10,6 +10,9 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
+import com.google.firebase.messaging.WebpushConfig;
+import com.google.firebase.messaging.WebpushNotification;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -70,7 +73,14 @@ public class FirebaseMessagingService {
                         .setTitle(tituloPush)
                         .setBody(cuerpo)
                         .build())
+                    .setWebpushConfig(WebpushConfig.builder()
+                        .putHeader("Urgency", "high") 
+                        .setNotification(WebpushNotification.builder()
+                            .setRequireInteraction(true) // Hace que la notificación no desaparezca sola
+                            .build())
+                        .build())
                     .build();
+
 
                 BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
                 totalSuccess += response.getSuccessCount();
