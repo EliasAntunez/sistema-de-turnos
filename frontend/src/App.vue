@@ -1,6 +1,5 @@
 <template>
   <ClienteNavbar v-if="showClientNavbar" />
-  <UnifiedNavbar v-if="!showClientNavbar && !isUserView" />
   <router-view />
 </template>
 
@@ -11,7 +10,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useNotificacionesStore } from '@/stores/notificaciones'
 import { solicitarPermisoYObtenerToken, escucharNotificacionesForeground } from '@/firebase'
 import api from '@/services/api'
-import UnifiedNavbar from '@/components/UnifiedNavbar.vue'
 import ClienteNavbar from '@/components/ClienteNavbar.vue'
 
 const authStore = useAuthStore()
@@ -131,5 +129,4 @@ onUnmounted(() => {
 })
 
 const showClientNavbar = computed(() => !!route.meta?.clientView)
-const isUserView = computed(() => ['Admin', 'Dueno', 'Profesional', 'Login'].includes(route.name as string))
 </script>
