@@ -1,15 +1,15 @@
 <template>
   <div class="page-wrapper">
-    <!-- Header de navegación -->
-    <header class="top-bar">
-      <button @click="router.push('/admin')" class="btn-back">
-        ← Volver al panel
-      </button>
-      <h1 class="top-bar-title">Registrar Nueva Empresa</h1>
-    </header>
-
     <main class="form-page">
-      <!-- Panel de éxito -->
+      
+      <div class="page-header">
+        <button @click="router.push('/admin')" class="btn-back">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Volver al panel
+        </button>
+        <h1 class="page-title">Registrar Nueva Empresa</h1>
+      </div>
+
       <div v-if="exito" class="success-panel">
         <div class="success-icon">
           <svg class="h-12 w-12 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -428,44 +428,52 @@ function resetForm() {
 /* ── Layout ── */
 .page-wrapper {
   min-height: 100vh;
-  background: #f8fafc;
-}
-
-.top-bar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.875rem 1.5rem;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.btn-back {
-  background: none;
-  border: 1px solid #cbd5e1;
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #475569;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-.btn-back:hover { background: #f1f5f9; }
-
-.top-bar-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
+  background: transparent;
 }
 
 .form-page {
   max-width: 860px;
-  margin: 2rem auto;
-  padding: 0 1rem 4rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+/* ── Cabecera Integrada (Nueva) ── */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.btn-back:hover { 
+  background: #f8fafc; 
+  color: #1e293b;
+  transform: translateX(-2px);
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.5px;
 }
 
 /* ── Secciones ── */
