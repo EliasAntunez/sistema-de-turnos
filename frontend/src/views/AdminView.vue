@@ -110,14 +110,14 @@
                   @click="confirmarCambioEstado(empresa, false)"
                   class="btn-action btn-danger"
                 >
-                  Suspender Servicio
+                  Desactivar Empresa
                 </button>
                 <button 
                   v-else
                   @click="confirmarCambioEstado(empresa, true)"
                   class="btn-action btn-success"
                 >
-                  Reactivar Servicio
+                  Reactivar Empresa
                 </button>
               </div>
 
