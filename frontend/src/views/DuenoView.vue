@@ -158,6 +158,8 @@
           </svg>
           <span>Horarios</span>
         </button>
+        <!--
+        Tab móvil de políticas oculto temporalmente para versión inicial.
         <button
           @click="activeTab = 'politicas'"
           :class="[
@@ -170,6 +172,7 @@
           </svg>
           <span>Políticas</span>
         </button>
+        -->
         <button
           @click="activeTab = 'configuracion'"
           :class="[
@@ -370,7 +373,7 @@
       </div>
     </main>
 
-    <!-- Tab: Políticas de Cancelación -->
+    <!-- Tab: Políticas de Cancelación Comentada indefinidamente 
     <main v-if="activeTab === 'politicas'" class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div class="mb-6 flex items-center justify-between gap-3">
         <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
@@ -379,10 +382,9 @@
         </h2>
         <button class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800" @click="openModalPolitica()">+ Nueva Política</button>
       </div>
-      <!-- Loading State -->
+
       <div v-if="loadingPoliticas" class="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-600 shadow-sm">Cargando...</div>
 
-      <!-- Políticas Grid -->
       <div v-else-if="politicas.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:gap-6">
         <div v-for="politica in politicas.filter(p => p.empresaId === empresaId)" :key="politica.id" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
           <div class="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
@@ -425,13 +427,13 @@
         </div>
       </div>
 
-      <!-- Empty State -->
       <div v-else class="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
         <p class="text-base font-medium text-slate-700">No hay políticas registradas</p>
         <p class="mt-1 text-sm text-slate-500">Haz clic en "Nueva Política" para comenzar</p>
       </div>
     </main>
-
+    -->
+    
     <!-- Tab: Configuración -->
     <main v-if="activeTab === 'configuracion'" class="mx-auto w-full max-w-4xl px-4 py-6">
       <div class="mb-6 flex items-center justify-between gap-3">
@@ -1557,7 +1559,8 @@ onMounted(async () => {
     cargarProfesionales(),
     cargarServicios(),
     cargarHorarios(),
-    cargarPoliticasCancelacion(),
+    // Políticas ocultas temporalmente: evitamos cargar datos innecesarios en esta versión
+    // cargarPoliticasCancelacion(),
     cargarConfiguracion()
   ])
 })
