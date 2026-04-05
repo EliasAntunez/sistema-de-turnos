@@ -33,14 +33,19 @@
             <span class="sm:hidden">Empresa</span>
           </button>
           <NotificationBell />
-          <button class="inline-flex max-w-[11rem] items-center gap-2 rounded-md border border-teal-500 bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-600 sm:max-w-none sm:text-sm" @click.stop="toggleUserMenu">
+          <button ref="userMenuButtonRef" class="inline-flex max-w-[11rem] items-center gap-2 rounded-md border border-teal-500 bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-teal-600 sm:max-w-none sm:text-sm" @click.stop="toggleUserMenu">
             <span class="truncate">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
             <svg class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.939a.75.75 0 111.08 1.04l-4.25 4.511a.75.75 0 01-1.08 0L5.21 8.269a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
             </svg>
           </button>
           <div v-if="showUserMenu" class="absolute right-0 top-full z-50 mt-2 w-56 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl" @click.stop>
-            <button class="block w-full px-3 py-2 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50" @click="cerrarSesion">Cerrar Sesión</button>
+            <button class="block w-full px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50" @click="abrirModalCambiarContrasena">Cambiar Contraseña</button>
+            <div class="mx-3 my-1 h-px bg-slate-200"></div>
+            <button class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50" @click="cerrarSesion">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </div>
       </div>
@@ -761,6 +766,12 @@
     @confirm="confirmarDesactivarCliente"
     @cancel="cerrarConfirmDesactivarCliente"
   />
+
+  <CambiarContrasenaModal
+    :show="showChangePasswordModal"
+    :logoutOnSuccess="true"
+    @close="cerrarModalCambiarContrasena"
+  />
 </template>
 
 <script setup lang="ts">
@@ -772,6 +783,7 @@ import NotificationBell from '../components/NotificationBell.vue'
 import Toast from '../components/Toast.vue'
 import BloqueoConflictosModal from '../components/BloqueoConflictosModal.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
+import CambiarContrasenaModal from '../components/CambiarContrasenaModal.vue'
 import { disponibilidadService, type DisponibilidadRequest, type DisponibilidadResponse, diasSemana } from '../services/disponibilidad'
 import { bloqueosService, type BloqueoRequest, type BloqueoResponse, type ConflictosBloqueoResponse } from '../services/bloqueos'
 import api from '../services/api'
@@ -917,6 +929,8 @@ const notificacionesStore = useNotificacionesStore()
 const toastStore = useToastStore()
 const showUserMenu = ref(false)
 const userMenuRef = ref<HTMLElement | null>(null)
+const userMenuButtonRef = ref<HTMLButtonElement | null>(null)
+const showChangePasswordModal = ref(false)
 
 function handleApiError(error: unknown, fallbackMessage: string, options?: { showToast?: boolean }): string {
   const message = getApiErrorMessage(error) ?? fallbackMessage
@@ -1083,6 +1097,7 @@ function esTurnoPasado(turno: TurnoProfesional): boolean {
 
 onMounted(async () => {
   document.addEventListener('click', handleClickOutsideUserMenu)
+  document.addEventListener('keydown', handleEscapeKey)
 
   const hoy = toIsoDate(new Date())
   filtrosTurnos.value.fechaDesde = hoy
@@ -1109,16 +1124,41 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutsideUserMenu)
+  document.removeEventListener('keydown', handleEscapeKey)
 })
+
+function closeUserMenu(restoreFocus = false) {
+  if (!showUserMenu.value) return
+  showUserMenu.value = false
+  if (restoreFocus) {
+    setTimeout(() => userMenuButtonRef.value?.focus(), 0)
+  }
+}
 
 function toggleUserMenu() {
   showUserMenu.value = !showUserMenu.value
 }
 
+function handleEscapeKey(event: KeyboardEvent) {
+  if (event.key === 'Escape' && showUserMenu.value) {
+    closeUserMenu(true)
+  }
+}
+
+function abrirModalCambiarContrasena() {
+  closeUserMenu(false)
+  showChangePasswordModal.value = true
+}
+
+function cerrarModalCambiarContrasena() {
+  showChangePasswordModal.value = false
+  setTimeout(() => userMenuButtonRef.value?.focus(), 0)
+}
+
 function handleClickOutsideUserMenu(event: MouseEvent) {
   if (!userMenuRef.value) return
   if (!userMenuRef.value.contains(event.target as Node)) {
-    showUserMenu.value = false
+    closeUserMenu(true)
   }
 }
 
@@ -1930,7 +1970,7 @@ function formatearFechaLegible(fecha: string): string {
 }
 
 function cerrarSesion() {
-  showUserMenu.value = false
+  closeUserMenu(false)
   // Llamar al endpoint de logout para invalidar sesión del servidor
   api.logout()
     .then(() => {

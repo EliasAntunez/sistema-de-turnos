@@ -268,6 +268,10 @@ export default {
     return apiClient.put(`/profesional/clientes/${clienteId}/estado`, { activo })
   },
 
+  cambiarContrasena(datos: { contrasenaActual: string; nuevaContrasena: string; confirmarNuevaContrasena: string }) {
+    return apiClient.put('/usuarios/cambiar-contrasena', datos)
+  },
+
   // Cliente - Autenticación
   registrarCliente(empresaSlug: string, datos: { telefono: string | null; nombreUsuario: string; email: string; contrasena: string; confirmarContrasena: string }) {
     return apiClient.post(`/publico/empresa/${empresaSlug}/registro-cliente`, datos)
