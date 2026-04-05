@@ -121,7 +121,7 @@
 
     <!-- Navegación Móvil: Bottom Bar -->
     <nav class="fixed bottom-0 left-0 z-50 w-full border-t border-slate-200 bg-white md:hidden">
-      <div class="grid grid-cols-5">
+      <div class="grid grid-cols-4">
         <button
           @click="activeTab = 'profesionales'"
           :class="[
