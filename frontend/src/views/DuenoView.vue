@@ -90,6 +90,7 @@
         </button>
 
         <button
+          ref="userMenuButtonRef"
           class="inline-flex max-w-[11rem] items-center gap-2 rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 sm:max-w-none sm:text-sm"
           @click.stop="toggleUserMenu"
         >
@@ -104,8 +105,13 @@
           class="absolute right-0 top-full z-50 mt-2 w-56 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
           @click.stop
         >
+          <button class="block w-full px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50" @click="abrirModalCambiarContrasena">Cambiar Contraseña</button>
           <button class="block w-full px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50" @click="abrirModalEditarEmpresa">Editar Empresa</button>
-          <button class="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50" @click="handleLogout">Cerrar Sesión</button>
+          <div class="mx-3 my-1 h-px bg-slate-200"></div>
+          <button class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50" @click="handleLogout">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </div>
       </div>
@@ -1215,6 +1221,12 @@
     @cancel="cerrarConfirmToggleServicioProfesional"
   />
 
+  <CambiarContrasenaModal
+    :show="showChangePasswordModal"
+    :logoutOnSuccess="true"
+    @close="cerrarModalCambiarContrasena"
+  />
+
   <!-- Toast para notificaciones -->
   <Toast />
 </template>
@@ -1230,6 +1242,7 @@ import type { PoliticaCancelacionRequest, PoliticaCancelacionResponse } from '..
 import { useToastStore } from '../composables/useToast'
 import Toast from '../components/Toast.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
+import CambiarContrasenaModal from '../components/CambiarContrasenaModal.vue'
 import { formatCurrencyARS as formatearMonedaARS } from '../utils/currency'
 
 type FieldErrors = Record<string, string>
@@ -1297,6 +1310,8 @@ const nombreEmpresa = ref('')
 const empresaId = ref<number | null>(null)
 const showUserMenu = ref(false)
 const userMenuRef = ref<HTMLElement | null>(null)
+const userMenuButtonRef = ref<HTMLButtonElement | null>(null)
+const showChangePasswordModal = ref(false)
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const TELEFONO_REGEX = /^\d{10,15}$/
@@ -1534,6 +1549,7 @@ function extractApiErrorMessage(err: unknown, fallbackMessage: string): string {
 
 onMounted(async () => {
   document.addEventListener('click', handleClickOutsideUserMenu)
+  document.addEventListener('keydown', handleEscapeKey)
   await cargarNombreEmpresa()
   await Promise.all([
     cargarProfesionales(),
@@ -1546,7 +1562,16 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutsideUserMenu)
+  document.removeEventListener('keydown', handleEscapeKey)
 })
+
+function closeUserMenu(restoreFocus = false) {
+  if (!showUserMenu.value) return
+  showUserMenu.value = false
+  if (restoreFocus) {
+    setTimeout(() => userMenuButtonRef.value?.focus(), 0)
+  }
+}
 
 watch(
   formDataEmpresa,
@@ -1630,10 +1655,16 @@ function toggleUserMenu() {
   showUserMenu.value = !showUserMenu.value
 }
 
+function handleEscapeKey(event: KeyboardEvent) {
+  if (event.key === 'Escape' && showUserMenu.value) {
+    closeUserMenu(true)
+  }
+}
+
 function handleClickOutsideUserMenu(event: MouseEvent) {
   if (!userMenuRef.value) return
   if (!userMenuRef.value.contains(event.target as Node)) {
-    showUserMenu.value = false
+    closeUserMenu(true)
   }
 }
 
@@ -1654,11 +1685,21 @@ function mapearEmpresaAFormulario(data: unknown) {
 }
 
 function abrirModalEditarEmpresa() {
-  showUserMenu.value = false
+  closeUserMenu(false)
   errorEmpresa.value = ''
   formDataEmpresa.value = { ...empresaOriginal.value }
   fieldErrorsEmpresa.value = validarFormularioEmpresa()
   showModalEmpresa.value = true
+}
+
+function abrirModalCambiarContrasena() {
+  closeUserMenu(false)
+  showChangePasswordModal.value = true
+}
+
+function cerrarModalCambiarContrasena() {
+  showChangePasswordModal.value = false
+  setTimeout(() => userMenuButtonRef.value?.focus(), 0)
 }
 
 function cerrarModalEditarEmpresa() {
@@ -2167,7 +2208,7 @@ async function ejecutarToggleProfesional() {
 }
 
 function handleLogout() {
-  showUserMenu.value = false
+  closeUserMenu(false)
   // Llamar al endpoint de logout para invalidar sesión del servidor
   api.logout()
     .then(() => {

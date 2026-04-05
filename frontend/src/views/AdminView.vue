@@ -7,19 +7,30 @@
         </div>
         <h1>AnSa Admin Panel</h1>
       </div>
-      <div class="navbar-user">
-        <div class="user-profile">
-          <div class="avatar">
-            {{ authStore.usuario?.nombre?.charAt(0) }}{{ authStore.usuario?.apellido?.charAt(0) }}
+      <div class="navbar-user" ref="userMenuRef">
+        <button ref="userMenuButtonRef" class="user-menu-trigger" @click.stop="toggleUserMenu">
+          <div class="user-profile">
+            <div class="avatar">
+              {{ authStore.usuario?.nombre?.charAt(0) }}{{ authStore.usuario?.apellido?.charAt(0) }}
+            </div>
+            <div class="user-details">
+              <span class="user-name">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
+              <span class="user-role">Super Admin</span>
+            </div>
           </div>
-          <div class="user-details">
-            <span class="user-name">{{ authStore.usuario?.nombre }} {{ authStore.usuario?.apellido }}</span>
-            <span class="user-role">Super Admin</span>
-          </div>
-        </div>
-        <button @click="handleLogout" class="btn-icon-danger" title="Cerrar Sesión">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <svg class="menu-caret" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.939a.75.75 0 111.08 1.04l-4.25 4.511a.75.75 0 01-1.08 0L5.21 8.269a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
         </button>
+
+        <div v-if="showUserMenu" class="user-dropdown" @click.stop>
+          <button class="dropdown-item" @click="abrirModalCambiarContrasena">Cambiar Contraseña</button>
+          <div class="dropdown-separator"></div>
+          <button class="dropdown-item dropdown-item-danger" @click="handleLogout">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -137,17 +148,22 @@
       </main>
     </div>
   </div>
+  <CambiarContrasenaModal
+    :show="showChangePasswordModal"
+    :logoutOnSuccess="true"
+    @close="cerrarModalCambiarContrasena"
+  />
   <Toast />
 </template>
 
 <script setup lang="ts">
-// ... EL SCRIPT QUEDA EXACTAMENTE IGUAL QUE ANTES (Cópialo de tu archivo original) ...
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import Toast from '../components/Toast.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
+import CambiarContrasenaModal from '../components/CambiarContrasenaModal.vue'
 import { useToastStore } from '../composables/useToast'
 
 const router = useRouter()
@@ -194,13 +210,61 @@ const showConfirmToggleEmpresa = ref(false)
 const empresaPendienteToggle = ref<EmpresaAdmin | null>(null)
 const nuevoEstadoEmpresa = ref(false)
 const cambiandoEstadoEmpresa = ref(false)
+const showUserMenu = ref(false)
+const userMenuRef = ref<HTMLElement | null>(null)
+const userMenuButtonRef = ref<HTMLButtonElement | null>(null)
+const showChangePasswordModal = ref(false)
 
 const formData = ref({
   dueno: { nombre: '', apellido: '', email: '', contrasena: '', telefono: '', documento: '', tipoDocumento: 'DNI' },
   empresa: { nombre: '', slug: '', descripcion: '', cuit: '', direccion: '', ciudad: '', provincia: '', telefono: '', email: '', diasMaximosReserva: 30 }
 })
 
-onMounted(() => { cargarEmpresas() })
+onMounted(() => {
+  document.addEventListener('click', handleClickOutsideUserMenu)
+  document.addEventListener('keydown', handleEscapeKey)
+  cargarEmpresas()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutsideUserMenu)
+  document.removeEventListener('keydown', handleEscapeKey)
+})
+
+function closeUserMenu(restoreFocus = false) {
+  if (!showUserMenu.value) return
+  showUserMenu.value = false
+  if (restoreFocus) {
+    setTimeout(() => userMenuButtonRef.value?.focus(), 0)
+  }
+}
+
+function toggleUserMenu() {
+  showUserMenu.value = !showUserMenu.value
+}
+
+function handleEscapeKey(event: KeyboardEvent) {
+  if (event.key === 'Escape' && showUserMenu.value) {
+    closeUserMenu(true)
+  }
+}
+
+function handleClickOutsideUserMenu(event: MouseEvent) {
+  if (!userMenuRef.value) return
+  if (!userMenuRef.value.contains(event.target as Node)) {
+    closeUserMenu(true)
+  }
+}
+
+function abrirModalCambiarContrasena() {
+  closeUserMenu(false)
+  showChangePasswordModal.value = true
+}
+
+function cerrarModalCambiarContrasena() {
+  showChangePasswordModal.value = false
+  setTimeout(() => userMenuButtonRef.value?.focus(), 0)
+}
 
 async function cargarEmpresas() {
   cargandoEmpresas.value = true
@@ -254,6 +318,7 @@ function cerrarFormulario() {
   formData.value = { dueno: { nombre: '', apellido: '', email: '', contrasena: '', telefono: '', documento: '', tipoDocumento: 'DNI' }, empresa: { nombre: '', slug: '', descripcion: '', cuit: '', direccion: '', ciudad: '', provincia: '', telefono: '', email: '', diasMaximosReserva: 30 } }
 }
 function handleLogout() {
+  closeUserMenu(false)
   api.logout().then(() => { authStore.logout(); router.push('/login') }).catch(() => { authStore.logout(); router.push('/login') })
 }
 </script>
@@ -273,8 +338,15 @@ function handleLogout() {
 .user-details { display: flex; flex-direction: column; }
 .user-name { font-size: 0.9rem; font-weight: 600; color: #1e293b; }
 .user-role { font-size: 0.75rem; color: #64748b; }
-.btn-icon-danger { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s; }
-.btn-icon-danger:hover { background-color: #fee2e2; color: #ef4444; }
+.user-menu-trigger { background: transparent; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.35rem 0.6rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.6rem; transition: all 0.2s; }
+.user-menu-trigger:hover { background-color: #f8fafc; border-color: #cbd5e1; }
+.menu-caret { width: 16px; height: 16px; color: #64748b; }
+.user-dropdown { position: absolute; top: calc(100% + 10px); right: 0; width: 230px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 22px 36px -18px rgba(15, 23, 42, 0.35); overflow: hidden; z-index: 60; }
+.dropdown-item { width: 100%; border: none; background: transparent; text-align: left; padding: 0.72rem 0.9rem; color: #334155; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background-color 0.15s; display: flex; align-items: center; gap: 0.45rem; }
+.dropdown-item:hover { background-color: #f8fafc; }
+.dropdown-separator { height: 1px; background: #e2e8f0; margin: 0.15rem 0; }
+.dropdown-item-danger { color: #dc2626; }
+.dropdown-item-danger:hover { background-color: #fef2f2; }
 
 /* Cuerpo Principal: Sidebar + Content */
 .admin-body { display: flex; flex: 1; }

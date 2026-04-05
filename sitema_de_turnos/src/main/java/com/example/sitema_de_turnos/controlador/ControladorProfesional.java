@@ -24,16 +24,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.session.SessionInformation;
-import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.data.domain.Sort.Direction.ASC;
 
-import java.util.List;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Controlador para que los profesionales gestionen su propio perfil y disponibilidad
@@ -48,13 +45,11 @@ public class ControladorProfesional {
 
     private final RepositorioUsuario repositorioUsuario;
     private final RepositorioPerfilProfesional repositorioPerfilProfesional;
-    private final PasswordEncoder passwordEncoder;
     private final ServicioDisponibilidad servicioDisponibilidad;
     private final ServicioBloqueoFecha servicioBloqueoFecha;
     private final com.example.sitema_de_turnos.servicio.ServicioHorarioEmpresa servicioHorarioEmpresa;
     private final com.example.sitema_de_turnos.servicio.ServicioTurno servicioTurno;
     private final ServicioAutenticacionCliente servicioAutenticacionCliente;
-    private final SessionRegistry sessionRegistry;
 
     /**
      * Obtener el perfil del profesional autenticado
@@ -80,8 +75,11 @@ public class ControladorProfesional {
     }
 
     /**
-     * Actualizar el perfil del profesional autenticado
-     * CORREGIDO: Ahora valida empresa activa e invalida sesiones al cambiar contraseña
+     * Actualizar el perfil del profesional autenticado.
+     *
+     * Seguridad: el cambio de contraseña ya no se permite por este endpoint.
+     * Debe realizarse únicamente mediante /api/usuarios/cambiar-contrasena
+     * para forzar validación de contraseña actual.
      */
     @PutMapping("/perfil")
     public ResponseEntity<RespuestaApi<PerfilUsuarioResponse>> actualizarPerfil(
@@ -98,7 +96,12 @@ public class ControladorProfesional {
             throw new CuentaDesactivadaException("Su empresa ha sido desactivada. Contacte al administrador.");
         }
 
-        boolean cambioContrasena = false;
+        if (request.getContrasena() != null && !request.getContrasena().isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Para cambiar la contraseña use el endpoint seguro /api/usuarios/cambiar-contrasena"
+            );
+        }
 
         // Actualizar solo los campos proporcionados
         if (request.getNombre() != null) {
@@ -117,50 +120,17 @@ public class ControladorProfesional {
         if (request.getTelefono() != null) {
             usuario.setTelefono(request.getTelefono());
         }
-        if (request.getContrasena() != null && !request.getContrasena().isEmpty()) {
-            usuario.setContrasena(passwordEncoder.encode(request.getContrasena()));
-            cambioContrasena = true;
-        }
 
         Usuario actualizado = repositorioUsuario.save(usuario);
-        
-        // SEGURIDAD: Invalidar todas las sesiones si cambió la contraseña
-        if (cambioContrasena) {
-            invalidarTodasLasSesionesDel(usuario.getEmail());
-        }
-        
+
         PerfilUsuarioResponse perfil = mapearAPerfilResponse(actualizado);
 
         return ResponseEntity.ok(
                 RespuestaApi.exitosa(
-                    cambioContrasena ? 
-                        "Perfil actualizado. Por favor, inicie sesión nuevamente con su nueva contraseña." :
-                        "Perfil actualizado exitosamente",
+                    "Perfil actualizado exitosamente",
                     perfil
                 )
         );
-    }
-
-    /**
-     * Invalida todas las sesiones activas de un usuario.
-     * Llamado cuando se cambia la contraseña para prevenir acceso con credenciales antiguas.
-     */
-    private void invalidarTodasLasSesionesDel(String email) {
-        List<Object> principals = sessionRegistry.getAllPrincipals();
-        
-        for (Object principal : principals) {
-            if (principal instanceof org.springframework.security.core.userdetails.User) {
-                org.springframework.security.core.userdetails.User user = 
-                    (org.springframework.security.core.userdetails.User) principal;
-                
-                if (user.getUsername().equals(email)) {
-                    List<SessionInformation> sessions = sessionRegistry.getAllSessions(principal, false);
-                    for (SessionInformation session : sessions) {
-                        session.expireNow();
-                    }
-                }
-            }
-        }
     }
 
     @SuppressWarnings("deprecation") // setRol() retenido intencionalmente para backward compat
