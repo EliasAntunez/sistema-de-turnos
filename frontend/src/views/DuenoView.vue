@@ -43,6 +43,7 @@
           </svg>
           <span>Horarios</span>
         </button>
+        <!--
         <button
           @click="activeTab = 'politicas'"
           :class="[
@@ -55,6 +56,7 @@
           </svg>
           <span>Políticas</span>
         </button>
+        -->
         <button
           @click="activeTab = 'configuracion'"
           :class="[

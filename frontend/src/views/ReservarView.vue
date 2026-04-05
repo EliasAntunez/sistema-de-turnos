@@ -388,6 +388,10 @@
             <input v-model="datosCliente.telefono" type="tel" placeholder="Ej: +54 9 11 1234-5678" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300" />
           </div>
           
+
+          <!--
+          Bloque de políticas oculto temporalmente para versión inicial.
+          Para reactivarlo, descomentar este bloque y habilitar politicasHabilitadasEnReserva.
           <div class="mt-6 mb-8">
             <label class="flex items-start gap-2 text-sm text-slate-700 leading-5 cursor-pointer">
               <input v-model="datosCliente.aceptaCondiciones" type="checkbox" required class="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-300" />
@@ -409,7 +413,9 @@
             :politicas="politicasActivas"
             @close="mostrarModalPoliticas = false"
           />
-          
+          -->
+
+
           <button type="submit" :disabled="cargando" class="w-full inline-flex items-center justify-center rounded-xl px-5 py-3.5 text-base font-semibold bg-slate-900 text-white transition-all duration-200 hover:scale-[1.02] hover:bg-slate-800 active:scale-95 disabled:bg-slate-300 disabled:text-slate-100 disabled:hover:scale-100 disabled:cursor-not-allowed">
             <span v-if="!cargando">Confirmar Turno</span>
             <span v-else>Procesando...</span>
@@ -587,10 +593,16 @@ const router = useRouter()
 const clienteStore = useClienteStore()
 const toastStore = useToastStore()
 
+// Flag temporal para versión inicial: mantiene código de políticas listo para reactivar
+const politicasHabilitadasEnReserva = false
+
 // Estado para el modal de políticas
 const mostrarModalPoliticas = ref(false)
 const politicasActivas = ref<PoliticaCancelacion[]>([])
 
+/*
+  Lógica de apertura de políticas preservada para futura reactivación.
+  Recordatorio: mantener sincronizado con politicasHabilitadasEnReserva.
 async function abrirModalPoliticas() {
   if (!empresaSlug.value) {
     console.error('[Politicas] No hay slug de empresa, no se puede buscar políticas')
@@ -617,6 +629,7 @@ async function abrirModalPoliticas() {
     mostrarModalPoliticas.value = true
   }
 }
+  */
 
 // Estado
 const empresaSlug = ref(route.params.empresaSlug as string)
@@ -926,7 +939,7 @@ async function confirmarReserva() {
   if (!clienteAutenticado.value) {
     // Validar datos del cliente (email es obligatorio, teléfono es opcional)
     if (!datosCliente.value.nombre || !datosCliente.value.email || 
-        !datosCliente.value.aceptaCondiciones) {
+        (politicasHabilitadasEnReserva && !datosCliente.value.aceptaCondiciones)) {
       toastStore.showError('Por favor completa todos los campos obligatorios para continuar.')
       return
     }
