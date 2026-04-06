@@ -1,5 +1,6 @@
 package com.example.sitema_de_turnos.configuracion;
 
+import org.springframework.context.annotation.Lazy;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -13,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+@Lazy(false)
 @Configuration
 @Slf4j
 public class FirebaseConfig {
