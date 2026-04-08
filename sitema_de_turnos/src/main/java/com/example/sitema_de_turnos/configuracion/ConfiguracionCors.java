@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @Configuration
 public class ConfiguracionCors {
 
-    @Value("${CORS_ALLOWED_ORIGINS:http://localhost:5173}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
 
     @Bean
