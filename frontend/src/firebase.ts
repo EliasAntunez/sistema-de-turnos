@@ -45,6 +45,46 @@ async function obtenerMessaging(): Promise<Messaging | null> {
   return getMessaging(firebaseApp)
 }
 
+async function registrarServiceWorkerPush(): Promise<ServiceWorkerRegistration | null> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return null
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/'
+    })
+
+    // Fuerza verificación de updates para evitar workers obsoletos en CDN/cache.
+    await registration.update()
+
+    const worker = registration.active || registration.waiting || registration.installing
+
+    if (worker && worker.state !== 'activated') {
+      await new Promise<void>((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => {
+          reject(new Error('Timeout esperando activación del Service Worker de Firebase'))
+        }, 8000)
+
+        const onStateChange = () => {
+          if (worker.state === 'activated') {
+            worker.removeEventListener('statechange', onStateChange)
+            window.clearTimeout(timeoutId)
+            resolve()
+          }
+        }
+
+        worker.addEventListener('statechange', onStateChange)
+      })
+    }
+
+    return registration.active ? registration : await navigator.serviceWorker.ready
+  } catch (error) {
+    console.error('🔥 Error registrando firebase-messaging-sw.js:', error)
+    return null
+  }
+}
+
 export async function solicitarPermisoYObtenerToken(): Promise<string | null> {
   if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
     return null
@@ -65,8 +105,10 @@ export async function solicitarPermisoYObtenerToken(): Promise<string | null> {
   }
 
   try {
-    await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    const swRegistration = await navigator.serviceWorker.ready
+    const swRegistration = await registrarServiceWorkerPush()
+    if (!swRegistration) {
+      return null
+    }
 
     const tokenPromise = getToken(messaging, {
       vapidKey,
