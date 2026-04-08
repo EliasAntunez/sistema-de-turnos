@@ -48,10 +48,11 @@ public interface RepositorioCliente extends JpaRepository<Cliente, Long> {
      * Buscar cliente con usuario por email o nombre de usuario
      * Útil para el login donde el usuario puede ingresar cualquiera de los dos
      */
-    @Query("SELECT c FROM Cliente c WHERE c.empresa = :empresa AND c.activo = true AND c.tieneUsuario = true " +
-           "AND (c.email = :identificador OR c.nombreUsuario = :identificador)")
+    @Query("SELECT c FROM Cliente c JOIN FETCH c.empresa " +
+        "WHERE c.empresa = :empresa AND c.activo = true AND c.tieneUsuario = true " +
+        "AND (c.email = :identificador OR c.nombreUsuario = :identificador)")
     Optional<Cliente> findByEmpresaAndEmailOrNombreUsuarioAndTieneUsuarioTrueAndActivoTrue(
-            @Param("empresa") Empresa empresa, 
+            @Param("empresa") Empresa empresa,
             @Param("identificador") String identificador);
 
         @Query("SELECT c FROM Cliente c WHERE c.empresa = :empresa AND c.tieneUsuario = true " +

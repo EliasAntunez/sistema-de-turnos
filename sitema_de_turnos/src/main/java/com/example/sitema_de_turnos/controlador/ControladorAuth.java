@@ -118,7 +118,7 @@ public class ControladorAuth {
         perfilUsuario.setActivo(usuario.getActivo());
 
         // Agregar información de la empresa si tiene perfil profesional
-        PerfilProfesional perfilProfesional = repositorioPerfilProfesional.findByUsuarioEmail(username).orElse(null);
+        PerfilProfesional perfilProfesional = repositorioPerfilProfesional.findByUsuarioEmailConEmpresa(username).orElse(null);
         if (perfilProfesional != null && perfilProfesional.getEmpresa() != null) {
             perfilUsuario.setEmpresaId(perfilProfesional.getEmpresa().getId());
             perfilUsuario.setEmpresaNombre(perfilProfesional.getEmpresa().getNombre());
