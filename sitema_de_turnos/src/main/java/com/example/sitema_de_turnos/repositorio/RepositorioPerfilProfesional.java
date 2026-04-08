@@ -31,6 +31,9 @@ public interface RepositorioPerfilProfesional extends JpaRepository<PerfilProfes
 
     Optional<PerfilProfesional> findByUsuario(Usuario usuario);
 
+    @Query("SELECT pp FROM PerfilProfesional pp JOIN FETCH pp.empresa WHERE pp.usuario.email = :email")
+    Optional<PerfilProfesional> findByUsuarioEmailConEmpresa(@Param("email") String email);
+
     Optional<PerfilProfesional> findByUsuarioEmail(String email);
 
     /** Busca el perfil de un usuario en una empresa concreta (para el caso dueño+profesional). */
