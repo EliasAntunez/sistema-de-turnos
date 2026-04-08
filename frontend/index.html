@@ -7,8 +7,8 @@
     <title>Sistema de Turnos - Admin</title>
   </head>
   <script>
-    // Redirección estricta al dominio oficial
-    if (window.location.hostname === 'sistema-de-turnos.pages.dev') {
+    // Redirección estricta desde cualquier URL vieja de Cloudflare
+    if (window.location.hostname.endsWith('.pages.dev')) {
       window.location.replace('https://app.ansaturnos.tech' + window.location.pathname + window.location.search);
     }
   </script>
