@@ -11,6 +11,7 @@ import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.BotConfiguracion;
+import com.example.sitema_de_turnos.modelo.Cliente;
 import com.example.sitema_de_turnos.modelo.DiaSemana;
 import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.modelo.EstadoTurno;
@@ -18,6 +19,7 @@ import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.modelo.ProfesionalServicio;
 import com.example.sitema_de_turnos.modelo.Servicio;
 import com.example.sitema_de_turnos.repositorio.RepositorioBotConfiguracion;
+import com.example.sitema_de_turnos.repositorio.RepositorioCliente;
 import com.example.sitema_de_turnos.repositorio.RepositorioDisponibilidadProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioEmpresa;
 import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.util.Objects;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -37,6 +40,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import com.example.sitema_de_turnos.util.NormalizadorDatos;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +53,7 @@ public class ServicioIntegracionBot {
     private static final DateTimeFormatter FORMATO_HORA = DateTimeFormatter.ofPattern("HH:mm");
 
     private final RepositorioBotConfiguracion repositorioBotConfiguracion;
+    private final RepositorioCliente repositorioCliente;
     private final RepositorioEmpresa repositorioEmpresa;
     private final RepositorioServicio repositorioServicio;
     private final RepositorioPerfilProfesional repositorioPerfilProfesional;
@@ -166,6 +171,8 @@ public class ServicioIntegracionBot {
             : (empresa.getBufferPorDefecto() != null ? empresa.getBufferPorDefecto() : 10);
         LocalTime horaFin = horaInicio.plusMinutes(servicio.getDuracionMinutos()).plusMinutes(buffer);
 
+        Cliente cliente = resolverOCrearClienteParaBot(empresa, request.getClienteNombre(), request.getTelefono());
+
         PerfilProfesional profesional = seleccionarProfesionalDisponible(empresa, servicio, fecha, horaInicio, horaFin);
 
         CrearTurnoRequest crearTurnoRequest = new CrearTurnoRequest();
@@ -173,12 +180,12 @@ public class ServicioIntegracionBot {
         crearTurnoRequest.setProfesionalId(profesional.getId());
         crearTurnoRequest.setFecha(fecha.toString());
         crearTurnoRequest.setHoraInicio(horaInicio.format(FORMATO_HORA));
-        crearTurnoRequest.setNombreCliente(request.getClienteNombre().trim());
-        crearTurnoRequest.setEmailCliente(generarEmailTecnicoCliente(tenantId, request.getClienteNombre()));
-        crearTurnoRequest.setTelefonoCliente(null);
+        crearTurnoRequest.setNombreCliente(cliente.getNombre());
+        crearTurnoRequest.setEmailCliente(cliente.getEmail());
+        crearTurnoRequest.setTelefonoCliente(cliente.getTelefono());
         crearTurnoRequest.setObservaciones("Reserva creada por integración conversacional");
 
-        TurnoResponsePublico turnoCreado = servicioTurno.crearTurnoPublico(empresa.getSlug(), null, crearTurnoRequest);
+        TurnoResponsePublico turnoCreado = servicioTurno.crearTurnoPublico(empresa.getSlug(), cliente, crearTurnoRequest);
 
         return new BotCrearTurnoResponseDto(
             turnoCreado.getId(),
@@ -224,19 +231,56 @@ public class ServicioIntegracionBot {
         return profesionalServicio != null && Boolean.TRUE.equals(profesionalServicio.getActivo());
     }
 
-    private String generarEmailTecnicoCliente(Long tenantId, String clienteNombre) {
-        String normalizado = Normalizer.normalize(clienteNombre, Normalizer.Form.NFD)
+    private Cliente resolverOCrearClienteParaBot(Empresa empresa, String clienteNombre, String telefonoRaw) {
+        String nombreNormalizado = normalizarNombreSeguro(clienteNombre);
+        String telefonoNormalizado = NormalizadorDatos.normalizarTelefono(telefonoRaw);
+
+        if (telefonoNormalizado == null || telefonoNormalizado.isBlank()) {
+            throw new ValidacionException("telefono es obligatorio para crear turnos por bot");
+        }
+
+        Cliente cliente = repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, telefonoNormalizado)
+            .orElse(null);
+
+        if (cliente != null) {
+            if (!Objects.equals(cliente.getNombre(), nombreNormalizado)) {
+                cliente.setNombre(nombreNormalizado);
+                cliente = repositorioCliente.save(cliente);
+            }
+            return cliente;
+        }
+
+        Cliente nuevoCliente = new Cliente();
+        nuevoCliente.setEmpresa(empresa);
+        nuevoCliente.setNombre(nombreNormalizado);
+        nuevoCliente.setTelefono(telefonoNormalizado);
+        nuevoCliente.setEmail(generarEmailSinteticoCliente(telefonoNormalizado, empresa.getSlug()));
+        nuevoCliente.setActivo(true);
+        nuevoCliente.setTieneUsuario(false);
+        nuevoCliente.setTelefonoValidado(true);
+        return repositorioCliente.save(nuevoCliente);
+    }
+
+    private String normalizarNombreSeguro(String nombre) {
+        try {
+            return NormalizadorDatos.normalizarNombre(nombre);
+        } catch (IllegalArgumentException ex) {
+            return nombre == null ? null : nombre.trim().replaceAll(" +", " ");
+        }
+    }
+
+    private String generarEmailSinteticoCliente(String telefonoNormalizado, String slugEmpresa) {
+        String slugNormalizado = Normalizer.normalize(slugEmpresa, Normalizer.Form.NFD)
             .replaceAll("\\p{M}", "")
             .toLowerCase(Locale.ROOT)
             .replaceAll("[^a-z0-9]+", ".")
             .replaceAll("^\\.+|\\.+$", "");
 
-        if (normalizado.isBlank()) {
-            normalizado = "cliente";
+        if (slugNormalizado.isBlank()) {
+            slugNormalizado = "empresa";
         }
 
-        String sufijo = Integer.toUnsignedString((clienteNombre + ":" + tenantId).hashCode(), 36);
-        return "bot+" + normalizado + "." + sufijo + "@chatbot.local";
+        return "wa_" + telefonoNormalizado + "@" + slugNormalizado + ".bot";
     }
 
     private DiaSemana convertirDayOfWeekADiaSemana(java.time.DayOfWeek dayOfWeek) {
