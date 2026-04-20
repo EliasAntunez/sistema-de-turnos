@@ -21,6 +21,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -48,6 +49,7 @@ public class ConfiguracionSeguridad {
     private final LoginSuccessHandler loginSuccessHandler;
     private final LoginFailureHandler loginFailureHandler;
     private final CsrfLoggingFilter csrfLoggingFilter;
+    private final ApiKeyAuthFilter apiKeyAuthFilter;
 
     @Value("${app.security.cookie.secure:false}")
     private boolean csrfCookieSecure;
@@ -104,6 +106,8 @@ public class ConfiguracionSeguridad {
             
             // Agregar filtro de logging ANTES del CsrfFilter
             .addFilterBefore(csrfLoggingFilter, CsrfFilter.class)
+            // Autenticación M2M para n8n en rutas /api/v1/bots/** y /api/v1/tenants/**
+            .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
             
             // CSRF habilitado con cookie (requerido para sesiones stateful)
             // CookieCsrfTokenRepository: Token CSRF almacenado en cookie
@@ -121,7 +125,9 @@ public class ConfiguracionSeguridad {
                         "/api/auth/login",        // Login usuarios no requiere CSRF
                         "/api/auth/logout",       // Logout manejado por Spring Security
                         "/api/auth/perfil",       // Perfil para verificar sesión
-                        "/api/notificaciones/token" // Registro token FCM por sesión (cookie)
+                        "/api/notificaciones/token", // Registro token FCM por sesión (cookie)
+                        "/api/v1/bots/**",        // Endpoints M2M con API key
+                        "/api/v1/tenants/**"      // Endpoints M2M con API key
                     );
             })
             
@@ -199,6 +205,9 @@ public class ConfiguracionSeguridad {
 
                 // Endpoints de notificaciones push (sesión requerida)
                 .requestMatchers("/api/notificaciones/**").authenticated()
+
+                // Endpoints de integración M2M vía API Key
+                .requestMatchers("/api/v1/bots/**", "/api/v1/tenants/**").hasAuthority("INTEGRACION_BOT")
                 
                 // Cualquier otra petición requiere autenticación
                 .anyRequest().authenticated()
