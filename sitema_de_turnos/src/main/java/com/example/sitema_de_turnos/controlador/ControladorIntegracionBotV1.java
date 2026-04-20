@@ -4,12 +4,14 @@ import com.example.sitema_de_turnos.dto.RespuestaApi;
 import com.example.sitema_de_turnos.dto.bot.BotConfigResponseDto;
 import com.example.sitema_de_turnos.dto.bot.BotCrearTurnoRequestDto;
 import com.example.sitema_de_turnos.dto.bot.BotCrearTurnoResponseDto;
+import com.example.sitema_de_turnos.dto.bot.BotDisponibilidadResponseDto;
 import com.example.sitema_de_turnos.dto.bot.BotServicioResponseDto;
 import com.example.sitema_de_turnos.servicio.ServicioIntegracionBot;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -41,6 +44,16 @@ public class ControladorIntegracionBotV1 {
     ) {
         List<BotServicioResponseDto> servicios = servicioIntegracionBot.obtenerServiciosPorTenant(tenantId);
         return ResponseEntity.ok(RespuestaApi.exitosa("Servicios obtenidos exitosamente", servicios));
+    }
+
+    @GetMapping("/tenants/{tenantId}/disponibilidad")
+    public ResponseEntity<RespuestaApi<BotDisponibilidadResponseDto>> obtenerDisponibilidad(
+        @PathVariable Long tenantId,
+        @RequestParam Long servicioId,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha
+    ) {
+        BotDisponibilidadResponseDto disponibilidad = servicioIntegracionBot.obtenerDisponibilidad(tenantId, servicioId, fecha);
+        return ResponseEntity.ok(RespuestaApi.exitosa("Disponibilidad obtenida", disponibilidad));
     }
 
     @PostMapping("/tenants/{tenantId}/turnos")

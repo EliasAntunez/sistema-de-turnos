@@ -3,18 +3,22 @@ package com.example.sitema_de_turnos.servicio;
 import com.example.sitema_de_turnos.dto.bot.BotConfigResponseDto;
 import com.example.sitema_de_turnos.dto.bot.BotCrearTurnoRequestDto;
 import com.example.sitema_de_turnos.dto.bot.BotCrearTurnoResponseDto;
+import com.example.sitema_de_turnos.dto.bot.BotDisponibilidadResponseDto;
 import com.example.sitema_de_turnos.dto.bot.BotServicioResponseDto;
 import com.example.sitema_de_turnos.dto.publico.CrearTurnoRequest;
+import com.example.sitema_de_turnos.dto.publico.SlotDisponibleResponse;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.BotConfiguracion;
+import com.example.sitema_de_turnos.modelo.DiaSemana;
 import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.modelo.ProfesionalServicio;
 import com.example.sitema_de_turnos.modelo.Servicio;
 import com.example.sitema_de_turnos.repositorio.RepositorioBotConfiguracion;
+import com.example.sitema_de_turnos.repositorio.RepositorioDisponibilidadProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioEmpresa;
 import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioProfesionalServicio;
@@ -29,8 +33,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,8 +53,10 @@ public class ServicioIntegracionBot {
     private final RepositorioServicio repositorioServicio;
     private final RepositorioPerfilProfesional repositorioPerfilProfesional;
     private final RepositorioProfesionalServicio repositorioProfesionalServicio;
+    private final RepositorioDisponibilidadProfesional repositorioDisponibilidadProfesional;
     private final RepositorioTurno repositorioTurno;
     private final ServicioTurno servicioTurno;
+    private final ServicioPublico servicioPublico;
 
     @Transactional(readOnly = true)
     public BotConfigResponseDto obtenerConfig(String instanciaWhatsapp) {
@@ -67,6 +75,10 @@ public class ServicioIntegracionBot {
         Empresa empresa = repositorioEmpresa.findById(tenantId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Tenant no encontrado"));
 
+        if (!Boolean.TRUE.equals(empresa.getActiva())) {
+            throw new ValidacionException("El tenant está inactivo");
+        }
+
         List<Servicio> servicios = repositorioServicio.findByEmpresaAndActivoTrue(empresa);
 
         return servicios.stream()
@@ -77,6 +89,54 @@ public class ServicioIntegracionBot {
                 servicio.getDuracionMinutos()
             ))
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public BotDisponibilidadResponseDto obtenerDisponibilidad(Long tenantId, Long servicioId, LocalDate fecha) {
+        Empresa empresa = repositorioEmpresa.findById(tenantId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Tenant no encontrado"));
+
+        if (!Boolean.TRUE.equals(empresa.getActiva())) {
+            throw new ValidacionException("El tenant está inactivo");
+        }
+
+        Servicio servicio = repositorioServicio.findById(servicioId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Servicio no encontrado"));
+
+        if (!servicio.getEmpresa().getId().equals(tenantId)) {
+            throw new ValidacionException("El servicioId no pertenece al tenantId indicado");
+        }
+
+        if (!Boolean.TRUE.equals(servicio.getActivo())) {
+            throw new ValidacionException("El servicio está inactivo");
+        }
+
+        DiaSemana diaSemana = convertirDayOfWeekADiaSemana(fecha.getDayOfWeek());
+        List<PerfilProfesional> profesionalesConServicio = repositorioProfesionalServicio
+            .findProfesionalesActivosByServicioAndTenantId(servicio, tenantId)
+            .stream()
+            .filter(profesional -> !repositorioDisponibilidadProfesional
+                .findByProfesionalAndDiaSemanaAndActivoTrue(profesional, diaSemana)
+                .isEmpty())
+            .toList();
+
+        List<String> horariosDisponibles = profesionalesConServicio.stream()
+            // Reutiliza exactamente el algoritmo existente de cálculo de slots
+            .flatMap(profesional -> servicioPublico
+                .obtenerSlotsDisponibles(empresa.getSlug(), servicioId, profesional.getId(), fecha)
+                .stream())
+            .map(SlotDisponibleResponse::getHoraInicio)
+            .map(LocalDateTime::toLocalTime)
+            .sorted(Comparator.naturalOrder())
+            .distinct()
+            .map(hora -> hora.format(FORMATO_HORA))
+            .collect(Collectors.toList());
+
+        return new BotDisponibilidadResponseDto(
+            fecha.toString(),
+            servicioId,
+            horariosDisponibles
+        );
     }
 
     public BotCrearTurnoResponseDto crearTurno(Long tenantId, BotCrearTurnoRequestDto request) {
@@ -177,5 +237,17 @@ public class ServicioIntegracionBot {
 
         String sufijo = Integer.toUnsignedString((clienteNombre + ":" + tenantId).hashCode(), 36);
         return "bot+" + normalizado + "." + sufijo + "@chatbot.local";
+    }
+
+    private DiaSemana convertirDayOfWeekADiaSemana(java.time.DayOfWeek dayOfWeek) {
+        return switch (dayOfWeek) {
+            case MONDAY -> DiaSemana.LUNES;
+            case TUESDAY -> DiaSemana.MARTES;
+            case WEDNESDAY -> DiaSemana.MIERCOLES;
+            case THURSDAY -> DiaSemana.JUEVES;
+            case FRIDAY -> DiaSemana.VIERNES;
+            case SATURDAY -> DiaSemana.SABADO;
+            case SUNDAY -> DiaSemana.DOMINGO;
+        };
     }
 }
