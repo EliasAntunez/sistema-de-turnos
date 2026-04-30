@@ -13,6 +13,7 @@ import com.example.sitema_de_turnos.excepcion.ValidacionException;
 import com.example.sitema_de_turnos.modelo.BotConfiguracion;
 import com.example.sitema_de_turnos.modelo.Cliente;
 import com.example.sitema_de_turnos.modelo.DiaSemana;
+import com.example.sitema_de_turnos.modelo.DisponibilidadProfesional;
 import com.example.sitema_de_turnos.modelo.Empresa;
 import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
@@ -212,8 +213,11 @@ public class ServicioIntegracionBot {
             throw new RecursoNoEncontradoException("No hay profesionales activos para el tenant indicado");
         }
 
+        DiaSemana diaSemana = convertirDayOfWeekADiaSemana(fecha.getDayOfWeek());
+
         return profesionalesActivos.stream()
             .filter(profesional -> tieneServicioHabilitado(profesional, servicio))
+            .filter(profesional -> tieneDisponibilidadEnHorario(profesional, diaSemana, horaInicio, horaFin))
             .filter(profesional -> !repositorioTurno.existeSolapamiento(
                 profesional,
                 fecha,
@@ -222,7 +226,22 @@ public class ServicioIntegracionBot {
                 ESTADOS_OCUPANTES_AGENDA
             ))
             .findFirst()
-            .orElseThrow(() -> new ValidacionException("No hay profesionales disponibles para el servicio en la fecha y hora indicada"));
+            .orElseThrow(() -> new ValidacionException("El horario solicitado está fuera del horario de atención o no hay profesionales disponibles"));
+    }
+
+    private boolean tieneDisponibilidadEnHorario(
+        PerfilProfesional profesional,
+        DiaSemana diaSemana,
+        LocalTime horaInicio,
+        LocalTime horaFin
+    ) {
+        List<DisponibilidadProfesional> disponibilidades = repositorioDisponibilidadProfesional
+            .findByProfesionalAndDiaSemanaAndActivoTrue(profesional, diaSemana);
+
+        return disponibilidades.stream().anyMatch(disponibilidad ->
+            !horaInicio.isBefore(disponibilidad.getHoraInicio())
+                && !horaFin.isAfter(disponibilidad.getHoraFin())
+        );
     }
 
     private boolean tieneServicioHabilitado(PerfilProfesional profesional, Servicio servicio) {
