@@ -1,6 +1,5 @@
 package com.example.sitema_de_turnos.servicio;
 
-import com.example.sitema_de_turnos.modelo.Cliente;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,7 +16,12 @@ import java.util.Collections;
 @Getter
 public class ClienteUserDetails implements UserDetails {
 
-    private final Cliente cliente;
+    private final Long clienteId;
+    private final String empresaSlug;
+    private final String email;
+    private final String nombreUsuario;
+    private final String password;
+    private final boolean activo;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -26,14 +30,20 @@ public class ClienteUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return cliente.getContrasena();
+        return password;
     }
 
     @Override
     public String getUsername() {
         // Usar email como identificador principal, o nombreUsuario si no hay email
-        return "cliente:" + cliente.getEmpresa().getSlug() + ":" + 
-               (cliente.getEmail() != null ? cliente.getEmail() : cliente.getNombreUsuario());
+        return "cliente:" + empresaSlug + ":" + resolveIdentificador();
+    }
+
+    private String resolveIdentificador() {
+        if (email != null && !email.isBlank()) {
+            return email;
+        }
+        return nombreUsuario;
     }
 
     @Override
@@ -43,7 +53,7 @@ public class ClienteUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return cliente.getActivo();
+        return activo;
     }
 
     @Override
@@ -53,6 +63,6 @@ public class ClienteUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return cliente.getActivo();
+        return activo;
     }
 }
