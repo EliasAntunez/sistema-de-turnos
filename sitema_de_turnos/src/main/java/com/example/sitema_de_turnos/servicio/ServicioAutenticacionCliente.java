@@ -206,6 +206,17 @@ public class ServicioAutenticacionCliente {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
     }
 
+    public Cliente obtenerClientePorId(Long clienteId) {
+        Cliente cliente = repositorioCliente.findById(clienteId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
+
+        if (!Boolean.TRUE.equals(cliente.getActivo())) {
+            throw new ValidacionException("Cliente desactivado");
+        }
+
+        return cliente;
+    }
+
     @Transactional
     public void desactivarClientePorProfesional(String emailProfesional, Long clienteId) {
         cambiarEstadoClientePorProfesional(emailProfesional, clienteId, false);

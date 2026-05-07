@@ -115,7 +115,10 @@ public class ControladorPublico {
             @AuthenticationPrincipal ClienteUserDetails clienteUserDetails,
             @Valid @RequestBody CrearTurnoRequest request
     ) {
-        Cliente clienteAutenticado = clienteUserDetails != null ? clienteUserDetails.getCliente() : null;
+        Cliente clienteAutenticado = null;
+        if (clienteUserDetails != null) {
+            clienteAutenticado = servicioAutenticacionCliente.obtenerClientePorId(clienteUserDetails.getClienteId());
+        }
         TurnoResponsePublico turno = servicioTurno.crearTurnoPublico(empresaSlug, clienteAutenticado, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.exito(turno, "Turno creado exitosamente"));

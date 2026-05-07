@@ -61,8 +61,13 @@ public class ServicioDetallesCliente {
             throw new UsernameNotFoundException("Cliente sin cuenta de usuario");
         }
 
-        // Crear UserDetails personalizado con el cliente
+        String email = cliente.getEmail();
+        String nombreUsuario = cliente.getNombreUsuario();
+        String password = cliente.getContrasena();
+        boolean activo = Boolean.TRUE.equals(cliente.getActivo());
+
+        // Crear UserDetails personalizado con datos simples
         log.info("✅ [DETALLES-CLIENTE] UserDetails creado exitosamente para cliente ID: {}", cliente.getId());
-        return new ClienteUserDetails(cliente);
+        return new ClienteUserDetails(cliente.getId(), empresaSlug, email, nombreUsuario, password, activo);
     }
 }
