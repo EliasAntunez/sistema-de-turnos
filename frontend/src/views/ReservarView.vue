@@ -121,13 +121,27 @@
         </h2>
         <div></div>
       </div>
+
+      <!-- --- FILTRO --- -->
+      <div v-if="servicios.length > 0" class="mb-6 max-w-md">
+        <div class="relative rounded-xl shadow-sm">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 text-sm">🔍</span>
+          <input
+            v-model="buscarQuery"
+            type="text"
+            placeholder="Buscar servicio por nombre o descripción..."
+            class="w-full rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 pl-10 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+          />
+        </div>
+      </div>
+
       <div v-if="cargandoServicios" class="text-center py-10 text-slate-500">Cargando servicios...</div>
-      <div v-else-if="servicios.length === 0" class="text-center py-10 text-slate-500">
-        No hay servicios disponibles
+      <div v-else-if="serviciosFiltrados.length === 0" class="text-center py-10 text-slate-500">
+        No se encontraron servicios que coincidan con tu búsqueda
       </div>
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="servicio in servicios"
+          v-for="servicio in serviciosFiltrados"
           :key="servicio.id"
           :class="[
             'rounded-2xl border p-4 sm:p-5 cursor-pointer touch-manipulation transition-all duration-300',
@@ -137,40 +151,68 @@
           ]"
           @click="seleccionarServicio(servicio)"
         >
-          <h3 class="m-0 mb-2 text-lg sm:text-xl font-semibold text-slate-900">{{ servicio.nombre }}</h3>
-          <p v-if="servicio.descripcion" class="mb-4 text-sm leading-5" :class="servicioSeleccionado?.id === servicio.id ? 'text-indigo-800/90' : 'text-slate-600'">{{ servicio.descripcion }}</p>
+          <!-- Nueva Fila 1: Nombre a la izquierda, Precio destacado a la derecha -->
+          <div class="flex justify-between items-start gap-3 mb-2">
+            <h3 class="m-0 text-base sm:text-lg font-semibold text-slate-900 leading-tight">
+              {{ servicio.nombre }}
+            </h3>
+            <span class="text-base sm:text-lg font-bold text-slate-900 whitespace-nowrap">
+              {{ formatearMonedaARS(servicio.precio) }}
+            </span>
+          </div>
 
-          <div class="flex flex-wrap gap-2">
-            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border"
+          <!-- Nueva Fila 2: Descripción con truncado inteligente dinámico -->
+          <p 
+            v-if="servicio.descripcion" 
+            :class="[
+              'mb-3 text-sm leading-relaxed transition-all duration-200',
+              servicioSeleccionado?.id === servicio.id ? 'text-indigo-900/90' : 'text-slate-600',
+              servicioExpandidoId === servicio.id ? '' : 'line-clamp-2'
+            ]"
+          >
+            {{ servicio.descripcion }}
+          </p>
+          
+          <!-- Botón sutil de Ver más (con .stop para que expandir no seleccione el turno) -->
+          <button
+            v-if="servicio.descripcion && servicio.descripcion.length > 80"
+            @click.stop="toggleDescripcion(servicio.id)"
+            :class="[
+              'text-xs font-semibold mb-3 focus:outline-none block -mt-1 hover:underline',
+              servicioSeleccionado?.id === servicio.id ? 'text-indigo-600' : 'text-slate-500'
+            ]"
+          >
+            {{ servicioExpandidoId === servicio.id ? 'Ver menos 👆' : 'Ver más 👇' }}
+          </button>
+
+          <!-- Nueva Fila 3: Micro-Badges horizontales compactos -->
+          <div class="flex flex-wrap gap-1.5 mt-auto">
+            <!-- Badge Duración -->
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
               :class="servicioSeleccionado?.id === servicio.id ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-slate-100 text-slate-700 border-slate-200'">
-              <svg class="h-4 w-4" :class="servicioSeleccionado?.id === servicio.id ? 'text-indigo-500' : 'text-slate-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <svg class="h-3.5 w-3.5" :class="servicioSeleccionado?.id === servicio.id ? 'text-indigo-500' : 'text-slate-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z" />
               </svg>
               {{ servicio.duracionMinutos }} min
             </span>
 
-            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border"
-              :class="servicioSeleccionado?.id === servicio.id ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'">
-              {{ formatearMonedaARS(servicio.precio) }}
-            </span>
-
+            <!-- Badge Seña Requerida -->
             <span
               v-if="servicio.requiereSena"
-              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border"
-              :class="servicioSeleccionado?.id === servicio.id ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-amber-50 text-amber-800 border-amber-200'"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+              :class="servicioSeleccionado?.id === servicio.id ? 'bg-amber-100 text-amber-800 border-amber-200' : 'bg-amber-50/80 text-amber-800 border-amber-200'"
             >
-              <svg class="h-4 w-4" :class="servicioSeleccionado?.id === servicio.id ? 'text-amber-700' : 'text-amber-700'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <svg class="h-3.5 w-3.5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008Zm8.25-.75a8.25 8.25 0 1 1-16.5 0 8.25 8.25 0 0 1 16.5 0Z" />
               </svg>
-              {{ servicio.montoSena != null
-                ? `Seña ${formatearMonedaARS(servicio.montoSena)}`
-                : 'Requiere seña' }}
+              {{ servicio.montoSena != null ? `Seña ${formatearMonedaARS(servicio.montoSena)}` : 'Requiere seña' }}
             </span>
 
+            <!-- Badge Pago en Local -->
             <span
               v-else
-              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border"
-              :class="servicioSeleccionado?.id === servicio.id ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-sky-50 text-sky-700 border-sky-200'"
+              class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+              :class="servicioSeleccionado?.id === servicio.id ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-sky-50/80 text-sky-700 border-sky-200'"
             >
               Pago en local
             </span>
@@ -643,6 +685,24 @@ const servicios = ref<ServicioPublico[]>([])
 const servicioSeleccionado = ref<ServicioPublico | null>(null)
 const cargandoServicios = ref(false)
 
+// --- FILTRO ---
+const buscarQuery = ref('')
+const servicioExpandidoId = ref<number | null>(null)
+
+const toggleDescripcion = (id: number) => {
+  servicioExpandidoId.value = servicioExpandidoId.value === id ? null : id
+}
+
+const serviciosFiltrados = computed(() => {
+  if (!buscarQuery.value.trim()) return servicios.value
+  const query = buscarQuery.value.toLowerCase().trim()
+  return servicios.value.filter((s) => {
+    const matchNombre = s.nombre?.toLowerCase().includes(query)
+    const matchDesc = s.descripcion?.toLowerCase().includes(query) ?? false
+    return matchNombre || matchDesc
+  })
+})
+
 // Paso 2: Profesionales
 const profesionales = ref<ProfesionalPublico[]>([])
 const profesionalSeleccionado = ref<ProfesionalPublico | null>(null)
@@ -1062,6 +1122,10 @@ function reservarOtroTurno() {
   }
   turnoCreado.value = null
   pasoActual.value = 1 // Volver al primer paso
+
+  // Resetear filtros
+  buscarQuery.value = ''
+  servicioExpandidoId.value = null
 
   // Scroll suave al principio de la página
   window.scrollTo({ top: 0, behavior: 'smooth' })
