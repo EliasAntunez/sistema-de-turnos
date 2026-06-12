@@ -1,9 +1,9 @@
 package com.example.sitema_de_turnos.configuracion;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -11,20 +11,21 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Configuración de seguridad con sesiones stateful y cookies seguras.
@@ -127,7 +128,8 @@ public class ConfiguracionSeguridad {
                         "/api/auth/perfil",       // Perfil para verificar sesión
                         "/api/notificaciones/token", // Registro token FCM por sesión (cookie)
                         "/api/v1/bots/**",        // Endpoints M2M con API key
-                        "/api/v1/tenants/**"      // Endpoints M2M con API key
+                        "/api/v1/tenants/**",      // Endpoints M2M con API key
+                        "/api/internal/**"        // Enspoint para métricas internas (token en header, no cookie)
                     );
             })
             
@@ -188,6 +190,7 @@ public class ConfiguracionSeguridad {
                 // Endpoints públicos (sin autenticación)
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/publico/**").permitAll()
+                .requestMatchers("/api/internal/**").permitAll() // Permitir el paso del tráfico HTTP libre a tu endpoint
                 // Hacer público el endpoint de políticas activas
                 .requestMatchers("/api/politicas-cancelacion/empresa/*/activas").permitAll()
                 
