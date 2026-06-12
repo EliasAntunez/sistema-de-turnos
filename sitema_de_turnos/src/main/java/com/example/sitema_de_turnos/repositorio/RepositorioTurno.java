@@ -1,23 +1,29 @@
 package com.example.sitema_de_turnos.repositorio;
 
-import com.example.sitema_de_turnos.modelo.*;
-import jakarta.persistence.LockModeType;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.List;
+import com.example.sitema_de_turnos.modelo.Cliente;
+import com.example.sitema_de_turnos.modelo.Empresa;
+import com.example.sitema_de_turnos.modelo.EstadoTurno;
+import com.example.sitema_de_turnos.modelo.PerfilProfesional;
+import com.example.sitema_de_turnos.modelo.Turno;
+
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecificationExecutor<Turno> {
@@ -463,5 +469,20 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
         @Param("estado") EstadoTurno estado,
         @Param("fechaActual") LocalDate fechaActual,
         @Param("horaActual") LocalTime horaActual
+    );
+
+    /**
+     * Cuenta los turnos totales acumulados por cada empresa desde una fecha específica.
+     * Ideal para auditorías rápidas de consumo y volumen de facturación.
+     */
+    @Query("SELECT t.empresa.nombre AS nombreEmpresa, COUNT(t) AS totalTurnos " +
+           "FROM Turno t " +
+           "WHERE t.fecha >= :desde " +
+           "AND t.estado IN :estadosValidos " +
+           "GROUP BY t.empresa.id, t.empresa.nombre " +
+           "ORDER BY COUNT(t) DESC")
+    List<java.util.Map<String, Object>> countTurnosPorEmpresaDesde(
+        @Param("desde") LocalDate desde, 
+        @Param("estadosValidos") List<com.example.sitema_de_turnos.modelo.EstadoTurno> estadosValidos
     );
 }
