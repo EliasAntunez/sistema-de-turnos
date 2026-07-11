@@ -259,6 +259,21 @@ public interface RepositorioTurno extends JpaRepository<Turno, Long>, JpaSpecifi
            "ORDER BY t.fecha DESC, t.horaInicio DESC")
     List<Turno> findByClienteWithDetails(@Param("cliente") Cliente cliente);
 
+    @Query("SELECT t FROM Turno t " +
+           "LEFT JOIN FETCH t.servicio " +
+           "LEFT JOIN FETCH t.profesional p " +
+           "LEFT JOIN FETCH p.usuario " +
+           "WHERE t.cliente = :cliente " +
+           "AND t.estado = :estado " +
+           "AND (t.fecha > :fechaActual OR (t.fecha = :fechaActual AND t.horaInicio >= :horaActual)) " +
+           "ORDER BY t.fecha ASC, t.horaInicio ASC")
+    List<Turno> findTurnosVigentesPorClienteAndEstado(
+        @Param("cliente") Cliente cliente,
+        @Param("estado") EstadoTurno estado,
+        @Param("fechaActual") LocalDate fechaActual,
+        @Param("horaActual") LocalTime horaActual
+    );
+
     /**
      * Buscar turnos para envío de recordatorios.
      * 

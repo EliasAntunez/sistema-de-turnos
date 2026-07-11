@@ -53,6 +53,12 @@ public class IndicesConcurrenciaConfig implements ApplicationRunner {
     private void crearIndiceNoSolapamiento() {
         log.info("Creando/Verificando índice único de concurrencia en BD...");
         try {
+            String dbProduct = jdbcTemplate.execute((java.sql.Connection conn) -> conn.getMetaData().getDatabaseProductName());
+            if (dbProduct != null && dbProduct.toUpperCase().contains("H2")) {
+                log.info("Entorno de base de datos H2 detectado. Omitiendo la creación del índice parcial nativo de PostgreSQL.");
+                return;
+            }
+
             String indexDef = jdbcTemplate.query(
                 "SELECT indexdef FROM pg_indexes WHERE schemaname = current_schema() AND indexname = ?",
                 rs -> rs.next() ? rs.getString("indexdef") : null,

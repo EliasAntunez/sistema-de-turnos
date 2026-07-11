@@ -6,6 +6,10 @@ import com.example.sitema_de_turnos.dto.bot.BotCrearTurnoRequestDto;
 import com.example.sitema_de_turnos.dto.bot.BotCrearTurnoResponseDto;
 import com.example.sitema_de_turnos.dto.bot.BotDisponibilidadResponseDto;
 import com.example.sitema_de_turnos.dto.bot.BotServicioResponseDto;
+import com.example.sitema_de_turnos.dto.bot.BotTurnoConfirmadoResponseDto;
+import com.example.sitema_de_turnos.dto.bot.BotCancelarTurnoRequestDto;
+import com.example.sitema_de_turnos.dto.bot.BotReprogramarTurnoRequestDto;
+import com.example.sitema_de_turnos.dto.bot.BotReprogramarTurnoResponseDto;
 import com.example.sitema_de_turnos.servicio.ServicioIntegracionBot;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -65,5 +69,37 @@ public class ControladorIntegracionBotV1 {
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(RespuestaApi.exitosa("Turno creado exitosamente", turno));
+    }
+
+    @GetMapping("/tenants/{tenantId}/turnos/activos")
+    public ResponseEntity<RespuestaApi<List<BotTurnoConfirmadoResponseDto>>> obtenerTurnosActivos(
+        @PathVariable Long tenantId,
+        @RequestParam("telefono") String telefono
+    ) {
+        List<BotTurnoConfirmadoResponseDto> turnos = servicioIntegracionBot.buscarTurnosVigentesConfirmados(tenantId, telefono);
+        String mensaje = turnos.isEmpty()
+            ? "No se encontraron turnos confirmados para el teléfono provisto"
+            : "Turnos activos obtenidos exitosamente";
+        return ResponseEntity.ok(RespuestaApi.exitosa(mensaje, turnos));
+    }
+
+    @PostMapping("/tenants/{tenantId}/turnos/{turnoId}/cancelar")
+    public ResponseEntity<RespuestaApi<Void>> cancelarTurno(
+        @PathVariable Long tenantId,
+        @PathVariable Long turnoId,
+        @Valid @RequestBody BotCancelarTurnoRequestDto request
+    ) {
+        servicioIntegracionBot.cancelarTurnoPorBot(tenantId, turnoId, request);
+        return ResponseEntity.ok(RespuestaApi.exitosa("Turno cancelado exitosamente", null));
+    }
+
+    @PostMapping("/tenants/{tenantId}/turnos/{turnoId}/reprogramar")
+    public ResponseEntity<RespuestaApi<BotReprogramarTurnoResponseDto>> reprogramarTurno(
+        @PathVariable Long tenantId,
+        @PathVariable Long turnoId,
+        @Valid @RequestBody BotReprogramarTurnoRequestDto request
+    ) {
+        BotReprogramarTurnoResponseDto turno = servicioIntegracionBot.reprogramarTurnoPorBot(tenantId, turnoId, request);
+        return ResponseEntity.ok(RespuestaApi.exitosa("Turno reprogramado exitosamente", turno));
     }
 }
