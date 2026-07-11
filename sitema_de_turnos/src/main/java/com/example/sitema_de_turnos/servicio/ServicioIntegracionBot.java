@@ -10,6 +10,15 @@ import com.example.sitema_de_turnos.dto.publico.SlotDisponibleResponse;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
 import com.example.sitema_de_turnos.excepcion.RecursoNoEncontradoException;
 import com.example.sitema_de_turnos.excepcion.ValidacionException;
+import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
+import com.example.sitema_de_turnos.dto.bot.BotTurnoConfirmadoResponseDto;
+import com.example.sitema_de_turnos.dto.bot.BotCancelarTurnoRequestDto;
+import com.example.sitema_de_turnos.dto.bot.BotReprogramarTurnoRequestDto;
+import com.example.sitema_de_turnos.dto.bot.BotReprogramarTurnoResponseDto;
+import com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Optional;
 import com.example.sitema_de_turnos.modelo.BotConfiguracion;
 import com.example.sitema_de_turnos.modelo.Cliente;
 import com.example.sitema_de_turnos.modelo.DiaSemana;
@@ -19,6 +28,7 @@ import com.example.sitema_de_turnos.modelo.EstadoTurno;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.modelo.ProfesionalServicio;
 import com.example.sitema_de_turnos.modelo.Servicio;
+import com.example.sitema_de_turnos.modelo.Turno;
 import com.example.sitema_de_turnos.repositorio.RepositorioBotConfiguracion;
 import com.example.sitema_de_turnos.repositorio.RepositorioCliente;
 import com.example.sitema_de_turnos.repositorio.RepositorioDisponibilidadProfesional;
@@ -312,5 +322,126 @@ public class ServicioIntegracionBot {
             case SATURDAY -> DiaSemana.SABADO;
             case SUNDAY -> DiaSemana.DOMINGO;
         };
+    }
+
+    @Transactional(readOnly = true)
+    public List<BotTurnoConfirmadoResponseDto> buscarTurnosVigentesConfirmados(Long tenantId, String telefonoRaw) {
+        Empresa empresa = repositorioEmpresa.findById(tenantId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Tenant no encontrado"));
+
+        if (!Boolean.TRUE.equals(empresa.getActiva())) {
+            throw new ValidacionException("El tenant está inactivo");
+        }
+
+        String telefonoNormalizado = NormalizadorDatos.normalizarTelefono(telefonoRaw);
+        if (telefonoNormalizado == null || telefonoNormalizado.isBlank()) {
+            throw new ValidacionException("El teléfono es obligatorio");
+        }
+
+        Optional<Cliente> clienteOpt = repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, telefonoNormalizado);
+        if (clienteOpt.isEmpty()) {
+            return List.of();
+        }
+
+        Cliente cliente = clienteOpt.get();
+        ZoneId zoneId = ZoneId.of(empresa.getTimezone());
+        ZonedDateTime ahoraEmpresa = ZonedDateTime.now(zoneId);
+        LocalDate fechaHoy = ahoraEmpresa.toLocalDate();
+        LocalTime horaHoy = ahoraEmpresa.toLocalTime();
+
+        List<Turno> turnos = repositorioTurno.findTurnosVigentesPorClienteAndEstado(
+            cliente,
+            EstadoTurno.CONFIRMADO,
+            fechaHoy,
+            horaHoy
+        );
+
+        return turnos.stream()
+            .map(turno -> new BotTurnoConfirmadoResponseDto(
+                turno.getId(),
+                turno.getServicio().getId(),
+                turno.getServicio().getNombre(),
+                turno.getProfesional().getId(),
+                turno.getProfesional().getUsuario().getNombre() + " " + turno.getProfesional().getUsuario().getApellido(),
+                turno.getFecha().toString(),
+                turno.getHoraInicio().format(FORMATO_HORA),
+                turno.getHoraFin().format(FORMATO_HORA),
+                turno.getPrecio(),
+                turno.getObservaciones()
+            ))
+            .toList();
+    }
+
+    public void cancelarTurnoPorBot(Long tenantId, Long turnoId, BotCancelarTurnoRequestDto request) {
+        Empresa empresa = repositorioEmpresa.findById(tenantId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Tenant no encontrado"));
+
+        if (!Boolean.TRUE.equals(empresa.getActiva())) {
+            throw new ValidacionException("El tenant está inactivo");
+        }
+
+        Turno turno = repositorioTurno.findById(turnoId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
+
+        if (!turno.getEmpresa().getId().equals(tenantId)) {
+            throw new ValidacionException("El turno no pertenece al tenant indicado");
+        }
+
+        String telefonoNormalizado = NormalizadorDatos.normalizarTelefono(request.getTelefono());
+        Cliente cliente = repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, telefonoNormalizado)
+            .orElseThrow(() -> new ValidacionException("El cliente con el teléfono provisto no está registrado"));
+
+        if (!turno.getCliente().getId().equals(cliente.getId())) {
+            throw new AccesoDenegadoException("El turno no pertenece al cliente solicitante");
+        }
+
+        String motivo = request.getMotivo() != null && !request.getMotivo().isBlank()
+            ? request.getMotivo()
+            : "Cancelado vía Chatbot WhatsApp";
+
+        servicioTurno.cancelarTurnoPorCliente(turnoId, cliente, motivo);
+    }
+
+    public BotReprogramarTurnoResponseDto reprogramarTurnoPorBot(Long tenantId, Long turnoId, BotReprogramarTurnoRequestDto request) {
+        Empresa empresa = repositorioEmpresa.findById(tenantId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Tenant no encontrado"));
+
+        if (!Boolean.TRUE.equals(empresa.getActiva())) {
+            throw new ValidacionException("El tenant está inactivo");
+        }
+
+        Turno turno = repositorioTurno.findById(turnoId)
+            .orElseThrow(() -> new RecursoNoEncontradoException("Turno no encontrado"));
+
+        if (!turno.getEmpresa().getId().equals(tenantId)) {
+            throw new ValidacionException("El turno no pertenece al tenant indicado");
+        }
+
+        String telefonoNormalizado = NormalizadorDatos.normalizarTelefono(request.getTelefono());
+        Cliente cliente = repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, telefonoNormalizado)
+            .orElseThrow(() -> new ValidacionException("El cliente con el teléfono provisto no está registrado"));
+
+        if (!turno.getCliente().getId().equals(cliente.getId())) {
+            throw new AccesoDenegadoException("El turno no pertenece al cliente solicitante");
+        }
+
+        ReservaReprogramarRequest reprogramarRequest = new ReservaReprogramarRequest();
+        LocalDateTime nuevaFechaHora = request.getFechaHora();
+        reprogramarRequest.setFecha(nuevaFechaHora.toLocalDate().toString());
+        reprogramarRequest.setHoraInicio(nuevaFechaHora.toLocalTime().format(FORMATO_HORA));
+        reprogramarRequest.setProfesionalId(request.getProfesionalId());
+
+        TurnoResponsePublico response = servicioTurno.reprogramarReservaPorCliente(turnoId, cliente, reprogramarRequest);
+
+        return new BotReprogramarTurnoResponseDto(
+            response.getId(),
+            tenantId,
+            response.getServicioId(),
+            response.getProfesionalId(),
+            response.getEstado(),
+            response.getFecha(),
+            response.getHoraInicio(),
+            response.getHoraFin()
+        );
     }
 }
