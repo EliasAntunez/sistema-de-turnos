@@ -126,6 +126,21 @@ public class Empresa {
     @Column(name = "enviar_recordatorios")
     private Boolean enviarRecordatorios = true;
 
+    @Column(name = "win_back_habilitado", nullable = false)
+    private Boolean winBackHabilitado = false;
+
+    @Column(name = "win_back_dias_inactividad")
+    private Integer winBackDiasInactividad = 45;
+
+    @Column(name = "win_back_dias_espera_reenvio")
+    private Integer winBackDiasEsperaReenvio = 90;
+
+    @Column(name = "win_back_mensaje_plantilla", columnDefinition = "TEXT")
+    private String winBackMensajePlantilla = "¡Hola {cliente}! Hace mucho no nos visitás. Te extrañamos y por eso queremos regalarte un {descuento}% de descuento en tu próximo turno. Respondé a este mensaje para consultar nuestros horarios y reservar directamente por acá. ¡Te esperamos!";
+
+    @Column(name = "win_back_descuento_porcentaje")
+    private Integer winBackDescuentoPorcentaje = 10;
+
     @Column(nullable = false)
     private Boolean activa = true;
 

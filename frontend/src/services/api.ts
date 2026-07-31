@@ -212,6 +212,15 @@ export default {
     return apiClient.put('/dueno/configuracion', datos)
   },
 
+  // Recuperación de Clientes (Win-Back) (Dueño)
+  obtenerConfiguracionWinBack() {
+    return apiClient.get('/dueno/empresa/win-back')
+  },
+
+  actualizarConfiguracionWinBack(datos: any) {
+    return apiClient.put('/dueno/empresa/win-back', datos)
+  },
+
   // Métodos genéricos para usar con cualquier endpoint
   get(url: string) {
     return apiClient.get(url)

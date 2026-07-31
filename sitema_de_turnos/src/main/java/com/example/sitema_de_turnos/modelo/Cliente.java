@@ -93,6 +93,12 @@ public class Cliente {
     @Column(length = 500)
     private String observaciones;
 
+    @Column(name = "fecha_ultimo_mensaje_recuperacion")
+    private LocalDate fechaUltimoMensajeRecuperacion;
+
+    @Column(name = "win_back_descuento_pendiente")
+    private Integer winBackDescuentoPendiente;
+
     @Column(nullable = false)
     private Boolean activo = true;
 

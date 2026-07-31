@@ -205,7 +205,8 @@ public class ControladorPublico {
                 cliente.getTelefono(),
                 cliente.getEmail(),
                 cliente.getEmpresa().getId(),
-                cliente.getEmpresa().getNombre()
+                cliente.getEmpresa().getNombre(),
+                cliente.getWinBackDescuentoPendiente()
             );
 
             return ResponseEntity.ok(ApiResponse.exito(clienteResponse, "Login exitoso"));

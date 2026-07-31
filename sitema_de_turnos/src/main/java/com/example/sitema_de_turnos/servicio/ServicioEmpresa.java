@@ -8,16 +8,19 @@ import com.example.sitema_de_turnos.modelo.PerfilDueno;
 import com.example.sitema_de_turnos.modelo.PerfilProfesional;
 import com.example.sitema_de_turnos.modelo.RolUsuario;
 import com.example.sitema_de_turnos.modelo.Usuario;
+import com.example.sitema_de_turnos.modelo.BotConfiguracion;
 import com.example.sitema_de_turnos.repositorio.RepositorioEmpresa;
 import com.example.sitema_de_turnos.repositorio.RepositorioPerfilDueno;
 import com.example.sitema_de_turnos.repositorio.RepositorioPerfilProfesional;
 import com.example.sitema_de_turnos.repositorio.RepositorioUsuario;
+import com.example.sitema_de_turnos.repositorio.RepositorioBotConfiguracion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +32,7 @@ public class ServicioEmpresa {
     private final RepositorioUsuario repositorioUsuario;
     private final PasswordEncoder passwordEncoder;
     private final ServicioDueno servicioDueno;
+    private final RepositorioBotConfiguracion repositorioBotConfiguracion;
 
     /**
      * Obtener empresa por slug (retorna entidad Empresa, no DTO)
@@ -320,5 +324,62 @@ public class ServicioEmpresa {
         response.setEnviarRecordatorios(empresa.getEnviarRecordatorios());
         response.setDatosBancarios(empresa.getDatosBancarios());
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public WinBackConfigDto obtenerConfiguracionWinBack(String emailDueno) {
+        PerfilDueno perfil = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = repositorioEmpresa.findByPerfilDuenoId(perfil.getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("El dueño autenticado no tiene empresa asociada"));
+
+        Optional<BotConfiguracion> botConfigOpt = repositorioBotConfiguracion.findByTenantId(empresa.getId());
+        boolean botInactivo = botConfigOpt.isEmpty()
+                || !Boolean.TRUE.equals(botConfigOpt.get().getEstadoBot())
+                || botConfigOpt.get().getInstanciaWhatsapp() == null
+                || botConfigOpt.get().getInstanciaWhatsapp().isBlank();
+
+        return new WinBackConfigDto(
+            empresa.getWinBackHabilitado(),
+            empresa.getWinBackDiasInactividad(),
+            empresa.getWinBackDiasEsperaReenvio(),
+            empresa.getWinBackMensajePlantilla(),
+            empresa.getWinBackDescuentoPorcentaje(),
+            botInactivo
+        );
+    }
+
+    @Transactional
+    public WinBackConfigDto actualizarConfiguracionWinBack(String emailDueno, WinBackConfigDto dto) {
+        PerfilDueno perfil = servicioDueno.obtenerPorEmail(emailDueno);
+        Empresa empresa = repositorioEmpresa.findByPerfilDuenoId(perfil.getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("El dueño autenticado no tiene empresa asociada"));
+
+        Optional<BotConfiguracion> botConfigOpt = repositorioBotConfiguracion.findByTenantId(empresa.getId());
+        boolean botInactivo = botConfigOpt.isEmpty()
+                || !Boolean.TRUE.equals(botConfigOpt.get().getEstadoBot())
+                || botConfigOpt.get().getInstanciaWhatsapp() == null
+                || botConfigOpt.get().getInstanciaWhatsapp().isBlank();
+
+        if (botInactivo) {
+            throw new AccesoDenegadoException("Esta funcionalidad requiere tener el Asistente de WhatsApp activo");
+        }
+
+        empresa.setWinBackHabilitado(dto.getWinBackHabilitado() != null ? dto.getWinBackHabilitado() : false);
+        if (dto.getWinBackDiasInactividad() != null) {
+            empresa.setWinBackDiasInactividad(dto.getWinBackDiasInactividad());
+        }
+        if (dto.getWinBackDiasEsperaReenvio() != null) {
+            empresa.setWinBackDiasEsperaReenvio(dto.getWinBackDiasEsperaReenvio());
+        }
+        if (dto.getWinBackMensajePlantilla() != null) {
+            empresa.setWinBackMensajePlantilla(dto.getWinBackMensajePlantilla());
+        }
+        if (dto.getWinBackDescuentoPorcentaje() != null) {
+            empresa.setWinBackDescuentoPorcentaje(dto.getWinBackDescuentoPorcentaje());
+        }
+
+        repositorioEmpresa.save(empresa);
+
+        return dto;
     }
 }

@@ -27,6 +27,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.Duration;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -276,7 +277,26 @@ public class ServicioTurno {
         turno.setHoraFin(horaFin);
         turno.setDuracionMinutos(servicio.getDuracionMinutos()); // Solo duración del servicio
         turno.setBufferMinutos(buffer); // Buffer aplicado en este turno
-        turno.setPrecio(servicio.getPrecio());
+
+        BigDecimal precioOriginal = servicio.getPrecio();
+        BigDecimal precioFinal = precioOriginal != null ? precioOriginal : BigDecimal.ZERO;
+        Integer winBackDescuentoAplicado = null;
+
+        if (precioOriginal != null && cliente.getWinBackDescuentoPendiente() != null && cliente.getWinBackDescuentoPendiente() > 0) {
+            winBackDescuentoAplicado = cliente.getWinBackDescuentoPendiente();
+            BigDecimal factorDescuento = BigDecimal.valueOf(100 - winBackDescuentoAplicado)
+                    .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            precioFinal = precioOriginal.multiply(factorDescuento).setScale(2, java.math.RoundingMode.HALF_UP);
+
+            turno.setWinBackDescuentoAplicado(winBackDescuentoAplicado);
+            turno.setPrecioOriginal(precioOriginal);
+
+            // Consumir descuento del cliente
+            cliente.setWinBackDescuentoPendiente(null);
+            repositorioCliente.save(cliente);
+        }
+
+        turno.setPrecio(precioFinal);
         boolean requiereSena = Boolean.TRUE.equals(servicio.getRequiereSena());
         turno.setEstado(requiereSena ? EstadoTurno.PENDIENTE_PAGO : EstadoTurno.CONFIRMADO);
         turno.setObservaciones(request.getObservaciones());

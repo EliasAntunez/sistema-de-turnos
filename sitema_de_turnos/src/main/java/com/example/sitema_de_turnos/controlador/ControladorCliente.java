@@ -167,7 +167,8 @@ public class ControladorCliente {
             cliente.getTelefono(),
             cliente.getEmail(),
             cliente.getEmpresa().getId(),
-            cliente.getEmpresa().getNombre()
+            cliente.getEmpresa().getNombre(),
+            cliente.getWinBackDescuentoPendiente()
         );
 
         return ResponseEntity.ok(ApiResponse.exito(perfil, "Perfil obtenido exitosamente"));

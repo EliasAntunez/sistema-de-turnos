@@ -8,6 +8,7 @@ interface ClienteInfo {
   email: string
   empresaId: number
   empresaNombre: string
+  winBackDescuentoPendiente?: number
 }
 
 export const useClienteStore = defineStore('cliente', () => {

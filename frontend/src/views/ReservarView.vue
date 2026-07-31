@@ -122,6 +122,17 @@
         <div></div>
       </div>
 
+      <!-- Banner de descuento Win-Back -->
+      <div v-if="clienteStore.cliente?.winBackDescuentoPendiente && clienteStore.cliente.winBackDescuentoPendiente > 0" class="mb-6 p-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 text-sm flex items-start gap-3 shadow-sm">
+        <span class="text-lg">🎉</span>
+        <div>
+          <h4 class="font-bold text-indigo-900">¡Tenés un descuento exclusivo!</h4>
+          <p class="mt-1 text-xs text-indigo-700 leading-relaxed">
+            Tenés un <strong>{{ clienteStore.cliente.winBackDescuentoPendiente }}% de descuento</strong> disponible para esta reserva. El precio rebajado se aplicará automáticamente en tu turno.
+          </p>
+        </div>
+      </div>
+
       <!-- --- FILTRO --- -->
       <div v-if="servicios.length > 0" class="mb-6 max-w-md">
         <div class="relative rounded-xl shadow-sm">
@@ -156,9 +167,14 @@
             <h3 class="m-0 text-base sm:text-lg font-semibold text-slate-900 leading-tight">
               {{ servicio.nombre }}
             </h3>
-            <span class="text-base sm:text-lg font-bold text-slate-900 whitespace-nowrap">
-              {{ formatearMonedaARS(servicio.precio) }}
-            </span>
+            <div class="flex flex-col items-end">
+              <span v-if="clienteStore.cliente?.winBackDescuentoPendiente && clienteStore.cliente.winBackDescuentoPendiente > 0" class="text-xs text-slate-400 line-through font-normal leading-none mb-1">
+                {{ formatearMonedaARS(servicio.precio) }}
+              </span>
+              <span class="text-base sm:text-lg font-bold whitespace-nowrap leading-none" :class="clienteStore.cliente?.winBackDescuentoPendiente && clienteStore.cliente.winBackDescuentoPendiente > 0 ? 'text-emerald-600 font-extrabold' : 'text-slate-900'">
+                {{ formatearMonedaARS(clienteStore.cliente?.winBackDescuentoPendiente && clienteStore.cliente.winBackDescuentoPendiente > 0 ? (servicio.precio - (servicio.precio * clienteStore.cliente.winBackDescuentoPendiente / 100)) : servicio.precio) }}
+              </span>
+            </div>
           </div>
 
           <!-- Nueva Fila 2: Descripción con truncado inteligente dinámico -->
@@ -365,7 +381,25 @@
       <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 mb-6 space-y-2">
         <div class="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 text-sm sm:text-base"><strong class="text-slate-700">Servicio:</strong><span class="text-slate-900 text-right">{{ servicioSeleccionado?.nombre }}</span></div>
         <div class="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 text-sm sm:text-base"><strong class="text-slate-700">Duración:</strong><span class="text-slate-900 text-right">{{ servicioSeleccionado?.duracionMinutos }} minutos</span></div>
-        <div class="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 text-sm sm:text-base"><strong class="text-slate-700">Precio:</strong><span class="text-slate-900 text-right">{{ formatearMonedaARS(servicioSeleccionado?.precio) }}</span></div>
+        <!-- Desglose de Precios (Win-Back) -->
+        <div v-if="clienteStore.cliente?.winBackDescuentoPendiente && clienteStore.cliente.winBackDescuentoPendiente > 0" class="col-span-2 border-b border-slate-200 pb-2 space-y-2">
+          <div class="flex items-center justify-between gap-3 text-sm sm:text-base">
+            <strong class="text-slate-700 font-semibold">Subtotal:</strong>
+            <span class="text-slate-900 text-right">{{ formatearMonedaARS(servicioSeleccionado?.precio) }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-3 text-sm sm:text-base text-emerald-600">
+            <strong class="font-medium">Descuento Win-Back ({{ clienteStore.cliente.winBackDescuentoPendiente }}%):</strong>
+            <span class="font-semibold text-right">-{{ formatearMonedaARS(servicioSeleccionado?.precio ? (servicioSeleccionado.precio * clienteStore.cliente.winBackDescuentoPendiente / 100) : 0) }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-3 pt-1 border-t border-slate-200 text-sm sm:text-base">
+            <strong class="text-slate-900 font-bold">Total a Pagar:</strong>
+            <span class="text-emerald-600 font-bold text-right">{{ formatearMonedaARS(servicioSeleccionado?.precio ? (servicioSeleccionado.precio - (servicioSeleccionado.precio * clienteStore.cliente.winBackDescuentoPendiente / 100)) : 0) }}</span>
+          </div>
+        </div>
+        <div v-else class="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 text-sm sm:text-base">
+          <strong class="text-slate-700">Precio:</strong>
+          <span class="text-slate-900 text-right">{{ formatearMonedaARS(servicioSeleccionado?.precio) }}</span>
+        </div>
         <div class="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 text-sm sm:text-base"><strong class="text-slate-700">Profesional:</strong><span class="text-slate-900 text-right">{{ profesionalSeleccionado?.nombre }} {{ profesionalSeleccionado?.apellido }}</span></div>
         <div class="flex items-center justify-between gap-3 border-b border-slate-200 pb-2 text-sm sm:text-base"><strong class="text-slate-700">Fecha:</strong><span class="text-slate-900 text-right">{{ fechaSeleccionadaFormateada }}</span></div>
         <div class="flex items-center justify-between gap-3 text-sm sm:text-base"><strong class="text-slate-700">Hora:</strong><span class="text-slate-900 text-right">{{ slotSeleccionado ? formatearHora(slotSeleccionado.horaInicio) : '' }}</span></div>

@@ -111,7 +111,8 @@ public class ServicioAutenticacionCliente {
                 cliente.getTelefono(),
                 cliente.getEmail(),
                 empresa.getId(),
-                empresa.getNombre()
+                empresa.getNombre(),
+                cliente.getWinBackDescuentoPendiente()
             );
         }
         
@@ -160,7 +161,8 @@ public class ServicioAutenticacionCliente {
             cliente.getTelefono(),
             cliente.getEmail(),
             empresa.getId(),
-            empresa.getNombre()
+            empresa.getNombre(),
+            cliente.getWinBackDescuentoPendiente()
         );
     }
 

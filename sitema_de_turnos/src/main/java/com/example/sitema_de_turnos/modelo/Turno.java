@@ -188,6 +188,12 @@ public class Turno {
     @Column(name = "recordatorio_error", length = 500)
     private String recordatorioError;
 
+    @Column(name = "win_back_descuento_aplicado")
+    private Integer winBackDescuentoAplicado;
+
+    @Column(name = "precio_original", precision = 10, scale = 2)
+    private BigDecimal precioOriginal;
+
     @PrePersist
     protected void onCreate() {
         fechaCreacion = LocalDateTime.now(ZoneOffset.UTC);
