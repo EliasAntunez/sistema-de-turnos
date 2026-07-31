@@ -82,4 +82,23 @@ public interface RepositorioCliente extends JpaRepository<Cliente, Long> {
      * Verificar si existe un nombre de usuario en una empresa
      */
     boolean existsByEmpresaAndNombreUsuarioAndActivoTrue(Empresa empresa, String nombreUsuario);
+
+    @Query("SELECT c FROM Cliente c " +
+           "JOIN FETCH c.empresa e " +
+           "WHERE e.id = :empresaId " +
+           "AND e.activa = true " +
+           "AND c.activo = true " +
+           "AND (c.fechaUltimoMensajeRecuperacion IS NULL OR c.fechaUltimoMensajeRecuperacion < :fechaLimiteSpam) " +
+           "AND EXISTS (SELECT t1 FROM Turno t1 WHERE t1.cliente = c AND t1.estado = com.example.sitema_de_turnos.modelo.EstadoTurno.ATENDIDO) " +
+           "AND (SELECT MAX(t2.fecha) FROM Turno t2 WHERE t2.cliente = c AND t2.estado = com.example.sitema_de_turnos.modelo.EstadoTurno.ATENDIDO) < :fechaLimiteInactividad " +
+           "AND NOT EXISTS (SELECT t3 FROM Turno t3 WHERE t3.cliente = c AND t3.estado IN :estadosPendientes " +
+           "AND (t3.fecha > :fechaActual OR (t3.fecha = :fechaActual AND t3.horaInicio > :horaActual)))")
+    List<Cliente> findClientesParaRecuperacion(
+        @Param("empresaId") Long empresaId,
+        @Param("fechaLimiteInactividad") java.time.LocalDate fechaLimiteInactividad,
+        @Param("fechaLimiteSpam") java.time.LocalDate fechaLimiteSpam,
+        @Param("fechaActual") java.time.LocalDate fechaActual,
+        @Param("horaActual") java.time.LocalTime horaActual,
+        @Param("estadosPendientes") List<com.example.sitema_de_turnos.modelo.EstadoTurno> estadosPendientes
+    );
 }

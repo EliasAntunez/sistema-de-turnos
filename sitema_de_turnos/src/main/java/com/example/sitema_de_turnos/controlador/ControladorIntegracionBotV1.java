@@ -44,9 +44,10 @@ public class ControladorIntegracionBotV1 {
 
     @GetMapping("/tenants/{tenantId}/servicios")
     public ResponseEntity<RespuestaApi<List<BotServicioResponseDto>>> obtenerServiciosPorTenant(
-        @PathVariable Long tenantId
+        @PathVariable Long tenantId,
+        @RequestParam(value = "telefono", required = false) String telefono
     ) {
-        List<BotServicioResponseDto> servicios = servicioIntegracionBot.obtenerServiciosPorTenant(tenantId);
+        List<BotServicioResponseDto> servicios = servicioIntegracionBot.obtenerServiciosPorTenant(tenantId, telefono);
         return ResponseEntity.ok(RespuestaApi.exitosa("Servicios obtenidos exitosamente", servicios));
     }
 

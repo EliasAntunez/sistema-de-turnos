@@ -87,7 +87,7 @@ public class ServicioIntegracionBot {
     }
 
     @Transactional(readOnly = true)
-    public List<BotServicioResponseDto> obtenerServiciosPorTenant(Long tenantId) {
+    public List<BotServicioResponseDto> obtenerServiciosPorTenant(Long tenantId, String telefono) {
         Empresa empresa = repositorioEmpresa.findById(tenantId)
             .orElseThrow(() -> new RecursoNoEncontradoException("Tenant no encontrado"));
 
@@ -97,13 +97,39 @@ public class ServicioIntegracionBot {
 
         List<Servicio> servicios = repositorioServicio.findByEmpresaAndActivoTrue(empresa);
 
+        Optional<Cliente> clienteOpt = Optional.empty();
+        if (telefono != null && !telefono.isBlank()) {
+            String telNormalizado = NormalizadorDatos.normalizarTelefono(telefono);
+            if (telNormalizado != null) {
+                clienteOpt = repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, telNormalizado);
+            }
+        }
+
+        final Optional<Cliente> finalClienteOpt = clienteOpt;
         return servicios.stream()
-            .map(servicio -> new BotServicioResponseDto(
-                servicio.getId(),
-                servicio.getNombre(),
-                servicio.getPrecio(),
-                servicio.getDuracionMinutos()
-            ))
+            .map(servicio -> {
+                java.math.BigDecimal precioOriginal = servicio.getPrecio();
+                java.math.BigDecimal precioFinal = precioOriginal;
+                Integer descuento = null;
+
+                if (finalClienteOpt.isPresent() && finalClienteOpt.get().getWinBackDescuentoPendiente() != null) {
+                    int desc = finalClienteOpt.get().getWinBackDescuentoPendiente();
+                    if (desc > 0) {
+                        descuento = desc;
+                        java.math.BigDecimal factor = java.math.BigDecimal.valueOf(100 - desc).divide(java.math.BigDecimal.valueOf(100));
+                        precioFinal = precioOriginal.multiply(factor).setScale(2, java.math.RoundingMode.HALF_UP);
+                    }
+                }
+
+                return new BotServicioResponseDto(
+                    servicio.getId(),
+                    servicio.getNombre(),
+                    precioFinal,
+                    servicio.getDuracionMinutos(),
+                    descuento != null ? precioOriginal : null,
+                    descuento
+                );
+            })
             .toList();
     }
 

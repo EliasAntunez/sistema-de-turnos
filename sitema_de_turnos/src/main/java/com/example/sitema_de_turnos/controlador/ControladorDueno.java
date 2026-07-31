@@ -282,4 +282,20 @@ public class ControladorDueno {
                 RespuestaApi.exitosa("Configuración actualizada exitosamente", configuracion)
         );
     }
+
+    @GetMapping("/empresa/win-back")
+    public ResponseEntity<WinBackConfigDto> obtenerConfiguracionWinBack(Authentication authentication) {
+        String emailDueno = authentication.getName();
+        WinBackConfigDto dto = servicioEmpresa.obtenerConfiguracionWinBack(emailDueno);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/empresa/win-back")
+    public ResponseEntity<RespuestaApi<WinBackConfigDto>> actualizarConfiguracionWinBack(
+            @Valid @RequestBody WinBackConfigDto dto,
+            Authentication authentication) {
+        String emailDueno = authentication.getName();
+        WinBackConfigDto actualizada = servicioEmpresa.actualizarConfiguracionWinBack(emailDueno, dto);
+        return ResponseEntity.ok(RespuestaApi.exitosa("Configuración de Win-Back actualizada exitosamente", actualizada));
+    }
 }

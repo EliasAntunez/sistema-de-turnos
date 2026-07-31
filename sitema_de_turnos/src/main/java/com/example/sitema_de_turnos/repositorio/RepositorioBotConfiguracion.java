@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface RepositorioBotConfiguracion extends JpaRepository<BotConfiguracion, Long> {
 
     Optional<BotConfiguracion> findByInstanciaWhatsapp(String instanciaWhatsapp);
+
+    Optional<BotConfiguracion> findByTenantId(Long tenantId);
 }

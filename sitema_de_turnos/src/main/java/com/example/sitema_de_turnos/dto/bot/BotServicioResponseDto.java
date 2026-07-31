@@ -15,4 +15,6 @@ public class BotServicioResponseDto {
     private String nombre;
     private BigDecimal precio;
     private Integer duracionMinutos;
+    private BigDecimal precioOriginal;
+    private Integer descuentoAplicado;
 }

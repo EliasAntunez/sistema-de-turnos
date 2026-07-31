@@ -14,4 +14,5 @@ public class ClienteAutenticadoResponse {
     private String email;
     private Long empresaId;
     private String empresaNombre;
+    private Integer winBackDescuentoPendiente;
 }

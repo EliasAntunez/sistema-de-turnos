@@ -4,6 +4,7 @@ import com.example.sitema_de_turnos.dto.bot.BotCancelarTurnoRequestDto;
 import com.example.sitema_de_turnos.dto.bot.BotReprogramarTurnoRequestDto;
 import com.example.sitema_de_turnos.dto.bot.BotReprogramarTurnoResponseDto;
 import com.example.sitema_de_turnos.dto.bot.BotTurnoConfirmadoResponseDto;
+import com.example.sitema_de_turnos.dto.bot.BotServicioResponseDto;
 import com.example.sitema_de_turnos.dto.publico.ReservaReprogramarRequest;
 import com.example.sitema_de_turnos.dto.publico.TurnoResponsePublico;
 import com.example.sitema_de_turnos.excepcion.AccesoDenegadoException;
@@ -234,5 +235,25 @@ class ServicioIntegracionBotTest {
         assertEquals("2026-07-20", sentRequest.getFecha());
         assertEquals("10:00", sentRequest.getHoraInicio());
         assertEquals(30L, sentRequest.getProfesionalId());
+    }
+
+    @Test
+    @DisplayName("obtenerServiciosPorTenant: Con teléfono de cliente con descuento Win-Back, retorna precio rebajado y desglosado")
+    void obtenerServiciosPorTenant_conDescuento_retornaPrecioRebajado() {
+        cliente.setWinBackDescuentoPendiente(10); // 10% discount
+
+        when(repositorioEmpresa.findById(1L)).thenReturn(Optional.of(empresa));
+        when(repositorioServicio.findByEmpresaAndActivoTrue(empresa)).thenReturn(List.of(servicio));
+        when(repositorioCliente.findByEmpresaAndTelefonoAndActivoTrue(empresa, "5491112345678"))
+            .thenReturn(Optional.of(cliente));
+
+        List<BotServicioResponseDto> result = servicioIntegracionBot.obtenerServiciosPorTenant(1L, "+54 9 11 1234-5678");
+
+        assertEquals(1, result.size());
+        BotServicioResponseDto dto = result.get(0);
+        // Original price is 1500.0, 10% discount = 1350.0
+        assertEquals(BigDecimal.valueOf(1350.00).setScale(2), dto.getPrecio());
+        assertEquals(BigDecimal.valueOf(1500.0), dto.getPrecioOriginal());
+        assertEquals(10, dto.getDescuentoAplicado());
     }
 }

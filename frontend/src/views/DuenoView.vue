@@ -70,6 +70,18 @@
           </svg>
           <span>Configuración</span>
         </button>
+        <button
+          @click="activeTab = 'marketing'"
+          :class="[
+            'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition-colors',
+            activeTab === 'marketing' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+          ]"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.68-.69-1.89-.69-2.58 0L5.3 18.4c-.38.38-.38 1 0 1.39l.21.21c.39.39 1.02.39 1.41 0l2.45-2.45c.4-.4.59-.93.59-1.46v-.25zm6.54-9.35a3.996 3.996 0 00-5.66 0l-7.78 7.78a1 1 0 000 1.41l.21.21c.39.39 1.02.39 1.41 0l7.78-7.78c1.56-1.56 4.09-1.56 5.66 0 1.56 1.56 1.56 4.09 0 5.66l-7.78 7.78a1 1 0 000 1.41l.21.21a1 1 0 001.41 0l7.78-7.78a3.996 3.996 0 000-5.66z" />
+          </svg>
+          <span>Recuperar Clientes</span>
+        </button>
       </nav>
     </aside>
 
@@ -121,11 +133,11 @@
 
     <!-- Navegación Móvil: Bottom Bar -->
     <nav class="fixed bottom-0 left-0 z-50 w-full border-t border-slate-200 bg-white md:hidden">
-      <div class="grid grid-cols-4">
+      <div class="grid grid-cols-5">
         <button
           @click="activeTab = 'profesionales'"
           :class="[
-            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[10px] font-semibold transition-colors',
             activeTab === 'profesionales' ? 'text-amber-500' : 'text-slate-500'
           ]"
         >
@@ -137,7 +149,7 @@
         <button
           @click="activeTab = 'servicios'"
           :class="[
-            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[10px] font-semibold transition-colors',
             activeTab === 'servicios' ? 'text-amber-500' : 'text-slate-500'
           ]"
         >
@@ -149,7 +161,7 @@
         <button
           @click="activeTab = 'horarios'"
           :class="[
-            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[10px] font-semibold transition-colors',
             activeTab === 'horarios' ? 'text-amber-500' : 'text-slate-500'
           ]"
         >
@@ -158,25 +170,22 @@
           </svg>
           <span>Horarios</span>
         </button>
-        <!--
-        Tab móvil de políticas oculto temporalmente para versión inicial.
         <button
-          @click="activeTab = 'politicas'"
+          @click="activeTab = 'marketing'"
           :class="[
-            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
-            activeTab === 'politicas' ? 'text-amber-500' : 'text-slate-500'
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[10px] font-semibold transition-colors',
+            activeTab === 'marketing' ? 'text-amber-500' : 'text-slate-500'
           ]"
         >
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.68-.69-1.89-.69-2.58 0L5.3 18.4c-.38.38-.38 1 0 1.39l.21.21c.39.39 1.02.39 1.41 0l2.45-2.45c.4-.4.59-.93.59-1.46v-.25zm6.54-9.35a3.996 3.996 0 00-5.66 0l-7.78 7.78a1 1 0 000 1.41l.21.21c.39.39 1.02.39 1.41 0l7.78-7.78c1.56-1.56 4.09-1.56 5.66 0 1.56 1.56 1.56 4.09 0 5.66l-7.78 7.78a1 1 0 000 1.41l.21.21a1 1 0 001.41 0l7.78-7.78a3.996 3.996 0 000-5.66z" />
           </svg>
-          <span>Políticas</span>
+          <span>Recuperar Clientes</span>
         </button>
-        -->
         <button
           @click="activeTab = 'configuracion'"
           :class="[
-            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold transition-colors',
+            'flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 text-[10px] font-semibold transition-colors',
             activeTab === 'configuracion' ? 'text-amber-500' : 'text-slate-500'
           ]"
         >
@@ -624,6 +633,183 @@
           </div>
         </form>
       </div>
+    </main>
+
+    <!-- Tab: Marketing (Win-Back) -->
+    <main v-if="activeTab === 'marketing'" class="mx-auto w-full max-w-4xl px-4 py-6 pb-24 md:pb-8">
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <h2 class="flex items-center text-xl font-semibold text-slate-900 sm:text-2xl">
+          <svg class="mr-2 h-6 w-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.68-.69-1.89-.69-2.58 0L5.3 18.4c-.38.38-.38 1 0 1.39l.21.21c.39.39 1.02.39 1.41 0l2.45-2.45c.4-.4.59-.93.59-1.46v-.25zm6.54-9.35a3.996 3.996 0 00-5.66 0l-7.78 7.78a1 1 0 000 1.41l.21.21c.39.39 1.02.39 1.41 0l7.78-7.78c1.56-1.56 4.09-1.56 5.66 0 1.56 1.56 1.56 4.09 0 5.66l-7.78 7.78a1 1 0 000 1.41l.21.21a1 1 0 001.41 0l7.78-7.78a3.996 3.996 0 000-5.66z" />
+          </svg>
+          Recuperación de Clientes
+        </h2>
+      </div>
+
+      <!-- Banner de Plan Pro / Bot Inactivo -->
+      <div v-if="formDataWinBack.botInactivo" class="mb-6 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-sm flex items-start gap-3 shadow-sm">
+        <span class="text-lg">🔒</span>
+        <div>
+          <h4 class="font-bold text-amber-900">Función Exclusiva</h4>
+          <p class="mt-1 text-xs text-amber-700 leading-relaxed">
+            La recuperación automática de clientes requiere tener el <strong>Asistente de WhatsApp</strong> activo. 
+            Comunícate con soporte para habilitar el bot en tu cuenta y automatizar el regreso de tus clientes inactivos.
+          </p>
+        </div>
+      </div>
+
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-6 py-4">
+          <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.656 48.656 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7C4.795 9.547 4.75 10.768 4.75 12s.045 2.39.138 3.593a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.092-1.204.138-2.425.138-3.593z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9.75h.008v.008H8.25V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM12 9.75h.008v.008H12V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm2.25 0h.008v.008H14.625V9.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+          </svg>
+          <h3 class="font-semibold text-slate-800 flex items-center gap-1.5">
+            Recuperación de Clientes
+            <span v-if="formDataWinBack.botInactivo" title="Función bloqueada (requiere plan Pro / Asistente activo)">🔒</span>
+          </h3>
+        </div>
+ 
+        <div v-if="loadingWinBack" class="p-8 text-center text-slate-600 text-sm">
+          Cargando configuración de Recuperación de Clientes...
+        </div>
+ 
+        <div v-else class="space-y-6 p-6">
+          <div class="flex flex-col gap-4 border-b border-slate-100 py-4 last:border-0 md:flex-row md:items-center">
+            <div class="md:w-1/3">
+              <label class="text-sm font-semibold text-slate-800">Estado del servicio</label>
+              <p class="mt-1 text-xs text-slate-500">Envía automáticamente mensajes de WhatsApp a clientes inactivos</p>
+            </div>
+            <div class="flex flex-col md:w-2/3">
+              <label 
+                class="inline-flex items-center gap-3 self-start"
+                :class="formDataWinBack.botInactivo ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'"
+              >
+                <input 
+                  v-model="formDataWinBack.winBackHabilitado" 
+                  type="checkbox"
+                  class="peer sr-only"
+                  :disabled="formDataWinBack.botInactivo"
+                />
+                <span class="relative h-6 w-11 rounded-full bg-slate-300 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all peer-checked:bg-emerald-600 peer-checked:after:translate-x-5"></span>
+                <span class="text-sm font-medium text-slate-700">
+                  {{ formDataWinBack.winBackHabilitado ? 'Recuperación de Clientes Activa' : 'Recuperación de Clientes Desactivada' }}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="formDataWinBack.winBackHabilitado" class="space-y-6">
+            <div class="flex flex-col gap-4 border-b border-slate-100 py-4 last:border-0 md:flex-row md:items-center" :class="{ 'has-error': fieldErrorsWinBack.winBackDiasInactividad }">
+              <div class="md:w-1/3">
+                <label class="text-sm font-semibold text-slate-800">Días de inactividad</label>
+                <p class="mt-1 text-xs text-slate-500">Días desde el último turno atendido (Min 7, Max 365)</p>
+              </div>
+              <div class="flex flex-col md:w-2/3">
+                <input 
+                  v-model.number="formDataWinBack.winBackDiasInactividad" 
+                  type="number" 
+                  min="7"
+                  max="365"
+                  required
+                  :disabled="formDataWinBack.botInactivo"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none"
+                  :class="{ 'opacity-60 bg-slate-50 cursor-not-allowed': formDataWinBack.botInactivo }"
+                />
+                <span v-if="fieldErrorsWinBack.winBackDiasInactividad" class="mt-1 text-xs text-rose-600 font-medium">
+                  {{ fieldErrorsWinBack.winBackDiasInactividad }}
+                </span>
+              </div>
+            </div>
+ 
+            <div class="flex flex-col gap-4 border-b border-slate-100 py-4 last:border-0 md:flex-row md:items-center" :class="{ 'has-error': fieldErrorsWinBack.winBackDiasEsperaReenvio }">
+              <div class="md:w-1/3">
+                <label class="text-sm font-semibold text-slate-800">Periodo de enfriamiento (días)</label>
+                <p class="mt-1 text-xs text-slate-500">Espera mínima de días para repetir envíos a un mismo cliente (Min 30)</p>
+              </div>
+              <div class="flex flex-col md:w-2/3">
+                <input 
+                  v-model.number="formDataWinBack.winBackDiasEsperaReenvio" 
+                  type="number" 
+                  min="30"
+                  required
+                  :disabled="formDataWinBack.botInactivo"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none"
+                  :class="{ 'opacity-60 bg-slate-50 cursor-not-allowed': formDataWinBack.botInactivo }"
+                />
+                <span v-if="fieldErrorsWinBack.winBackDiasEsperaReenvio" class="mt-1 text-xs text-rose-600 font-medium">
+                  {{ fieldErrorsWinBack.winBackDiasEsperaReenvio }}
+                </span>
+              </div>
+            </div>
+ 
+            <div class="flex flex-col gap-4 border-b border-slate-100 py-4 last:border-0 md:flex-row md:items-center" :class="{ 'has-error': fieldErrorsWinBack.winBackDescuentoPorcentaje }">
+              <div class="md:w-1/3">
+                <label class="text-sm font-semibold text-slate-800">Descuento (%)</label>
+                <p class="mt-1 text-xs text-slate-500">Porcentaje de descuento ofrecido (Min 1, Max 100)</p>
+              </div>
+              <div class="flex flex-col md:w-2/3">
+                <input 
+                  v-model.number="formDataWinBack.winBackDescuentoPorcentaje" 
+                  type="number" 
+                  min="1"
+                  max="100"
+                  required
+                  :disabled="formDataWinBack.botInactivo"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none"
+                  :class="{ 'opacity-60 bg-slate-50 cursor-not-allowed': formDataWinBack.botInactivo }"
+                />
+                <span v-if="fieldErrorsWinBack.winBackDescuentoPorcentaje" class="mt-1 text-xs text-rose-600 font-medium">
+                  {{ fieldErrorsWinBack.winBackDescuentoPorcentaje }}
+                </span>
+              </div>
+            </div>
+ 
+            <div class="flex flex-col gap-4 border-b border-slate-100 py-4 last:border-0 md:flex-row" :class="{ 'has-error': fieldErrorsWinBack.winBackMensajePlantilla }">
+              <div class="md:w-1/3">
+                <label class="text-sm font-semibold text-slate-800">Mensaje de WhatsApp</label>
+                <p class="mt-1 text-xs text-slate-500">Mensaje de WhatsApp que recibirá el cliente.</p>
+              </div>
+              <div class="flex flex-col md:w-2/3">
+                <textarea
+                  v-model="formDataWinBack.winBackMensajePlantilla"
+                  rows="4"
+                  required
+                  :disabled="formDataWinBack.botInactivo"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none"
+                  :class="{ 'opacity-60 bg-slate-50 cursor-not-allowed': formDataWinBack.botInactivo }"
+                  placeholder="¡Hola {cliente}! Hace mucho no nos visitas..."
+                ></textarea>
+                <p class="mt-1.5 text-xs text-slate-500 italic">
+                  Variables disponibles: <strong>{cliente}</strong>, <strong>{descuento}</strong> y <strong>{link}</strong>.
+                </p>
+                <span v-if="fieldErrorsWinBack.winBackMensajePlantilla" class="mt-1 text-xs text-rose-600 font-medium">
+                  {{ fieldErrorsWinBack.winBackMensajePlantilla }}
+                </span>
+              </div>
+            </div>
+          </div>
+ 
+          <div v-if="errorWinBack" class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            {{ errorWinBack }}
+          </div>
+ 
+          <div class="flex justify-end pt-4 border-t border-slate-100">
+            <button 
+              type="button" 
+              @click="submitConfiguracionWinBack" 
+              class="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed" 
+              :disabled="!canSubmitWinBack || formDataWinBack.botInactivo"
+              :class="formDataWinBack.botInactivo ? 'opacity-50 cursor-not-allowed bg-slate-400' : ''"
+            >
+              <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75H6.375a1.125 1.125 0 0 0-1.125 1.125v14.25c0 .621.504 1.125 1.125 1.125h11.25c.621 0 1.125-.504 1.125-1.125V7.5L15 3.75H9Z" />
+              </svg>
+              {{ submittingWinBack ? 'Guardando...' : 'Guardar Configuración' }}
+            </button>
+          </div>
+        </div>
+      </section>
     </main>
 
         <!-- Modal Form Empresa -->
@@ -1346,7 +1532,7 @@ const formDataEmpresa = ref({
 })
 
 // Tab activo
-const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas' | 'configuracion'>('profesionales')
+const activeTab = ref<'profesionales' | 'servicios' | 'horarios' | 'politicas' | 'configuracion' | 'marketing'>('profesionales')
 
 // Estado para Políticas de Cancelación
 const politicas = ref<PoliticaCancelacionResponse[]>([])
@@ -1528,6 +1714,30 @@ const configuracionOriginal = ref({
   datosBancarios: '' as string | null
 })
 
+// Estado para Recuperación de Clientes (Win-Back)
+const loadingWinBack = ref(false)
+const submittingWinBack = ref(false)
+const errorWinBack = ref('')
+const fieldErrorsWinBack = ref<FieldErrors>({})
+
+const formDataWinBack = ref({
+  winBackHabilitado: false,
+  winBackDiasInactividad: 45,
+  winBackDiasEsperaReenvio: 90,
+  winBackMensajePlantilla: '',
+  winBackDescuentoPorcentaje: 10,
+  botInactivo: false
+})
+
+const winBackOriginal = ref({
+  winBackHabilitado: false,
+  winBackDiasInactividad: 45,
+  winBackDiasEsperaReenvio: 90,
+  winBackMensajePlantilla: '',
+  winBackDescuentoPorcentaje: 10,
+  botInactivo: false
+})
+
 function agruparHorariosPorDia() {
   const agrupados: Record<string, HorarioEmpresa[]> = {}
   diasSemana.forEach(dia => {
@@ -1586,6 +1796,12 @@ watch(
   },
   { deep: true }
 )
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'marketing') {
+    cargarConfiguracionWinBack()
+  }
+})
 
 const formEmpresaDirty = computed(() => {
   return Object.keys(empresaOriginal.value).some((campo) => {
@@ -1655,6 +1871,21 @@ const formConfiguracionValida = computed(() => {
   return bufferValido && anticipacionValida && diasValido && recordatorioValido
 })
 const canSubmitConfiguracion = computed(() => formConfiguracionDirty.value && formConfiguracionValida.value && !submittingConfiguracion.value)
+
+// --- 6. Marketing (Win-Back) ---
+const formWinBackDirty = computed(() => JSON.stringify(formDataWinBack.value) !== JSON.stringify(winBackOriginal.value))
+const formWinBackValido = computed(() => {
+  if (!formDataWinBack.value.winBackHabilitado) {
+    return true
+  }
+  const inactividadValida = Number(formDataWinBack.value.winBackDiasInactividad) >= 7 && Number(formDataWinBack.value.winBackDiasInactividad) <= 365
+  const reenvioValido = Number(formDataWinBack.value.winBackDiasEsperaReenvio) >= 30
+  const mensajeValido = (formDataWinBack.value.winBackMensajePlantilla || '').trim().length > 0
+  const descuentoValido = Number(formDataWinBack.value.winBackDescuentoPorcentaje) >= 1 && Number(formDataWinBack.value.winBackDescuentoPorcentaje) <= 100
+
+  return inactividadValida && reenvioValido && mensajeValido && descuentoValido
+})
+const canSubmitWinBack = computed(() => formWinBackDirty.value && formWinBackValido.value && !submittingWinBack.value)
 
 function toggleUserMenu() {
   showUserMenu.value = !showUserMenu.value
@@ -2609,6 +2840,56 @@ async function submitConfiguracion() {
     errorConfiguracion.value = message
   } finally {
     submittingConfiguracion.value = false
+  }
+}
+
+// ==================== FUNCIONES PARA MARKETING (WIN-BACK) ====================
+
+async function cargarConfiguracionWinBack() {
+  loadingWinBack.value = true
+  errorWinBack.value = ''
+  
+  try {
+    const response = await api.obtenerConfiguracionWinBack()
+    const data = response.data
+    
+    formDataWinBack.value = {
+      winBackHabilitado: data.winBackHabilitado ?? false,
+      winBackDiasInactividad: data.winBackDiasInactividad ?? 45,
+      winBackDiasEsperaReenvio: data.winBackDiasEsperaReenvio ?? 90,
+      winBackMensajePlantilla: data.winBackMensajePlantilla ?? '',
+      winBackDescuentoPorcentaje: data.winBackDescuentoPorcentaje ?? 10,
+      botInactivo: data.botInactivo ?? false
+    }
+    winBackOriginal.value = { ...formDataWinBack.value }
+  } catch (err: unknown) {
+    console.error('Error al cargar configuración Win-Back:', err)
+    errorWinBack.value = 'Error al cargar la configuración de recuperación de clientes'
+  } finally {
+    loadingWinBack.value = false
+  }
+}
+
+async function submitConfiguracionWinBack() {
+  submittingWinBack.value = true
+  errorWinBack.value = ''
+  fieldErrorsWinBack.value = {}
+  
+  try {
+    await api.actualizarConfiguracionWinBack(formDataWinBack.value)
+    
+    toast.showSuccess('Configuración de Win-Back guardada exitosamente')
+    
+    await cargarConfiguracionWinBack()
+  } catch (err: unknown) {
+    console.error('Error al guardar configuración Win-Back:', err)
+    const { fieldErrors, message } = extractApiErrorInfo(err, 'Error al guardar la configuración de Win-Back. Intente nuevamente.')
+    if (fieldErrors) {
+      fieldErrorsWinBack.value = fieldErrors
+    }
+    errorWinBack.value = message
+  } finally {
+    submittingWinBack.value = false
   }
 }
 
