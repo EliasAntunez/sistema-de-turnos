@@ -12,11 +12,13 @@ import RegistroClienteView from '../views/RegistroClienteView.vue'
 import LoginClienteView from '../views/LoginClienteView.vue'
 import MisTurnosView from '../views/MisTurnosView.vue'
 import RegistroEmpresaView from '../views/RegistroEmpresaView.vue'
+import LandingView from '../views/LandingView.vue'
 
 const routes = [
   {
     path: '/',
-    redirect: '/login'
+    name: 'Landing',
+    component: LandingView
   },
   {
     path: '/login',
